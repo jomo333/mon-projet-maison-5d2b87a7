@@ -8,14 +8,24 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp } from "lucide-react";
 import { PlanAnalyzer } from "@/components/budget/PlanAnalyzer";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+interface BudgetItem {
+  name: string;
+  cost: number;
+  quantity: string;
+  unit: string;
+}
 
 interface BudgetCategory {
   name: string;
   budget: number;
   spent: number;
   color: string;
+  description?: string;
+  items?: BudgetItem[];
 }
 
 const defaultCategories: BudgetCategory[] = [
@@ -59,14 +69,26 @@ const Budget = () => {
     color: cat.color,
   }));
 
-  const handleBudgetGenerated = (categories: { name: string; budget: number; description: string }[]) => {
+  const handleBudgetGenerated = (categories: { name: string; budget: number; description: string; items?: BudgetItem[] }[]) => {
     const newCategories: BudgetCategory[] = categories.map((cat, index) => ({
       name: cat.name,
       budget: cat.budget,
       spent: 0,
       color: categoryColors[index % categoryColors.length],
+      description: cat.description,
+      items: cat.items || [],
     }));
     setBudgetCategories(newCategories);
+  };
+
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(categoryName) 
+        ? prev.filter(name => name !== categoryName)
+        : [...prev, categoryName]
+    );
   };
 
   return (
@@ -257,53 +279,101 @@ const Budget = () => {
                 <CardDescription>Budget et dépenses par poste</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
                   {budgetCategories.map((category) => {
                     const percent = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
                     const isOverBudget = category.spent > category.budget;
                     const isNearLimit = percent > 80 && !isOverBudget;
+                    const isExpanded = expandedCategories.includes(category.name);
+                    const hasItems = category.items && category.items.length > 0;
 
                     return (
-                      <div
-                        key={category.name}
-                        className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                      <Collapsible 
+                        key={category.name} 
+                        open={isExpanded} 
+                        onOpenChange={() => toggleCategory(category.name)}
                       >
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">{category.name}</span>
-                            {isOverBudget && (
-                              <Badge variant="destructive" className="text-xs">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Dépassement
-                              </Badge>
+                        <div className="rounded-lg border hover:bg-muted/50 transition-colors">
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center gap-4 p-3 cursor-pointer">
+                              <div
+                                className="w-4 h-4 rounded shrink-0"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium truncate">{category.name}</span>
+                                  {isOverBudget && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      Dépassement
+                                    </Badge>
+                                  )}
+                                  {isNearLimit && (
+                                    <Badge variant="secondary" className="text-xs bg-warning/10 text-warning">
+                                      Attention
+                                    </Badge>
+                                  )}
+                                </div>
+                                <Progress
+                                  value={Math.min(percent, 100)}
+                                  className="mt-2 h-1.5"
+                                />
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-sm font-medium">
+                                  {category.spent.toLocaleString()} $
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  / {category.budget.toLocaleString()} $
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                {hasItems && (
+                                  isExpanded ? (
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent>
+                            {hasItems && (
+                              <div className="px-4 pb-3 pt-1 border-t bg-muted/30">
+                                {category.description && (
+                                  <p className="text-sm text-muted-foreground mb-3 italic">
+                                    {category.description}
+                                  </p>
+                                )}
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
+                                    <div className="col-span-5">Élément</div>
+                                    <div className="col-span-3 text-center">Quantité</div>
+                                    <div className="col-span-4 text-right">Coût</div>
+                                  </div>
+                                  {category.items!.map((item, idx) => (
+                                    <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
+                                      <div className="col-span-5 truncate">{item.name}</div>
+                                      <div className="col-span-3 text-center text-muted-foreground">
+                                        {item.quantity} {item.unit}
+                                      </div>
+                                      <div className="col-span-4 text-right font-medium">
+                                        {item.cost.toLocaleString()} $
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             )}
-                            {isNearLimit && (
-                              <Badge variant="secondary" className="text-xs bg-warning/10 text-warning">
-                                Attention
-                              </Badge>
-                            )}
-                          </div>
-                          <Progress
-                            value={Math.min(percent, 100)}
-                            className="mt-2 h-1.5"
-                          />
+                          </CollapsibleContent>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-sm font-medium">
-                            {category.spent.toLocaleString()} $
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            / {category.budget.toLocaleString()} $
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      </Collapsible>
                     );
                   })}
                 </div>

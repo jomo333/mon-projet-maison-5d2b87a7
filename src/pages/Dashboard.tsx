@@ -1,35 +1,195 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
-import { ProjectOverview } from "@/components/dashboard/ProjectOverview";
-import { ConstructionStages } from "@/components/dashboard/ConstructionStages";
-import { AIAssistant } from "@/components/dashboard/AIAssistant";
-import { BudgetChart } from "@/components/dashboard/BudgetChart";
+import { constructionSteps, phases } from "@/data/constructionSteps";
+import { StepCard } from "@/components/guide/StepCard";
+import { StepDetail } from "@/components/guide/StepDetail";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Home, MapPin, Calendar, ChevronRight } from "lucide-react";
 
 const Dashboard = () => {
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [activePhase, setActivePhase] = useState<string | null>(null);
+
+  // Mock project data (would come from state/context after wizard)
+  const projectData = {
+    projectName: "Mon projet maison",
+    projectType: "Maison neuve",
+    municipality: "Sherbrooke",
+    currentStage: "planification",
+  };
+
+  const selectedStep = selectedStepId 
+    ? constructionSteps.find(s => s.id === selectedStepId) 
+    : null;
+
+  const filteredSteps = activePhase 
+    ? constructionSteps.filter(s => s.phase === activePhase)
+    : constructionSteps;
+
+  const totalSteps = constructionSteps.length;
+  const currentStepIndex = selectedStep 
+    ? constructionSteps.findIndex(s => s.id === selectedStepId) + 1
+    : 0;
+
+  // Find the current stage index based on project data
+  const projectStageIndex = constructionSteps.findIndex(s => s.id === projectData.currentStage);
+  const overallProgress = ((projectStageIndex + 1) / totalSteps) * 100;
+
+  if (selectedStep) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 py-8">
+          <div className="container max-w-4xl">
+            <Button 
+              variant="ghost" 
+              onClick={() => setSelectedStepId(null)}
+              className="mb-6 gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour aux étapes
+            </Button>
+
+            <div className="mb-6">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <span>Étape {currentStepIndex} de {totalSteps}</span>
+              </div>
+              <Progress value={(currentStepIndex / totalSteps) * 100} className="h-2" />
+            </div>
+
+            <StepDetail 
+              step={selectedStep} 
+              onNext={() => {
+                const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
+                if (nextIndex < constructionSteps.length) {
+                  setSelectedStepId(constructionSteps[nextIndex].id);
+                }
+              }}
+              onPrevious={() => {
+                const prevIndex = constructionSteps.findIndex(s => s.id === selectedStepId) - 1;
+                if (prevIndex >= 0) {
+                  setSelectedStepId(constructionSteps[prevIndex].id);
+                }
+              }}
+              hasNext={currentStepIndex < totalSteps}
+              hasPrevious={currentStepIndex > 1}
+            />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 py-8">
-        <div className="container space-y-8">
-          <div>
+        <div className="container">
+          {/* Project header */}
+          <div className="mb-8">
             <h1 className="font-display text-3xl font-bold tracking-tight">
-              Tableau de bord
+              {projectData.projectName}
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Bienvenue! Voici l'état de votre projet de construction.
-            </p>
-          </div>
-
-          <ProjectOverview />
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ConstructionStages />
-            <div className="space-y-6">
-              <AIAssistant />
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Home className="h-4 w-4" />
+                <span>{projectData.projectType}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span>{projectData.municipality}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>Démarré le 15 janvier 2025</span>
+              </div>
             </div>
           </div>
 
-          <BudgetChart />
+          {/* Progress overview */}
+          <Card className="mb-8">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Progression globale</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <Progress value={overallProgress} className="flex-1 h-3" />
+                <span className="text-lg font-semibold">{Math.round(overallProgress)}%</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Vous êtes à l'étape: <span className="font-medium text-foreground">{constructionSteps[projectStageIndex]?.title || "Planification"}</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Current step highlight */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Votre prochaine étape</h2>
+            <Card 
+              className="cursor-pointer border-primary/50 bg-primary/5 hover:shadow-lg transition-all"
+              onClick={() => setSelectedStepId(constructionSteps[projectStageIndex]?.id || "planification")}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Badge className="mb-2">{phases.find(p => p.id === constructionSteps[projectStageIndex]?.phase)?.label}</Badge>
+                    <h3 className="text-xl font-semibold">{constructionSteps[projectStageIndex]?.title}</h3>
+                    <p className="text-muted-foreground mt-1">{constructionSteps[projectStageIndex]?.description}</p>
+                  </div>
+                  <Button className="gap-2">
+                    Continuer
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Section title */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Toutes les étapes de construction</h2>
+            <p className="text-muted-foreground">
+              Suivez ce guide pour mener à bien votre projet d'autoconstruction.
+            </p>
+          </div>
+
+          {/* Phase filters */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Badge 
+              variant={activePhase === null ? "default" : "outline"}
+              className="cursor-pointer px-4 py-2"
+              onClick={() => setActivePhase(null)}
+            >
+              Toutes les phases
+            </Badge>
+            {phases.map((phase) => (
+              <Badge 
+                key={phase.id}
+                variant={activePhase === phase.id ? "default" : "outline"}
+                className="cursor-pointer px-4 py-2"
+                onClick={() => setActivePhase(phase.id)}
+              >
+                {phase.label}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Steps grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredSteps.map((step) => (
+              <StepCard
+                key={step.id}
+                step={step}
+                stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
+                onClick={() => setSelectedStepId(step.id)}
+              />
+            ))}
+          </div>
         </div>
       </main>
       <Footer />

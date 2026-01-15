@@ -62,7 +62,7 @@ export function Hero() {
             <Button 
               variant="outline" 
               size="lg" 
-              className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+              className="border-white bg-white/20 text-white hover:bg-white/30 hover:text-white backdrop-blur-sm"
               onClick={() => navigate("/guide")}
             >
               Voir le guide

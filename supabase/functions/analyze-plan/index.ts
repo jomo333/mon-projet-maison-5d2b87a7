@@ -99,15 +99,37 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
     {
       "name": "Nom de la catégorie",
       "budget": number,
-      "description": "Description des travaux basée sur les détails de tous les plans",
+      "description": "Description SPÉCIFIQUE des travaux basée sur ce que tu vois RÉELLEMENT dans les plans (dimensions, matériaux, configurations observées)",
       "items": [
-        { "name": "Item", "cost": number, "quantity": "quantité", "unit": "unité" }
+        { 
+          "name": "Nom PRÉCIS et DESCRIPTIF de l'élément basé sur les plans - DOIT inclure dimensions, matériaux et quantités observés", 
+          "cost": number, 
+          "quantity": "quantité exacte basée sur les plans", 
+          "unit": "unité" 
+        }
       ]
     }
   ],
   "recommendations": ["Recommandation 1", "Recommandation 2"],
   "warnings": ["Avertissement si applicable"]
 }
+
+IMPORTANT POUR LES ITEMS - PERSONNALISATION SELON LES PLANS ANALYSÉS:
+- Chaque item DOIT avoir un nom DESCRIPTIF et SPÉCIFIQUE basé sur les plans
+- OBLIGATOIRE: Inclure les dimensions, types de matériaux et quantités observés dans les plans
+- Exemples de noms BONS et ACCEPTÉS:
+  * "Semelles de béton 24\"x12\" - périmètre 120 pi.lin."
+  * "Fenêtres coulissantes PVC 48\"x36\" - façade sud (3 unités)"
+  * "Poutrelles de plancher TJI 11-7/8\" - portée 14 pi"
+  * "Bardage de cèdre horizontal - 450 pi²"
+  * "Porte-patio coulissante 6' - accès terrasse"
+  * "Escalier droit 13 marches - contremarche 7\""
+- Exemples de noms MAUVAIS et INTERDITS:
+  * "Fenêtres" (trop vague)
+  * "Structure" (non descriptif)
+  * "Revêtement" (pas de spécification)
+  * "Béton" (pas de dimension)
+- Si tu vois des détails spécifiques sur les plans (type de toiture, style de fenêtres, matériaux notés), INCLUS-LES ABSOLUMENT dans les noms d'items
 
 Catégories pour AGRANDISSEMENT: Fondations (nouvelle partie), Structure/Charpente, Toiture, Raccordement à l'existant, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Démolition (si applicable).
 
@@ -130,6 +152,7 @@ ANALYSE DEMANDÉE:
 - Identifier clairement le type de projet (agrandissement, construction neuve, rénovation, etc.)
 - Estimer la superficie de la NOUVELLE construction seulement
 - Générer un budget adapté au type de projet identifié
+- IMPORTANT: Pour chaque item, utilise des noms TRÈS DESCRIPTIFS avec dimensions et spécifications visibles sur les plans
 
 Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.length > 1 ? 'de tous les plans' : 'du plan'} et les coûts actuels au Québec (2024-2025).`;
 
@@ -166,15 +189,36 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
     {
       "name": "Nom de la catégorie",
       "budget": number,
-      "description": "Description des travaux",
+      "description": "Description SPÉCIFIQUE des travaux adaptée à ce projet",
       "items": [
-        { "name": "Item", "cost": number, "quantity": "quantité", "unit": "unité" }
+        { 
+          "name": "Nom PRÉCIS et DESCRIPTIF incluant dimensions et spécifications calculées selon la superficie du projet", 
+          "cost": number, 
+          "quantity": "quantité calculée selon la superficie", 
+          "unit": "unité" 
+        }
       ]
     }
   ],
   "recommendations": ["Recommandation 1", "Recommandation 2"],
   "warnings": ["Avertissement si applicable"]
 }
+
+IMPORTANT POUR LES ITEMS - DESCRIPTIONS PERSONNALISÉES AU PROJET:
+- Chaque item DOIT être SPÉCIFIQUE à ce projet (taille, nombre d'étages, type)
+- OBLIGATOIRE: Calculer et inclure les dimensions basées sur la superficie fournie
+- Exemples de noms BONS:
+  * "Dalle de béton 4\" avec treillis armé - 1500 pi²"
+  * "Murs extérieurs 2x6 @ 16\" c/c - périmètre estimé 180 pi.lin."
+  * "Fermes de toit préfabriquées 4/12 - portée 28 pi (14 unités)"
+  * "Panneau électrique 200A avec 40 circuits"
+  * "Fenêtres PVC double vitrage Low-E - estimation 12 unités"
+  * "Isolation R-24 murs + R-60 combles - 2800 pi²"
+- Exemples de noms MAUVAIS:
+  * "Murs" (pas de spécification)
+  * "Charpente" (trop vague)
+  * "Électricité" (pas de détail)
+  * "Isolation" (pas de valeur R ni superficie)
 
 Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures${hasGarage ? ', Garage' : ''}.`;
 
@@ -194,6 +238,11 @@ ${foundationSqft ? `- Superficie de la fondation: ${foundationSqft} pi²` : ''}
 ${floorDetailsStr ? `- Détail par étage:\n${floorDetailsStr}` : ''}
 - Garage: ${hasGarage ? 'Oui (simple ou double selon la superficie)' : 'Non'}
 - Région: Québec, Canada
+
+IMPORTANT: Pour chaque item du budget, utilise des noms TRÈS DESCRIPTIFS avec:
+- Les dimensions calculées selon la superficie fournie
+- Les spécifications techniques (type de matériaux, épaisseurs, valeurs R, etc.)
+- Les quantités estimées basées sur les paramètres du projet
 
 Génère une estimation budgétaire complète et réaliste basée sur les coûts actuels au Québec (2024-2025).
 ${hasGarage ? 'IMPORTANT: Inclure une catégorie spécifique pour le Garage avec tous les coûts associés (dalle, structure, porte de garage, électricité, etc.).' : ''}`;

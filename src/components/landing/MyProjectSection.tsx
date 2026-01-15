@@ -1,13 +1,25 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Plus, FolderOpen, Calendar, DollarSign } from "lucide-react";
+import { ArrowRight, Plus, FolderOpen, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Project {
   id: string;
@@ -52,6 +64,7 @@ const getProjectTypeLabel = (type: string | null) => {
 
 export function MyProjectSection() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
 
   const { data: projects, isLoading } = useQuery({
@@ -70,6 +83,36 @@ export function MyProjectSection() {
     },
     enabled: !!user,
   });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      // Delete related budget entries first
+      await supabase
+        .from("project_budgets")
+        .delete()
+        .eq("project_id", projectId);
+      
+      // Delete the project
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", projectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-projects"] });
+      toast.success("Projet supprimé avec succès");
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast.error("Erreur lors de la suppression du projet");
+    },
+  });
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
 
   // Don't show section if not logged in or still loading
   if (authLoading || !user) return null;
@@ -124,7 +167,41 @@ export function MyProjectSection() {
                         {getProjectTypeLabel(project.project_type)}
                       </CardDescription>
                     </div>
-                    {getStatusBadge(project.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(project.status)}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={handleDeleteClick}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer ce projet?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est irréversible. Toutes les données du projet "{project.name}" seront définitivement supprimées, y compris le budget et les pièces jointes.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteProjectMutation.mutate(project.id);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">

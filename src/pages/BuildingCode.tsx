@@ -4,8 +4,10 @@ import { Footer } from "@/components/landing/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, BookOpen, Loader2, AlertCircle, FileText, Lightbulb, MessageSquare, Send, User, Bot, CheckCircle } from "lucide-react";
+import { Search, BookOpen, Loader2, AlertCircle, FileText, Lightbulb, MessageSquare, Send, User, Bot, CheckCircle, MapPin, Building2, HelpCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 // Base de données locale du Code du Bâtiment
 const buildingCodeDB = {
@@ -267,6 +269,121 @@ const buildingCodeDB = {
   ]
 };
 
+// Base de données des codes municipaux
+const municipalCodesDB: Record<string, {
+  name: string;
+  codes: Array<{
+    id: string;
+    topic: string;
+    requirement: string;
+    article: string;
+    tags: string[];
+  }>;
+}> = {
+  "sherbrooke": {
+    name: "Sherbrooke",
+    codes: [
+      { id: "SHE1", topic: "Marge avant minimale", requirement: "6 mètres minimum pour zone résidentielle R1-R2", article: "Règlement 1-2015, art. 234", tags: ["marge", "recul", "avant"] },
+      { id: "SHE2", topic: "Marge latérale minimale", requirement: "1.5 mètres minimum, 3 mètres côté rue pour lots d'angle", article: "Règlement 1-2015, art. 235", tags: ["marge", "latérale", "recul"] },
+      { id: "SHE3", topic: "Hauteur maximale résidentielle", requirement: "10 mètres / 2 étages en zone R1, 12 mètres / 3 étages en R2", article: "Règlement 1-2015, art. 240", tags: ["hauteur", "étage"] },
+      { id: "SHE4", topic: "Stationnement résidentiel", requirement: "Minimum 1 case par logement + 1 case visiteur par 4 logements", article: "Règlement 1-2015, art. 310", tags: ["stationnement", "parking"] },
+      { id: "SHE5", topic: "Clôture hauteur maximale", requirement: "2 mètres en cour arrière, 1 mètre en cour avant", article: "Règlement 1-2015, art. 280", tags: ["clôture", "hauteur"] }
+    ]
+  },
+  "montreal": {
+    name: "Montréal",
+    codes: [
+      { id: "MTL1", topic: "Marge avant minimale", requirement: "Varie selon arrondissement - généralement 3 à 6 mètres", article: "Règlement d'urbanisme, chapitre 5", tags: ["marge", "recul", "avant"] },
+      { id: "MTL2", topic: "Coefficient d'occupation du sol", requirement: "COS maximum de 0.5 à 2.0 selon la zone", article: "Règlement d'urbanisme, chapitre 4", tags: ["cos", "densité"] },
+      { id: "MTL3", topic: "Arbres protection", requirement: "Permis requis pour abattre un arbre de plus de 10cm de diamètre", article: "Règlement 18-008, art. 8", tags: ["arbre", "protection", "permis"] },
+      { id: "MTL4", topic: "Toiture végétalisée", requirement: "Obligatoire pour nouveaux bâtiments commerciaux >2000m²", article: "Règlement 20-020", tags: ["toiture", "végétale", "commercial"] },
+      { id: "MTL5", topic: "Stationnement vélo", requirement: "1 support vélo par 300m² de surface commerciale", article: "Règlement d'urbanisme, chapitre 6", tags: ["vélo", "stationnement"] }
+    ]
+  },
+  "quebec": {
+    name: "Québec",
+    codes: [
+      { id: "QC1", topic: "Marge avant minimale", requirement: "7.5 mètres en zone résidentielle unifamiliale", article: "Règlement R.V.Q. 1900, art. 145", tags: ["marge", "recul", "avant"] },
+      { id: "QC2", topic: "Protection du patrimoine", requirement: "Approbation requise pour modifications en secteur patrimonial", article: "Règlement R.V.Q. 2133", tags: ["patrimoine", "historique"] },
+      { id: "QC3", topic: "Implantation piscine", requirement: "Minimum 1.5m de la ligne de lot, clôture 1.2m obligatoire", article: "Règlement R.V.Q. 1900, art. 298", tags: ["piscine", "clôture"] },
+      { id: "QC4", topic: "Revêtement extérieur", requirement: "Minimum 30% de maçonnerie en façade principale en zone R2", article: "Règlement R.V.Q. 1900, art. 220", tags: ["revêtement", "façade", "maçonnerie"] },
+      { id: "QC5", topic: "Stationnement résidentiel", requirement: "1 case minimum par logement, maximum 2 en cour avant", article: "Règlement R.V.Q. 1900, art. 350", tags: ["stationnement", "parking"] }
+    ]
+  },
+  "laval": {
+    name: "Laval",
+    codes: [
+      { id: "LAV1", topic: "Marge avant minimale", requirement: "6 mètres minimum pour résidentiel unifamilial", article: "Règlement L-2000, art. 125", tags: ["marge", "recul", "avant"] },
+      { id: "LAV2", topic: "Superficie minimale terrain", requirement: "550m² minimum pour construction unifamiliale isolée", article: "Règlement L-2000, art. 110", tags: ["terrain", "superficie", "lot"] },
+      { id: "LAV3", topic: "Cabanon/remise", requirement: "Maximum 15m², hauteur 3m, marge latérale 1m", article: "Règlement L-2000, art. 180", tags: ["cabanon", "remise", "accessoire"] },
+      { id: "LAV4", topic: "Entrée de garage", requirement: "Largeur maximum 6m, recul 0.6m de la ligne de rue", article: "Règlement L-2000, art. 155", tags: ["garage", "entrée", "pavage"] }
+    ]
+  },
+  "gatineau": {
+    name: "Gatineau",
+    codes: [
+      { id: "GAT1", topic: "Marge avant minimale", requirement: "7 mètres en zone résidentielle de faible densité", article: "Règlement 502-2005, art. 215", tags: ["marge", "recul", "avant"] },
+      { id: "GAT2", topic: "Bâtiment accessoire", requirement: "Maximum 60m² ou 10% du terrain, le moindre des deux", article: "Règlement 502-2005, art. 245", tags: ["accessoire", "cabanon", "garage"] },
+      { id: "GAT3", topic: "Protection boisé", requirement: "Conservation obligatoire de 30% du couvert forestier sur lot boisé", article: "Règlement 502-2005, art. 310", tags: ["boisé", "arbre", "conservation"] }
+    ]
+  }
+};
+
+// Questions de clarification par sujet
+const clarificationQuestions: Record<string, {
+  trigger: string[];
+  questions: string[];
+}> = {
+  "garde-corps": {
+    trigger: ["garde-corps", "garde corps", "balustrade", "rampe", "balustre", "rambarde"],
+    questions: [
+      "Est-ce pour un escalier intérieur ou un balcon/terrasse?",
+      "Quelle est la hauteur de chute (différence de niveau)?",
+      "Y a-t-il des enfants dans le logement?"
+    ]
+  },
+  "escalier": {
+    trigger: ["escalier", "marche", "contremarche", "giron"],
+    questions: [
+      "Est-ce un escalier intérieur ou extérieur?",
+      "Est-ce un escalier principal ou de service?",
+      "Quelle est la largeur prévue de l'escalier?"
+    ]
+  },
+  "isolation": {
+    trigger: ["isolation", "isoler", "isolant", "thermique", "r-value", "rsi"],
+    questions: [
+      "S'agit-il des murs, du toit ou des fondations?",
+      "Est-ce une construction neuve ou une rénovation?",
+      "Dans quelle zone climatique êtes-vous?"
+    ]
+  },
+  "ventilation": {
+    trigger: ["ventilation", "ventiler", "aération", "vrc", "échangeur"],
+    questions: [
+      "Est-ce pour une salle de bain, cuisine ou le système principal?",
+      "Avez-vous des fenêtres ouvrables dans cette pièce?",
+      "Est-ce une construction neuve?"
+    ]
+  },
+  "électricité": {
+    trigger: ["électrique", "électricité", "prise", "circuit", "ddft", "gfci"],
+    questions: [
+      "Pour quelle pièce (cuisine, salle de bain, chambre)?",
+      "Est-ce près d'un point d'eau?",
+      "Combien d'appareils prévoyez-vous brancher?"
+    ]
+  },
+  "municipal": {
+    trigger: ["marge", "recul", "hauteur bâtiment", "zonage", "permis", "clôture", "stationnement"],
+    questions: [
+      "Quel type de zone (résidentielle, commerciale)?",
+      "S'agit-il d'une nouvelle construction ou rénovation?",
+      "Avez-vous consulté le règlement de zonage de votre municipalité?"
+    ]
+  }
+};
+
 type ImportanceLevel = 'critique' | 'haute' | 'moyenne';
 
 interface BuildingCodeEntry {
@@ -278,19 +395,83 @@ interface BuildingCodeEntry {
   tags: string[];
 }
 
+interface MunicipalCode {
+  id: string;
+  topic: string;
+  requirement: string;
+  article: string;
+  tags: string[];
+}
+
+interface SearchSummary {
+  totalResults: number;
+  categories: string[];
+  mainTopic: string;
+  keyPoints: string[];
+}
+
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "clarification";
   content: string;
   results?: BuildingCodeEntry[];
+  municipalResults?: MunicipalCode[];
+  municipalityName?: string;
+  summary?: SearchSummary;
+  clarificationOptions?: string[];
+}
+
+interface UserProject {
+  id: string;
+  name: string;
+  municipality: string | null;
 }
 
 const BuildingCode = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [category, setCategory] = useState("all");
+  const [userMunicipality, setUserMunicipality] = useState<string | null>(null);
+  const [userProjects, setUserProjects] = useState<UserProject[]>([]);
+  const [selectedProject, setSelectedProject] = useState<UserProject | null>(null);
+  const [askingLocation, setAskingLocation] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Charger les projets de l'utilisateur
+  useEffect(() => {
+    const loadUserProjects = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, description")
+        .eq("user_id", user.id);
+
+      if (data && !error) {
+        const projects = data.map(p => {
+          // Extraire la municipalité de la description
+          const match = p.description?.match(/Municipalité:\s*([^|]+)/);
+          return {
+            id: p.id,
+            name: p.name,
+            municipality: match ? match[1].trim() : null
+          };
+        });
+        setUserProjects(projects);
+        
+        // Sélectionner automatiquement le premier projet avec une municipalité
+        const projectWithMunicipality = projects.find(p => p.municipality);
+        if (projectWithMunicipality) {
+          setSelectedProject(projectWithMunicipality);
+          setUserMunicipality(projectWithMunicipality.municipality);
+        }
+      }
+    };
+
+    loadUserProjects();
+  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -307,11 +488,22 @@ const BuildingCode = () => {
     { id: 'plomberie', name: 'Plomberie' },
     { id: 'electricite', name: 'Électricité' },
     { id: 'ventilation', name: 'Ventilation' },
-    { id: 'fenestration', name: 'Fenêtres' }
+    { id: 'fenestration', name: 'Fenêtres' },
+    { id: 'municipal', name: 'Code municipal' }
   ];
 
+  const findClarificationQuestions = (query: string): string[] | null => {
+    const lowerQuery = query.toLowerCase();
+    for (const [, data] of Object.entries(clarificationQuestions)) {
+      if (data.trigger.some(t => lowerQuery.includes(t))) {
+        return data.questions;
+      }
+    }
+    return null;
+  };
+
   const searchBuildingCode = (query: string): BuildingCodeEntry[] => {
-    const allEntries: BuildingCodeEntry[] = category === 'all' 
+    const allEntries: BuildingCodeEntry[] = category === 'all' || category === 'municipal'
       ? Object.values(buildingCodeDB).flat()
       : (buildingCodeDB[category as keyof typeof buildingCodeDB] as BuildingCodeEntry[]) || [];
 
@@ -324,7 +516,6 @@ const BuildingCode = () => {
       searchTerms.forEach(term => {
         if (searchText.includes(term)) {
           score += 1;
-          // Bonus for exact matches in question or tags
           if (entry.question.toLowerCase().includes(term)) score += 2;
           if (entry.tags.some(tag => tag.includes(term))) score += 2;
         }
@@ -340,8 +531,97 @@ const BuildingCode = () => {
       .map(s => s.entry);
   };
 
+  const searchMunicipalCodes = (query: string, municipality: string): { codes: MunicipalCode[], name: string } | null => {
+    const normalizedMuni = municipality.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    let matchedCity: string | null = null;
+    for (const city of Object.keys(municipalCodesDB)) {
+      if (normalizedMuni.includes(city)) {
+        matchedCity = city;
+        break;
+      }
+    }
+
+    if (!matchedCity) return null;
+
+    const cityData = municipalCodesDB[matchedCity];
+    const searchTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+
+    const scored = cityData.codes.map(code => {
+      let score = 0;
+      const searchText = `${code.topic} ${code.requirement} ${code.tags.join(' ')}`.toLowerCase();
+      
+      searchTerms.forEach(term => {
+        if (searchText.includes(term)) {
+          score += 1;
+          if (code.topic.toLowerCase().includes(term)) score += 2;
+          if (code.tags.some(tag => tag.includes(term))) score += 2;
+        }
+      });
+
+      // Si aucun terme spécifique, retourner tout
+      if (searchTerms.length === 0) score = 1;
+
+      return { code, score };
+    });
+
+    return {
+      codes: scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.code),
+      name: cityData.name
+    };
+  };
+
+  const generateSummary = (results: BuildingCodeEntry[], municipalResults?: MunicipalCode[]): SearchSummary => {
+    const categories = [...new Set(results.map(r => {
+      for (const [cat, entries] of Object.entries(buildingCodeDB)) {
+        if ((entries as BuildingCodeEntry[]).some(e => e.id === r.id)) {
+          return cat;
+        }
+      }
+      return 'autre';
+    }))];
+
+    const keyPoints = results.slice(0, 3).map(r => {
+      const shortAnswer = r.reponse.split('.')[0] + '.';
+      return shortAnswer;
+    });
+
+    if (municipalResults && municipalResults.length > 0) {
+      keyPoints.push(`${municipalResults.length} exigence(s) municipale(s) applicable(s)`);
+    }
+
+    return {
+      totalResults: results.length + (municipalResults?.length || 0),
+      categories,
+      mainTopic: results[0]?.question || "Recherche générale",
+      keyPoints
+    };
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isSearching) return;
+
+    // Si on demande la localisation
+    if (askingLocation) {
+      setUserMunicipality(input.trim());
+      setAskingLocation(false);
+      
+      const locationMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: input.trim(),
+      };
+      setMessages(prev => [...prev, locationMessage]);
+
+      const confirmMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Parfait! Je vais maintenant rechercher les codes de construction pour ${input.trim()}. Posez votre question.`,
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+      setInput("");
+      return;
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -354,21 +634,79 @@ const BuildingCode = () => {
     setInput("");
     setIsSearching(true);
 
-    // Simulate brief search delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 400));
 
+    // Vérifier si on doit demander la localisation pour les codes municipaux
+    const needsMunicipal = category === 'municipal' || 
+      ['marge', 'recul', 'zonage', 'clôture', 'stationnement', 'hauteur bâtiment'].some(t => query.toLowerCase().includes(t));
+
+    if (needsMunicipal && !userMunicipality) {
+      const askLocationMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Pour rechercher les codes municipaux, j'ai besoin de connaître la municipalité de votre projet. Dans quelle ville/municipalité se situe votre construction?",
+      };
+      setMessages(prev => [...prev, askLocationMessage]);
+      setAskingLocation(true);
+      setIsSearching(false);
+      return;
+    }
+
+    // Chercher des questions de clarification
+    const clarifications = findClarificationQuestions(query);
     const results = searchBuildingCode(query);
     
+    // Chercher les codes municipaux si applicable
+    let municipalResults: { codes: MunicipalCode[], name: string } | null = null;
+    if (userMunicipality && (needsMunicipal || category === 'all')) {
+      municipalResults = searchMunicipalCodes(query, userMunicipality);
+    }
+
+    // Générer le résumé
+    const summary = results.length > 0 ? generateSummary(results, municipalResults?.codes) : undefined;
+
+    // Construire le message de réponse
+    let responseContent = "";
+    
+    if (results.length > 0 || (municipalResults && municipalResults.codes.length > 0)) {
+      const totalResults = results.length + (municipalResults?.codes.length || 0);
+      responseContent = `📋 **Résumé de recherche**\n\n`;
+      responseContent += `J'ai trouvé **${totalResults} résultat${totalResults > 1 ? 's' : ''}** pour votre recherche.\n\n`;
+      
+      if (summary) {
+        responseContent += `**Points clés:**\n`;
+        summary.keyPoints.forEach((point, i) => {
+          responseContent += `• ${point}\n`;
+        });
+      }
+    } else {
+      responseContent = "Je n'ai pas trouvé de résultat correspondant à votre recherche. Essayez avec d'autres termes comme: garde-corps, escalier, isolation, ventilation, électricité...";
+    }
+
     const assistantMessage: Message = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: results.length > 0 
-        ? `J'ai trouvé ${results.length} article${results.length > 1 ? 's' : ''} pertinent${results.length > 1 ? 's' : ''} dans le Code du bâtiment :`
-        : "Je n'ai pas trouvé de résultat correspondant à votre recherche. Essayez avec d'autres termes comme: garde-corps, escalier, isolation, ventilation, électricité...",
+      content: responseContent,
       results: results.length > 0 ? results : undefined,
+      municipalResults: municipalResults?.codes,
+      municipalityName: municipalResults?.name,
+      summary,
     };
 
     setMessages(prev => [...prev, assistantMessage]);
+
+    // Ajouter des questions de clarification si pertinent
+    if (clarifications && results.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const clarificationMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "clarification",
+        content: "💡 Pour affiner ma réponse, pourriez-vous préciser:",
+        clarificationOptions: clarifications,
+      };
+      setMessages(prev => [...prev, clarificationMessage]);
+    }
+
     setIsSearching(false);
   };
 
@@ -379,9 +717,21 @@ const BuildingCode = () => {
     }
   };
 
+  const handleClarificationClick = (question: string) => {
+    setInput(question);
+  };
+
   const handleNewSearch = () => {
     setMessages([]);
     setInput("");
+    setAskingLocation(false);
+  };
+
+  const handleProjectSelect = (project: UserProject) => {
+    setSelectedProject(project);
+    if (project.municipality) {
+      setUserMunicipality(project.municipality);
+    }
   };
 
   const getImportanceColor = (importance: ImportanceLevel) => {
@@ -396,7 +746,7 @@ const BuildingCode = () => {
     "Hauteur garde-corps",
     "Dimensions escalier",
     "Isolation murs",
-    "Ventilation salle de bain",
+    "Marge avant minimale",
     "Prises électriques",
     "Sorties de secours"
   ];
@@ -413,8 +763,7 @@ const BuildingCode = () => {
             </div>
             <h1 className="text-3xl font-bold mb-2">Code du bâtiment</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Recherchez des informations sur le Code national du bâtiment du Canada. 
-              Base de données locale - aucune API externe requise.
+              Recherchez des informations sur le Code national du bâtiment et les codes municipaux.
             </p>
           </div>
 
@@ -423,11 +772,62 @@ const BuildingCode = () => {
             <CardContent className="flex items-start gap-3 py-4">
               <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">Avis important :</strong> Les informations fournies sont à titre indicatif seulement et n'ont aucune valeur légale. 
-                Consultez toujours un professionnel qualifié et les autorités locales pour vos projets de construction.
+                <strong className="text-foreground">Avis important :</strong> Les informations fournies sont à titre indicatif seulement. 
+                Consultez toujours un professionnel qualifié et les autorités locales.
               </p>
             </CardContent>
           </Card>
+
+          {/* Project/Location Selection */}
+          {userProjects.length > 0 && (
+            <Card className="mb-4">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Projet sélectionné:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {userProjects.map(project => (
+                    <Button
+                      key={project.id}
+                      variant={selectedProject?.id === project.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleProjectSelect(project)}
+                      className="gap-2"
+                    >
+                      {project.name}
+                      {project.municipality && (
+                        <span className="text-xs opacity-75">({project.municipality})</span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Municipality indicator */}
+          {userMunicipality && (
+            <Card className="mb-4 border-primary/30 bg-primary/5">
+              <CardContent className="flex items-center gap-3 py-3">
+                <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
+                <p className="text-sm">
+                  <strong>Codes municipaux actifs:</strong> {userMunicipality}
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="ml-2 h-auto p-0"
+                    onClick={() => {
+                      setUserMunicipality(null);
+                      setSelectedProject(null);
+                    }}
+                  >
+                    Changer
+                  </Button>
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Category Filter */}
           <Card className="mb-4">
@@ -453,7 +853,7 @@ const BuildingCode = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Recherche
+                  Recherche intelligente
                 </CardTitle>
                 {messages.length > 0 && (
                   <Button variant="outline" size="sm" onClick={handleNewSearch}>
@@ -468,7 +868,7 @@ const BuildingCode = () => {
                   <Search className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                   <h3 className="text-lg font-medium mb-2">Posez votre question</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Recherchez des informations sur les normes de construction.
+                    Je vous guiderai avec des questions pour trouver la meilleure réponse.
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {exampleSearches.map((example) => (
@@ -489,31 +889,64 @@ const BuildingCode = () => {
                   <div className="space-y-4">
                     {messages.map((message) => (
                       <div key={message.id} className="space-y-3">
-                        <div className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                          {message.role === "assistant" && (
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Bot className="h-4 w-4 text-primary" />
+                        {/* User or Assistant message */}
+                        {message.role !== "clarification" && (
+                          <div className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                            {message.role === "assistant" && (
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Bot className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
+                            <div
+                              className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                                message.role === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             </div>
-                          )}
-                          <div
-                            className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                              message.role === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            }`}
-                          >
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            {message.role === "user" && (
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                                <User className="h-4 w-4" />
+                              </div>
+                            )}
                           </div>
-                          {message.role === "user" && (
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                              <User className="h-4 w-4" />
-                            </div>
-                          )}
-                        </div>
+                        )}
 
-                        {/* Show results if present */}
+                        {/* Clarification questions */}
+                        {message.role === "clarification" && (
+                          <div className="ml-11">
+                            <Card className="border-primary/30 bg-primary/5">
+                              <CardContent className="py-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <HelpCircle className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-medium">{message.content}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {message.clarificationOptions?.map((option, i) => (
+                                    <Button
+                                      key={i}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleClarificationClick(option)}
+                                      className="text-xs"
+                                    >
+                                      {option}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+
+                        {/* Building Code results */}
                         {message.results && message.results.length > 0 && (
                           <div className="ml-11 space-y-3">
+                            <div className="text-sm font-medium text-muted-foreground mb-2">
+                              📖 Code national du bâtiment:
+                            </div>
                             {message.results.map((result) => (
                               <Card key={result.id} className="border-l-4 border-l-primary">
                                 <CardHeader className="py-3">
@@ -542,6 +975,36 @@ const BuildingCode = () => {
                             ))}
                           </div>
                         )}
+
+                        {/* Municipal Code results */}
+                        {message.municipalResults && message.municipalResults.length > 0 && (
+                          <div className="ml-11 space-y-3">
+                            <div className="text-sm font-medium text-muted-foreground mb-2">
+                              🏛️ Code municipal - {message.municipalityName}:
+                            </div>
+                            {message.municipalResults.map((result) => (
+                              <Card key={result.id} className="border-l-4 border-l-orange-500">
+                                <CardHeader className="py-3">
+                                  <CardTitle className="flex items-start gap-2 text-sm">
+                                    <MapPin className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                                    {result.topic}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="py-0 pb-4">
+                                  <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                                    {result.requirement}
+                                  </p>
+                                  <div className="flex items-center gap-2 pt-2 border-t">
+                                    <FileText className="h-4 w-4 text-orange-500" />
+                                    <span className="text-sm font-medium text-orange-600">
+                                      {result.article}
+                                    </span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -562,7 +1025,7 @@ const BuildingCode = () => {
               {/* Input */}
               <div className="flex gap-3 mt-4 pt-4 border-t">
                 <Input
-                  placeholder="Recherchez: garde-corps, escalier, isolation..."
+                  placeholder={askingLocation ? "Entrez votre municipalité..." : "Recherchez: garde-corps, escalier, marge avant..."}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}

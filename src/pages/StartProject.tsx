@@ -8,7 +8,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ProjectStage = 
   | "planification" 
@@ -41,7 +44,9 @@ const projectStages = [
 
 const StartProject = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
   const totalSteps = 4;
   
   const [projectData, setProjectData] = useState<ProjectData>({
@@ -68,13 +73,44 @@ const StartProject = () => {
     }
   };
 
+  const saveProject = async () => {
+    if (!user) {
+      toast.error("Vous devez être connecté pour créer un projet");
+      navigate("/auth");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({
+          user_id: user.id,
+          name: projectData.projectName,
+          project_type: projectData.projectType,
+          description: `Municipalité: ${projectData.municipality} | Étape: ${projectData.currentStage}`,
+          status: projectData.currentStage === "finition" ? "en_cours" : projectData.currentStage,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Projet créé avec succès!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Error saving project:", error);
+      toast.error("Erreur lors de la création du projet: " + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Save project and navigate to dashboard
-      console.log("Project data:", projectData);
-      navigate("/dashboard");
+      saveProject();
     }
   };
 
@@ -266,11 +302,20 @@ const StartProject = () => {
             </Button>
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isSaving}
               className="gap-2"
             >
-              {currentStep === totalSteps ? "Créer mon projet" : "Continuer"}
-              <ArrowRight className="h-4 w-4" />
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  {currentStep === totalSteps ? "Créer mon projet" : "Continuer"}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>

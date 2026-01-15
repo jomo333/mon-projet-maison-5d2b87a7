@@ -34,15 +34,34 @@ serve(async (req) => {
       
       console.log('Analyzing plan image:', { hasImage: !!imageUrl });
 
-      systemPrompt = `Tu es un expert en analyse de plans de construction résidentielle au QUÉBEC, CANADA.
-Tu dois analyser l'image du plan fourni et extraire toutes les informations pertinentes pour générer une estimation budgétaire détaillée.
+      systemPrompt = `Tu es un expert en analyse de plans de construction et rénovation résidentielle au QUÉBEC, CANADA.
+Tu dois analyser l'image du plan fourni et IDENTIFIER PRÉCISÉMENT LE TYPE DE PROJET avant de générer une estimation budgétaire.
 
-INSTRUCTIONS D'ANALYSE DU PLAN:
-- Identifie le type de bâtiment (bungalow, cottage, maison à étages, etc.)
-- Estime les dimensions et la superficie totale
-- Compte le nombre de pièces, salles de bain, chambres
-- Identifie la présence d'un garage, sous-sol, terrasse
-- Note les caractéristiques spéciales (foyer, plafond cathédrale, etc.)
+ÉTAPE 1 - IDENTIFICATION DU TYPE DE PROJET (CRITIQUE):
+Examine attentivement le plan pour déterminer s'il s'agit de:
+1. CONSTRUCTION NEUVE COMPLÈTE: Nouvelle maison sur terrain vierge
+2. AGRANDISSEMENT/EXTENSION: Ajout à une structure existante (rallonge, nouvelle aile)
+3. RÉNOVATION MAJEURE: Modification substantielle d'une structure existante
+4. SURÉLÉVATION: Ajout d'un étage sur structure existante
+5. CONSTRUCTION DE GARAGE: Garage détaché ou attaché
+
+INDICES À RECHERCHER:
+- Mentions "existant", "à démolir", "à conserver" = RÉNOVATION/AGRANDISSEMENT
+- Lignes pointillées représentant structure existante = AGRANDISSEMENT
+- Plan partiel sans fondation complète = AGRANDISSEMENT
+- Notes indiquant "rallonge", "extension", "ajout" = AGRANDISSEMENT
+- Plan complet avec toutes les pièces et fondations = CONSTRUCTION NEUVE
+
+ÉTAPE 2 - ANALYSE SELON LE TYPE:
+Pour AGRANDISSEMENT/EXTENSION:
+- Estimer SEULEMENT la superficie de la nouvelle partie
+- NE PAS inclure les coûts de la maison existante
+- Inclure les coûts de raccordement à l'existant
+- Prévoir la démolition partielle si nécessaire
+
+Pour CONSTRUCTION NEUVE:
+- Estimer la superficie totale
+- Inclure tous les coûts d'une construction complète
 
 IMPORTANT - CONTEXTE QUÉBÉCOIS:
 - Tous les prix doivent refléter le marché québécois 2024-2025
@@ -51,12 +70,15 @@ IMPORTANT - CONTEXTE QUÉBÉCOIS:
 - Considérer les exigences du Code de construction du Québec
 - Inclure la TPS (5%) et TVQ (9.975%) dans le total estimé
 - Prix des matériaux selon les fournisseurs locaux (BMR, Canac, Rona, Patrick Morin)
-- Coût moyen au Québec: 250-350$/pi² pour construction standard, 350-500$/pi² pour qualité supérieure
+- Coût moyen au Québec pour agrandissement: 300-450$/pi²
+- Coût moyen au Québec pour construction neuve: 250-350$/pi² standard, 350-500$/pi² qualité supérieure
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) avec cette structure:
 {
-  "projectSummary": "Description du projet basée sur l'analyse du plan (type, superficie estimée, caractéristiques)",
+  "projectType": "AGRANDISSEMENT" | "CONSTRUCTION_NEUVE" | "RENOVATION" | "SURELEVATION" | "GARAGE",
+  "projectSummary": "Description précise: type de projet + superficie de la NOUVELLE partie seulement + caractéristiques",
   "estimatedTotal": number,
+  "newSquareFootage": number (superficie de la NOUVELLE construction seulement),
   "categories": [
     {
       "name": "Nom de la catégorie",
@@ -71,18 +93,23 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
   "warnings": ["Avertissement si applicable"]
 }
 
-Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Garage (si présent).`;
+Catégories pour AGRANDISSEMENT: Fondations (nouvelle partie), Structure/Charpente, Toiture, Raccordement à l'existant, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Démolition (si applicable).
 
-      userMessage = `Analyse ce plan de construction pour un projet AU QUÉBEC.
+Catégories pour CONSTRUCTION NEUVE: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Garage (si présent).`;
 
-IMPORTANT: Examine attentivement l'image du plan pour:
-1. Identifier le type de construction (bungalow, cottage 2 étages, etc.)
-2. Estimer la superficie totale en pieds carrés
-3. Compter les pièces, chambres, salles de bain
-4. Identifier les caractéristiques (garage, sous-sol, terrasse, etc.)
-5. Générer un budget détaillé basé sur ces observations
+      userMessage = `Analyse ce plan de construction/rénovation pour un projet AU QUÉBEC.
 
-Génère une estimation budgétaire complète et réaliste basée sur l'analyse du plan et les coûts actuels au Québec (2024-2025).`;
+IMPORTANT - IDENTIFICATION DU TYPE DE PROJET:
+1. EXAMINE D'ABORD si le plan montre une construction NEUVE COMPLÈTE ou un AGRANDISSEMENT/EXTENSION
+2. Cherche des indices: mentions "existant", lignes pointillées, structure à conserver, etc.
+3. Si c'est un agrandissement, estime SEULEMENT la superficie de la NOUVELLE partie
+
+ANALYSE DEMANDÉE:
+- Identifier clairement le type de projet (agrandissement, construction neuve, rénovation, etc.)
+- Estimer la superficie de la NOUVELLE construction seulement
+- Générer un budget adapté au type de projet identifié
+
+Génère une estimation budgétaire réaliste basée sur l'analyse du plan et les coûts actuels au Québec (2024-2025).`;
 
     } else {
       // Manual mode - use provided parameters

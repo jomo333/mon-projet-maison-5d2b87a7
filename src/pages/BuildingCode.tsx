@@ -269,7 +269,17 @@ const buildingCodeDB = {
   ]
 };
 
-// Base de données des codes municipaux
+// Liste complète des municipalités du Québec (pour afficher la notice)
+const allQuebecMunicipalities = [
+  "Sherbrooke", "Montréal", "Québec", "Laval", "Gatineau", "Longueuil", "Trois-Rivières",
+  "Lévis", "Saguenay", "Terrebonne", "Repentigny", "Brossard", "Saint-Jean-sur-Richelieu",
+  "Drummondville", "Saint-Jérôme", "Granby", "Blainville", "Saint-Hyacinthe", "Shawinigan",
+  "Rimouski", "Victoriaville", "Châteauguay", "Rouyn-Noranda", "Sept-Îles", "Alma",
+  "Magog", "Joliette", "Thetford Mines", "Val-d'Or", "Sainte-Thérèse", "Baie-Comeau",
+  "Saint-Georges", "Mascouche", "Mirabel", "Vaudreuil-Dorion", "Saint-Eustache"
+];
+
+// Base de données des codes municipaux avec données disponibles
 const municipalCodesDB: Record<string, {
   name: string;
   codes: Array<{
@@ -287,7 +297,8 @@ const municipalCodesDB: Record<string, {
       { id: "SHE2", topic: "Marge latérale minimale", requirement: "1.5 mètres minimum, 3 mètres côté rue pour lots d'angle", article: "Règlement 1-2015, art. 235", tags: ["marge", "latérale", "recul"] },
       { id: "SHE3", topic: "Hauteur maximale résidentielle", requirement: "10 mètres / 2 étages en zone R1, 12 mètres / 3 étages en R2", article: "Règlement 1-2015, art. 240", tags: ["hauteur", "étage"] },
       { id: "SHE4", topic: "Stationnement résidentiel", requirement: "Minimum 1 case par logement + 1 case visiteur par 4 logements", article: "Règlement 1-2015, art. 310", tags: ["stationnement", "parking"] },
-      { id: "SHE5", topic: "Clôture hauteur maximale", requirement: "2 mètres en cour arrière, 1 mètre en cour avant", article: "Règlement 1-2015, art. 280", tags: ["clôture", "hauteur"] }
+      { id: "SHE5", topic: "Clôture hauteur maximale", requirement: "2 mètres en cour arrière, 1 mètre en cour avant", article: "Règlement 1-2015, art. 280", tags: ["clôture", "hauteur"] },
+      { id: "SHE6", topic: "Piscine clôture", requirement: "Clôture minimum 1.2m avec porte auto-verrouillante, distance 1m du lot", article: "Règlement 1-2015, art. 285", tags: ["piscine", "clôture", "sécurité"] }
     ]
   },
   "montreal": {
@@ -297,7 +308,8 @@ const municipalCodesDB: Record<string, {
       { id: "MTL2", topic: "Coefficient d'occupation du sol", requirement: "COS maximum de 0.5 à 2.0 selon la zone", article: "Règlement d'urbanisme, chapitre 4", tags: ["cos", "densité"] },
       { id: "MTL3", topic: "Arbres protection", requirement: "Permis requis pour abattre un arbre de plus de 10cm de diamètre", article: "Règlement 18-008, art. 8", tags: ["arbre", "protection", "permis"] },
       { id: "MTL4", topic: "Toiture végétalisée", requirement: "Obligatoire pour nouveaux bâtiments commerciaux >2000m²", article: "Règlement 20-020", tags: ["toiture", "végétale", "commercial"] },
-      { id: "MTL5", topic: "Stationnement vélo", requirement: "1 support vélo par 300m² de surface commerciale", article: "Règlement d'urbanisme, chapitre 6", tags: ["vélo", "stationnement"] }
+      { id: "MTL5", topic: "Stationnement vélo", requirement: "1 support vélo par 300m² de surface commerciale", article: "Règlement d'urbanisme, chapitre 6", tags: ["vélo", "stationnement"] },
+      { id: "MTL6", topic: "Clôture et haie", requirement: "Maximum 1m en cour avant, 2m en cour arrière", article: "Règlement d'urbanisme, chapitre 7", tags: ["clôture", "haie", "hauteur"] }
     ]
   },
   "quebec": {
@@ -325,6 +337,44 @@ const municipalCodesDB: Record<string, {
       { id: "GAT1", topic: "Marge avant minimale", requirement: "7 mètres en zone résidentielle de faible densité", article: "Règlement 502-2005, art. 215", tags: ["marge", "recul", "avant"] },
       { id: "GAT2", topic: "Bâtiment accessoire", requirement: "Maximum 60m² ou 10% du terrain, le moindre des deux", article: "Règlement 502-2005, art. 245", tags: ["accessoire", "cabanon", "garage"] },
       { id: "GAT3", topic: "Protection boisé", requirement: "Conservation obligatoire de 30% du couvert forestier sur lot boisé", article: "Règlement 502-2005, art. 310", tags: ["boisé", "arbre", "conservation"] }
+    ]
+  },
+  "longueuil": {
+    name: "Longueuil",
+    codes: [
+      { id: "LNG1", topic: "Marge avant minimale", requirement: "6 mètres pour unifamilial, 4.5 mètres pour jumelé", article: "Règlement CO-2008-417, art. 89", tags: ["marge", "recul", "avant"] },
+      { id: "LNG2", topic: "Hauteur maximale", requirement: "9 mètres / 2 étages en zone résidentielle de faible densité", article: "Règlement CO-2008-417, art. 95", tags: ["hauteur", "étage"] },
+      { id: "LNG3", topic: "Stationnement", requirement: "Minimum 1.5 case par logement", article: "Règlement CO-2008-417, art. 150", tags: ["stationnement", "parking"] }
+    ]
+  },
+  "trois-rivieres": {
+    name: "Trois-Rivières",
+    codes: [
+      { id: "TR1", topic: "Marge avant minimale", requirement: "6 mètres en zone résidentielle", article: "Règlement 2005-Z-1, art. 178", tags: ["marge", "recul", "avant"] },
+      { id: "TR2", topic: "Clôture", requirement: "Maximum 1.2m en cour avant, 2m en cour arrière", article: "Règlement 2005-Z-1, art. 210", tags: ["clôture", "hauteur"] },
+      { id: "TR3", topic: "Remise/cabanon", requirement: "Maximum 20m², 4m de hauteur, 1m des limites de lot", article: "Règlement 2005-Z-1, art. 185", tags: ["remise", "cabanon", "accessoire"] }
+    ]
+  },
+  "levis": {
+    name: "Lévis",
+    codes: [
+      { id: "LEV1", topic: "Marge avant minimale", requirement: "7 mètres pour construction principale", article: "Règlement RV-2018-17-31, art. 267", tags: ["marge", "recul", "avant"] },
+      { id: "LEV2", topic: "Implantation garage", requirement: "En retrait minimum de 1m par rapport à la façade principale", article: "Règlement RV-2018-17-31, art. 280", tags: ["garage", "implantation"] },
+      { id: "LEV3", topic: "Aménagement paysager", requirement: "Minimum 40% de la cour avant doit être végétalisée", article: "Règlement RV-2018-17-31, art. 310", tags: ["paysager", "végétal", "avant"] }
+    ]
+  },
+  "saguenay": {
+    name: "Saguenay",
+    codes: [
+      { id: "SAG1", topic: "Marge avant minimale", requirement: "6.5 mètres en zone résidentielle", article: "Règlement VS-R-2012-35, art. 156", tags: ["marge", "recul", "avant"] },
+      { id: "SAG2", topic: "Hauteur des bâtiments", requirement: "11 mètres maximum en zone résidentielle unifamiliale", article: "Règlement VS-R-2012-35, art. 162", tags: ["hauteur", "étage"] }
+    ]
+  },
+  "terrebonne": {
+    name: "Terrebonne",
+    codes: [
+      { id: "TER1", topic: "Marge avant minimale", requirement: "6 mètres minimum", article: "Règlement 269-1, art. 234", tags: ["marge", "recul", "avant"] },
+      { id: "TER2", topic: "Piscine", requirement: "Clôture 1.2m obligatoire, distance 1.5m des limites de propriété", article: "Règlement 269-1, art. 290", tags: ["piscine", "clôture"] }
     ]
   }
 };
@@ -408,6 +458,8 @@ interface SearchSummary {
   categories: string[];
   mainTopic: string;
   keyPoints: string[];
+  hasMunicipalData: boolean;
+  municipalityNotice?: string;
 }
 
 interface Message {
@@ -419,6 +471,7 @@ interface Message {
   municipalityName?: string;
   summary?: SearchSummary;
   clarificationOptions?: string[];
+  municipalNotice?: string;
 }
 
 interface UserProject {
@@ -571,7 +624,51 @@ const BuildingCode = () => {
     };
   };
 
-  const generateSummary = (results: BuildingCodeEntry[], municipalResults?: MunicipalCode[]): SearchSummary => {
+  // Vérifier si la municipalité a des données dans notre base
+  const hasMunicipalData = (municipality: string): boolean => {
+    const normalizedMuni = municipality.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return Object.keys(municipalCodesDB).some(city => normalizedMuni.includes(city) || city.includes(normalizedMuni));
+  };
+
+  // Chercher dans toutes les municipalités
+  const searchAllMunicipalities = (query: string): { codes: MunicipalCode[], municipalities: string[] } => {
+    const searchTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    const allResults: MunicipalCode[] = [];
+    const foundMunicipalities: string[] = [];
+
+    for (const [cityKey, cityData] of Object.entries(municipalCodesDB)) {
+      const scored = cityData.codes.map(code => {
+        let score = 0;
+        const searchText = `${code.topic} ${code.requirement} ${code.tags.join(' ')}`.toLowerCase();
+        
+        searchTerms.forEach(term => {
+          if (searchText.includes(term)) {
+            score += 1;
+            if (code.topic.toLowerCase().includes(term)) score += 2;
+            if (code.tags.some(tag => tag.includes(term))) score += 2;
+          }
+        });
+
+        if (searchTerms.length === 0) score = 1;
+        return { code: { ...code, id: `${code.id}_${cityKey}` }, score, cityName: cityData.name };
+      });
+
+      const cityResults = scored.filter(s => s.score > 0);
+      if (cityResults.length > 0) {
+        foundMunicipalities.push(cityData.name);
+        allResults.push(...cityResults.map(s => s.code));
+      }
+    }
+
+    return { codes: allResults, municipalities: [...new Set(foundMunicipalities)] };
+  };
+
+  const generateSummary = (
+    results: BuildingCodeEntry[], 
+    municipalResults?: MunicipalCode[],
+    hasMunicipal?: boolean,
+    municipalityNotice?: string
+  ): SearchSummary => {
     const categories = [...new Set(results.map(r => {
       for (const [cat, entries] of Object.entries(buildingCodeDB)) {
         if ((entries as BuildingCodeEntry[]).some(e => e.id === r.id)) {
@@ -594,7 +691,9 @@ const BuildingCode = () => {
       totalResults: results.length + (municipalResults?.length || 0),
       categories,
       mainTopic: results[0]?.question || "Recherche générale",
-      keyPoints
+      keyPoints,
+      hasMunicipalData: hasMunicipal ?? false,
+      municipalityNotice
     };
   };
 
@@ -603,20 +702,31 @@ const BuildingCode = () => {
 
     // Si on demande la localisation
     if (askingLocation) {
-      setUserMunicipality(input.trim());
+      const municipality = input.trim();
+      setUserMunicipality(municipality);
       setAskingLocation(false);
       
       const locationMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
-        content: input.trim(),
+        content: municipality,
       };
       setMessages(prev => [...prev, locationMessage]);
+
+      // Vérifier si on a des données pour cette municipalité
+      const hasData = hasMunicipalData(municipality);
+      let confirmContent = `Parfait! Municipalité définie: **${municipality}**. `;
+      
+      if (hasData) {
+        confirmContent += `J'ai des données spécifiques pour cette ville. Posez votre question.`;
+      } else {
+        confirmContent += `⚠️ Cette municipalité n'est pas dans notre base de données. Je vous fournirai les références du Code national du bâtiment 2015, mais **veuillez vérifier les exigences spécifiques auprès de votre municipalité**.`;
+      }
 
       const confirmMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Parfait! Je vais maintenant rechercher les codes de construction pour ${input.trim()}. Posez votre question.`,
+        content: confirmContent,
       };
       setMessages(prev => [...prev, confirmMessage]);
       setInput("");
@@ -636,51 +746,73 @@ const BuildingCode = () => {
 
     await new Promise(resolve => setTimeout(resolve, 400));
 
-    // Vérifier si on doit demander la localisation pour les codes municipaux
-    const needsMunicipal = category === 'municipal' || 
-      ['marge', 'recul', 'zonage', 'clôture', 'stationnement', 'hauteur bâtiment'].some(t => query.toLowerCase().includes(t));
+    // Toujours chercher les codes du CNB
+    const results = searchBuildingCode(query);
+    
+    // Chercher les codes municipaux
+    let municipalResults: { codes: MunicipalCode[], name: string } | null = null;
+    let allMunicipalResults: { codes: MunicipalCode[], municipalities: string[] } | null = null;
+    let municipalNotice: string | undefined;
 
-    if (needsMunicipal && !userMunicipality) {
-      const askLocationMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "Pour rechercher les codes municipaux, j'ai besoin de connaître la municipalité de votre projet. Dans quelle ville/municipalité se situe votre construction?",
-      };
-      setMessages(prev => [...prev, askLocationMessage]);
-      setAskingLocation(true);
-      setIsSearching(false);
-      return;
+    if (userMunicipality) {
+      // Chercher d'abord dans la municipalité spécifiée
+      municipalResults = searchMunicipalCodes(query, userMunicipality);
+      
+      if (!municipalResults || municipalResults.codes.length === 0) {
+        // Si pas de résultats spécifiques, chercher dans toutes les municipalités pour référence
+        allMunicipalResults = searchAllMunicipalities(query);
+        
+        if (allMunicipalResults.codes.length > 0) {
+          municipalNotice = `⚠️ Aucune donnée spécifique trouvée pour **${userMunicipality}**. Voici des exemples d'autres municipalités pour référence. **Veuillez contacter votre municipalité pour confirmer les exigences applicables.**`;
+          municipalResults = {
+            codes: allMunicipalResults.codes.slice(0, 5),
+            name: `Exemples: ${allMunicipalResults.municipalities.slice(0, 3).join(', ')}`
+          };
+        } else {
+          municipalNotice = `⚠️ **${userMunicipality}** n'est pas dans notre base de données. Veuillez contacter votre service d'urbanisme municipal pour les exigences locales.`;
+        }
+      }
+    } else {
+      // Si pas de municipalité définie, demander
+      if (category === 'municipal' || ['marge', 'recul', 'zonage', 'clôture', 'stationnement'].some(t => query.toLowerCase().includes(t))) {
+        const askLocationMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Pour rechercher les codes municipaux, j'ai besoin de connaître la municipalité de votre projet. Dans quelle ville/municipalité se situe votre construction?",
+        };
+        setMessages(prev => [...prev, askLocationMessage]);
+        setAskingLocation(true);
+        setIsSearching(false);
+        return;
+      }
     }
 
     // Chercher des questions de clarification
     const clarifications = findClarificationQuestions(query);
-    const results = searchBuildingCode(query);
-    
-    // Chercher les codes municipaux si applicable
-    let municipalResults: { codes: MunicipalCode[], name: string } | null = null;
-    if (userMunicipality && (needsMunicipal || category === 'all')) {
-      municipalResults = searchMunicipalCodes(query, userMunicipality);
-    }
 
     // Générer le résumé
-    const summary = results.length > 0 ? generateSummary(results, municipalResults?.codes) : undefined;
+    const hasMunicipal = municipalResults ? hasMunicipalData(userMunicipality || '') : false;
+    const summary = results.length > 0 ? generateSummary(results, municipalResults?.codes, hasMunicipal, municipalNotice) : undefined;
 
     // Construire le message de réponse
     let responseContent = "";
     
     if (results.length > 0 || (municipalResults && municipalResults.codes.length > 0)) {
-      const totalResults = results.length + (municipalResults?.codes.length || 0);
-      responseContent = `📋 **Résumé de recherche**\n\n`;
-      responseContent += `J'ai trouvé **${totalResults} résultat${totalResults > 1 ? 's' : ''}** pour votre recherche.\n\n`;
+      const totalCNB = results.length;
+      const totalMunicipal = municipalResults?.codes.length || 0;
       
-      if (summary) {
+      responseContent = `📋 **Résumé de recherche**\n\n`;
+      responseContent += `**📖 Code national du bâtiment 2015:** ${totalCNB} résultat${totalCNB > 1 ? 's' : ''}\n`;
+      responseContent += `**🏛️ Codes municipaux:** ${totalMunicipal} résultat${totalMunicipal > 1 ? 's' : ''}\n\n`;
+      
+      if (summary && summary.keyPoints.length > 0) {
         responseContent += `**Points clés:**\n`;
-        summary.keyPoints.forEach((point, i) => {
+        summary.keyPoints.forEach((point) => {
           responseContent += `• ${point}\n`;
         });
       }
     } else {
-      responseContent = "Je n'ai pas trouvé de résultat correspondant à votre recherche. Essayez avec d'autres termes comme: garde-corps, escalier, isolation, ventilation, électricité...";
+      responseContent = "Je n'ai pas trouvé de résultat correspondant à votre recherche. Essayez avec d'autres termes comme: garde-corps, escalier, isolation, ventilation, marge avant...";
     }
 
     const assistantMessage: Message = {
@@ -691,6 +823,7 @@ const BuildingCode = () => {
       municipalResults: municipalResults?.codes,
       municipalityName: municipalResults?.name,
       summary,
+      municipalNotice,
     };
 
     setMessages(prev => [...prev, assistantMessage]);
@@ -945,7 +1078,7 @@ const BuildingCode = () => {
                         {message.results && message.results.length > 0 && (
                           <div className="ml-11 space-y-3">
                             <div className="text-sm font-medium text-muted-foreground mb-2">
-                              📖 Code national du bâtiment:
+                              📖 Code national du bâtiment 2015:
                             </div>
                             {message.results.map((result) => (
                               <Card key={result.id} className="border-l-4 border-l-primary">
@@ -967,7 +1100,7 @@ const BuildingCode = () => {
                                   <div className="flex items-center gap-2 pt-2 border-t">
                                     <FileText className="h-4 w-4 text-primary" />
                                     <span className="text-sm font-medium text-primary">
-                                      {result.code}
+                                      CNB 2015 - {result.code}
                                     </span>
                                   </div>
                                 </CardContent>
@@ -976,11 +1109,25 @@ const BuildingCode = () => {
                           </div>
                         )}
 
+                        {/* Municipal Notice */}
+                        {message.municipalNotice && (
+                          <div className="ml-11">
+                            <Card className="border-amber-500/50 bg-amber-500/10">
+                              <CardContent className="py-3">
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                  <p className="text-sm text-foreground">{message.municipalNotice}</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+
                         {/* Municipal Code results */}
                         {message.municipalResults && message.municipalResults.length > 0 && (
                           <div className="ml-11 space-y-3">
                             <div className="text-sm font-medium text-muted-foreground mb-2">
-                              🏛️ Code municipal - {message.municipalityName}:
+                              🏛️ Codes municipaux - {message.municipalityName}:
                             </div>
                             {message.municipalResults.map((result) => (
                               <Card key={result.id} className="border-l-4 border-l-orange-500">

@@ -12,7 +12,15 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, projectType, squareFootage } = await req.json();
+    const { 
+      imageUrl, 
+      projectType, 
+      squareFootage, 
+      numberOfFloors, 
+      hasGarage, 
+      foundationSqft, 
+      floorSqftDetails 
+    } = await req.json();
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
@@ -23,7 +31,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Analyzing plan:', { projectType, squareFootage, hasImage: !!imageUrl });
+    console.log('Analyzing plan:', { projectType, squareFootage, numberOfFloors, hasGarage, foundationSqft, hasImage: !!imageUrl });
 
     const systemPrompt = `Tu es un expert en estimation de coûts de construction résidentielle au QUÉBEC, CANADA. 
 Tu dois analyser les informations fournies sur un projet de construction et générer une estimation budgétaire détaillée.
@@ -55,15 +63,28 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
   "warnings": ["Avertissement si applicable"]
 }
 
-Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures.`;
+Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures${hasGarage ? ', Garage' : ''}.`;
+
+    // Build floor details string
+    let floorDetailsStr = '';
+    if (floorSqftDetails && floorSqftDetails.length > 0) {
+      floorDetailsStr = floorSqftDetails
+        .map((sqft: number, i: number) => `  - Étage ${i + 1}: ${sqft} pi²`)
+        .join('\n');
+    }
 
     const userMessage = `Analyse ce projet de construction AU QUÉBEC et génère un budget détaillé avec les prix du marché québécois:
 - Type de projet: ${projectType || 'Maison unifamiliale'}
-- Superficie approximative: ${squareFootage || 1500} pieds carrés
+- Nombre d'étages: ${numberOfFloors || 1}
+- Superficie totale approximative: ${squareFootage || 1500} pieds carrés
+${foundationSqft ? `- Superficie de la fondation: ${foundationSqft} pi²` : ''}
+${floorDetailsStr ? `- Détail par étage:\n${floorDetailsStr}` : ''}
+- Garage: ${hasGarage ? 'Oui (simple ou double selon la superficie)' : 'Non'}
 - Région: Québec, Canada
 ${imageUrl ? '- Un plan a été fourni (analyse l\'image pour plus de détails)' : '- Aucun plan fourni, utilise des estimations standards pour le Québec'}
 
-Génère une estimation budgétaire complète et réaliste basée sur les coûts actuels au Québec (2024-2025).`;
+Génère une estimation budgétaire complète et réaliste basée sur les coûts actuels au Québec (2024-2025).
+${hasGarage ? 'IMPORTANT: Inclure une catégorie spécifique pour le Garage avec tous les coûts associés (dalle, structure, porte de garage, électricité, etc.).' : ''}`;
 
     const messages: any[] = [
       { role: "system", content: systemPrompt }

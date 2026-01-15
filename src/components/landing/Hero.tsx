@@ -26,12 +26,12 @@ export function Hero() {
 
       <div className="container relative">
         <div className="mx-auto max-w-5xl text-center">
-          {/* Logo centré - 2/3 de la largeur */}
-          <div className="mb-8 flex justify-center">
+          {/* Logo slim */}
+          <div className="mb-6 flex justify-center">
             <img 
               src={logo} 
               alt="MonProjetMaison.ca" 
-              className="w-2/3 max-w-2xl drop-shadow-lg"
+              className="h-16 w-auto drop-shadow-lg"
             />
           </div>
 

@@ -1,6 +1,7 @@
 import { ArrowRight, Shield, Clock, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const features = [
   { icon: Shield, text: "Conforme au Code du bâtiment" },
@@ -20,14 +21,23 @@ export function Hero() {
 
       <div className="container relative">
         <div className="mx-auto max-w-4xl text-center">
+          {/* Logo centré */}
+          <div className="mb-8 flex justify-center">
+            <img 
+              src={logo} 
+              alt="MonProjetMaison.ca" 
+              className="h-24 sm:h-32 lg:h-40 w-auto drop-shadow-lg"
+            />
+          </div>
+
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur">
-            <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
+            <span className="flex h-2 w-2 rounded-full bg-white animate-pulse" />
             Pour les autoconstructeurs au Québec
           </div>
 
           <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Votre copilote pour
-            <span className="block text-gradient mt-2">construire en toute confiance</span>
+            <span className="block text-white/90 mt-2">construire en toute confiance</span>
           </h1>
 
           <p className="mt-6 text-lg text-white/80 sm:text-xl max-w-2xl mx-auto">

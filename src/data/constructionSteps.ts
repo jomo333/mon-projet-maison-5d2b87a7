@@ -189,7 +189,7 @@ export const constructionSteps: Step[] = [
         title: "Plancher du rez-de-chaussée",
         description: "Installation des solives et du sous-plancher.",
         tips: [
-          "Utilisez du contreplaqué traité si exposé aux intempéries",
+          "Protégez le sous-plancher des intempéries durant la construction",
           "Vérifiez le niveau avant de continuer"
         ]
       },

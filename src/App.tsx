@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
 import Guide from "./pages/Guide";
 import StartProject from "./pages/StartProject";
+import ConstructionGuide from "./pages/ConstructionGuide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/guide" element={<Guide />} />
+          <Route path="/etapes" element={<ConstructionGuide />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -14,8 +14,10 @@ import {
   AlertTriangle,
   DollarSign,
   ArrowRight,
-  Download
+  Download,
+  Car
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Select,
@@ -50,6 +52,10 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
   const [projectType, setProjectType] = useState("maison-unifamiliale");
   const [squareFootage, setSquareFootage] = useState("1500");
   const [selectedPlanUrl, setSelectedPlanUrl] = useState<string | null>(null);
+  const [numberOfFloors, setNumberOfFloors] = useState("1");
+  const [hasGarage, setHasGarage] = useState(false);
+  const [foundationSqft, setFoundationSqft] = useState("");
+  const [floorSqftDetails, setFloorSqftDetails] = useState<string[]>([""]);
 
   // Fetch uploaded plans from all tasks
   const { data: plans = [] } = useQuery({
@@ -79,6 +85,10 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
                        projectType === "cottage" ? "Cottage" :
                        projectType === "bungalow" ? "Bungalow" : "Maison",
           squareFootage: parseInt(squareFootage) || 1500,
+          numberOfFloors: parseInt(numberOfFloors) || 1,
+          hasGarage,
+          foundationSqft: parseInt(foundationSqft) || null,
+          floorSqftDetails: floorSqftDetails.filter(s => s).map(s => parseInt(s)),
         },
       });
 
@@ -135,7 +145,7 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sqft">Superficie (pi²)</Label>
+            <Label htmlFor="sqft">Superficie totale (pi²)</Label>
             <Input
               id="sqft"
               type="number"
@@ -143,6 +153,72 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
               onChange={(e) => setSquareFootage(e.target.value)}
               placeholder="1500"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nombre d'étages</Label>
+            <Select 
+              value={numberOfFloors} 
+              onValueChange={(v) => {
+                setNumberOfFloors(v);
+                const floors = parseInt(v) || 1;
+                setFloorSqftDetails(Array(floors).fill(""));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 étage (plain-pied)</SelectItem>
+                <SelectItem value="2">2 étages</SelectItem>
+                <SelectItem value="3">3 étages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="foundation">Superficie fondation (pi²)</Label>
+            <Input
+              id="foundation"
+              type="number"
+              value={foundationSqft}
+              onChange={(e) => setFoundationSqft(e.target.value)}
+              placeholder="Ex: 1200"
+            />
+          </div>
+
+          {parseInt(numberOfFloors) > 1 && floorSqftDetails.map((_, index) => (
+            <div key={index} className="space-y-2">
+              <Label>Superficie étage {index + 1} (pi²)</Label>
+              <Input
+                type="number"
+                value={floorSqftDetails[index]}
+                onChange={(e) => {
+                  const newDetails = [...floorSqftDetails];
+                  newDetails[index] = e.target.value;
+                  setFloorSqftDetails(newDetails);
+                }}
+                placeholder={`Superficie étage ${index + 1}`}
+              />
+            </div>
+          ))}
+
+          <div className="space-y-2">
+            <Label>Garage</Label>
+            <div className="flex items-center space-x-2 h-10">
+              <Checkbox
+                id="garage"
+                checked={hasGarage}
+                onCheckedChange={(checked) => setHasGarage(checked === true)}
+              />
+              <label
+                htmlFor="garage"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+              >
+                <Car className="h-4 w-4" />
+                Inclure un garage
+              </label>
+            </div>
           </div>
 
           <div className="space-y-2">

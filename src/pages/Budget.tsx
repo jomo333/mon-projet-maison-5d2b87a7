@@ -208,11 +208,17 @@ const Budget = () => {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value: number) => [`${value.toLocaleString()} $`, '']}
+                          formatter={(value: number, name: string) => [`${value.toLocaleString()} $`, name]}
+                          labelFormatter={() => ''}
                           contentStyle={{
                             backgroundColor: 'hsl(var(--card))',
                             border: '1px solid hsl(var(--border))',
                             borderRadius: '8px',
+                            padding: '8px 12px',
+                          }}
+                          itemStyle={{
+                            color: 'hsl(var(--foreground))',
+                            fontWeight: 500,
                           }}
                         />
                       </PieChart>

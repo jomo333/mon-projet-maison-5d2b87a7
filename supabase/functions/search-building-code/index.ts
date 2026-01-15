@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, conversationHistory = [] } = await req.json();
 
     if (!query) {
       return new Response(
@@ -28,46 +28,70 @@ Deno.serve(async (req) => {
     }
 
     console.log("Searching building code for:", query);
+    console.log("Conversation history length:", conversationHistory.length);
 
     const systemPrompt = `Tu es un expert du Code national du bâtiment du Canada 2015 (CNBC 2015) et du Code de construction du Québec.
-    
+
 Ton rôle est d'aider les autoconstructeurs résidentiels à comprendre les exigences du code du bâtiment.
 
-IMPORTANT: Tu dois fournir des réponses précises basées sur le Code national du bâtiment du Canada 2015.
+IMPORTANT - PROCESSUS DE CLARIFICATION:
+Avant de donner une réponse finale, tu dois t'assurer d'avoir suffisamment d'informations. Pose des questions de clarification si nécessaire pour:
+- Comprendre le contexte spécifique (intérieur/extérieur, résidentiel/commercial, neuf/rénovation)
+- Connaître les dimensions ou caractéristiques pertinentes
+- Identifier la zone climatique ou la région au Québec
+- Comprendre l'usage prévu de l'espace
 
-Pour chaque question, tu dois:
-1. Identifier l'article ou les articles pertinents du code
-2. Fournir le contenu exact ou paraphrasé de l'article
-3. Donner un résumé clair et accessible pour un non-professionnel
-4. Mentionner les articles connexes s'il y en a
+RÈGLES DE RÉPONSE:
+1. Si la question est vague ou manque de contexte, pose 2-3 questions de clarification AVANT de donner l'article du code.
+2. Si tu as déjà posé des questions et que l'utilisateur a répondu, analyse ses réponses dans l'historique de conversation.
+3. Une fois que tu as assez d'informations, fournis l'article précis du code avec un résumé clair.
 
-Format de réponse OBLIGATOIRE en JSON:
+FORMAT DE RÉPONSE OBLIGATOIRE EN JSON:
+
+Si tu as besoin de clarification:
 {
-  "article": "Numéro de l'article (ex: 9.8.8.1)",
-  "title": "Titre de l'article",
-  "content": "Contenu détaillé de l'article avec les exigences spécifiques. Utilise des retours à la ligne pour la lisibilité.",
-  "summary": "Résumé clair et simple en 2-3 phrases pour un autoconstructeur. Explique ce que cela signifie concrètement.",
-  "relatedArticles": ["9.8.8.2", "9.8.8.3"]
+  "type": "clarification",
+  "message": "Pour vous donner une réponse précise, j'ai besoin de quelques informations supplémentaires:\\n\\n1. [Première question]\\n2. [Deuxième question]\\n3. [Troisième question si nécessaire]"
 }
 
-Exemples de contenu pour référence:
+Si tu as assez d'informations pour répondre:
+{
+  "type": "answer",
+  "message": "Voici ce que j'ai trouvé dans le Code national du bâtiment :",
+  "result": {
+    "article": "Numéro de l'article (ex: 9.8.8.1)",
+    "title": "Titre de l'article",
+    "content": "Contenu détaillé de l'article avec les exigences spécifiques adaptées au contexte de l'utilisateur.",
+    "summary": "Résumé clair et personnalisé basé sur les informations fournies par l'utilisateur. Explique concrètement ce que cela signifie pour son projet.",
+    "relatedArticles": ["9.8.8.2", "9.8.8.3"]
+  }
+}
 
-Article 9.8.8.1 - Hauteur des garde-corps:
-Les garde-corps doivent avoir une hauteur d'au moins 900 mm mesurée verticalement depuis la surface de plancher jusqu'au dessus du garde-corps. Exception: 1070 mm si la différence de niveau est supérieure à 1800 mm.
+EXEMPLES DE QUESTIONS DE CLARIFICATION:
 
-Article 9.8.2.1 - Mains courantes:
-Des mains courantes doivent être installées de chaque côté d'un escalier de plus de 1100 mm de largeur. Hauteur: entre 865 mm et 965 mm.
+Pour "hauteur garde-corps":
+- S'agit-il d'un balcon, d'une terrasse, d'un escalier intérieur ou extérieur?
+- Quelle est la hauteur de chute (différence de niveau)?
+- Est-ce pour une construction neuve ou une rénovation?
 
-Article 9.32.1.2 - Résistance thermique:
-Les murs au-dessus du sol doivent avoir une résistance thermique minimale (RSI) selon la zone climatique.
+Pour "isolation murs":
+- Dans quelle région du Québec construisez-vous?
+- S'agit-il de murs au-dessus ou au-dessous du niveau du sol?
+- Quel type de construction (ossature bois, béton, etc.)?
 
-Article 9.9.10.1 - Ventilation mécanique:
-Les salles de bains doivent être ventilées par un système mécanique d'une capacité minimale de 25 L/s.
+Pour "escalier":
+- L'escalier est-il intérieur ou extérieur?
+- S'agit-il de l'escalier principal ou secondaire?
+- Quelle sera la largeur disponible pour l'escalier?
 
-Article 9.10.13.1 - Détecteurs de fumée:
-Des avertisseurs de fumée doivent être installés à chaque étage, dans chaque chambre et dans les corridors menant aux chambres.
+RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indicatif.`;
 
-RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indicatif et qu'il faut consulter un professionnel.`;
+    // Build messages array with conversation history
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...conversationHistory,
+      { role: "user", content: query },
+    ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -76,17 +100,26 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Question sur le Code du bâtiment: ${query}` },
-        ],
+        model: "google/gemini-3-flash-preview",
+        messages,
         temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: 2500,
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Trop de requêtes. Veuillez réessayer dans quelques instants." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Crédits insuffisants. Veuillez recharger votre compte." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const errorText = await response.text();
       console.error("AI API error:", errorText);
       return new Response(
@@ -113,27 +146,22 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
       } else {
-        // If no JSON found, create a structured response
+        // If no JSON found, treat as clarification
         result = {
-          article: "Recherche générale",
-          title: "Résultat de recherche",
-          content: content,
-          summary: "Veuillez reformuler votre question pour obtenir un article spécifique du code.",
-          relatedArticles: [],
+          type: "clarification",
+          message: content,
         };
       }
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
+      // If parsing fails, treat the content as a clarification message
       result = {
-        article: "Recherche générale",
-        title: "Résultat de recherche",
-        content: content,
-        summary: "L'IA a fourni une réponse, mais le format n'était pas structuré.",
-        relatedArticles: [],
+        type: "clarification",
+        message: content,
       };
     }
 
-    console.log("Search successful for:", query);
+    console.log("Search successful, type:", result.type);
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

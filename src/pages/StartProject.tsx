@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -48,6 +48,12 @@ const StartProject = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const totalSteps = 4;
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentStep]);
   
   const [projectData, setProjectData] = useState<ProjectData>({
     projectName: "",
@@ -272,7 +278,7 @@ const StartProject = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 py-8">
-        <div className="container max-w-3xl">
+        <div ref={topRef} className="container max-w-3xl">
           {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">

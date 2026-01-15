@@ -11,7 +11,7 @@ const features = [
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-hero py-20 lg:py-32">
+    <section className="relative overflow-hidden bg-hero py-12 lg:py-20">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -20,13 +20,13 @@ export function Hero() {
       </div>
 
       <div className="container relative">
-        <div className="mx-auto max-w-4xl text-center">
-          {/* Logo centré */}
+        <div className="mx-auto max-w-5xl text-center">
+          {/* Logo centré - 2/3 de la largeur */}
           <div className="mb-8 flex justify-center">
             <img 
               src={logo} 
               alt="MonProjetMaison.ca" 
-              className="h-24 sm:h-32 lg:h-40 w-auto drop-shadow-lg"
+              className="w-2/3 max-w-2xl drop-shadow-lg"
             />
           </div>
 

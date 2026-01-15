@@ -95,10 +95,8 @@ export function TaskAttachments({ stepId, taskId }: TaskAttachmentsProps) {
       queryClient.invalidateQueries({ queryKey: ["task-attachments", stepId, taskId] });
       toast.success("Fichier ajouté avec succès");
       
-      // Show budget suggestion when a plan is uploaded
-      if (selectedCategory === "plan") {
-        setShowBudgetSuggestion(true);
-      }
+      // Show budget suggestion after any file upload
+      setShowBudgetSuggestion(true);
     },
     onError: (error) => {
       console.error("Upload error:", error);
@@ -266,7 +264,7 @@ export function TaskAttachments({ stepId, taskId }: TaskAttachmentsProps) {
         </p>
       )}
 
-      {/* Budget suggestion after plan upload */}
+      {/* Budget suggestion after file upload */}
       {showBudgetSuggestion && (
         <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800">
           <div className="flex items-start gap-3">
@@ -275,10 +273,10 @@ export function TaskAttachments({ stepId, taskId }: TaskAttachmentsProps) {
             </div>
             <div className="flex-1">
               <h4 className="font-medium text-green-800 dark:text-green-200">
-                Plan téléversé avec succès!
+                Document téléversé avec succès!
               </h4>
               <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                Maintenant que vous avez votre plan, vous pouvez créer un budget détaillé pour estimer les coûts de construction.
+                Vous pouvez maintenant créer un budget détaillé pour estimer les coûts de votre projet de construction.
               </p>
               <div className="flex items-center gap-2 mt-3">
                 <Button 

@@ -1,17 +1,43 @@
-import { useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import { useState, useCallback } from "react";
 
 interface ConversionResult {
   images: Blob[];
   pageCount: number;
 }
 
+declare global {
+  interface Window {
+    pdfjsLib: any;
+  }
+}
+
 export function usePdfToImage() {
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Load PDF.js dynamically from CDN
+  const loadPdfJs = useCallback(async () => {
+    if (window.pdfjsLib) {
+      return window.pdfjsLib;
+    }
+
+    return new Promise((resolve, reject) => {
+      // Load the main library
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      script.onload = () => {
+        if (window.pdfjsLib) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          resolve(window.pdfjsLib);
+        } else {
+          reject(new Error("PDF.js failed to load"));
+        }
+      };
+      script.onerror = () => reject(new Error("Failed to load PDF.js script"));
+      document.head.appendChild(script);
+    });
+  }, []);
 
   const convertPdfToImages = async (
     file: File,
@@ -23,6 +49,7 @@ export function usePdfToImage() {
     setProgress(0);
     
     try {
+      const pdfjsLib = await loadPdfJs();
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const pageCount = Math.min(pdf.numPages, maxPages);

@@ -1,7 +1,7 @@
 import { ArrowRight, Shield, Clock, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import logoSlim from "@/assets/logo-slim.png";
 
 const features = [
   { icon: Shield, text: "Conforme au Code du bâtiment" },
@@ -29,9 +29,9 @@ export function Hero() {
           {/* Logo slim */}
           <div className="mb-6 flex justify-center">
             <img 
-              src={logo} 
-              alt="MonProjetMaison.ca" 
-              className="h-16 w-auto drop-shadow-lg"
+              src={logoSlim} 
+              alt="MonProjetMaison.ca - Planifier. Construire. Réussir." 
+              className="h-24 sm:h-32 w-auto drop-shadow-lg"
             />
           </div>
 

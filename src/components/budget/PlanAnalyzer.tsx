@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -19,7 +20,8 @@ import {
   Upload,
   X,
   Settings,
-  Image
+  Image,
+  FileImage
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -31,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePdfToImage } from "@/hooks/use-pdf-to-image";
 
 interface BudgetCategory {
   name: string;
@@ -69,6 +72,9 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  
+  // PDF conversion hook
+  const { convertPdfToImages, isPdf, isConverting, progress } = usePdfToImage();
 
   // Fetch uploaded plans from all tasks
   const { data: plans = [] } = useQuery({
@@ -160,8 +166,31 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
-        await uploadMutation.mutateAsync(file);
+        // Check if it's a PDF and needs conversion
+        if (isPdf(file)) {
+          toast.info("Conversion du PDF en images...");
+          const { images, pageCount } = await convertPdfToImages(file, { scale: 2, maxPages: 5 });
+          
+          if (pageCount > 5) {
+            toast.warning(`Le PDF contient ${pageCount} pages. Seules les 5 premières ont été converties.`);
+          }
+          
+          // Upload each converted image
+          for (let i = 0; i < images.length; i++) {
+            const imageBlob = images[i];
+            const imageName = `${file.name.replace('.pdf', '')}_page_${i + 1}.png`;
+            const imageFile = new File([imageBlob], imageName, { type: "image/png" });
+            await uploadMutation.mutateAsync(imageFile);
+          }
+          
+          toast.success(`PDF converti en ${images.length} image(s) avec succès!`);
+        } else {
+          await uploadMutation.mutateAsync(file);
+        }
       }
+    } catch (error) {
+      console.error("Upload/conversion error:", error);
+      toast.error("Erreur lors du traitement du fichier");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -355,15 +384,25 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
           <TabsContent value="plan" className="mt-4 space-y-4">
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                <strong>Important :</strong> Téléversez une <strong>image</strong> de votre plan (PNG, JPG, WebP, GIF). 
-                Les fichiers PDF ne sont pas supportés pour l'analyse IA. Vous pouvez prendre une capture d'écran 
-                de votre plan PDF ou le convertir en image.
+                <strong>Téléversez votre plan</strong> (image ou PDF). Les fichiers PDF seront automatiquement convertis en images pour l'analyse IA.
               </p>
             </div>
             
+            {/* PDF Conversion Progress */}
+            {isConverting && (
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+                <div className="flex items-center gap-2 text-primary">
+                  <FileImage className="h-5 w-5 animate-pulse" />
+                  <span className="font-medium">Conversion du PDF en cours...</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-muted-foreground">{progress}% terminé</p>
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Plan de construction (image uniquement)</Label>
+                <Label>Plan de construction</Label>
                 <div className="flex flex-wrap gap-2">
                   <Select 
                     value={selectedPlanUrl || "none"} 
@@ -393,22 +432,22 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     className="hidden"
-                    accept=".jpg,.jpeg,.png,.gif,.webp"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
                   />
                   
                   <Button
                     variant="outline"
                     size="default"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
+                    disabled={isUploading || isConverting}
                     className="gap-2"
                   >
-                    {isUploading ? (
+                    {isUploading || isConverting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    Téléverser une image
+                    {isConverting ? "Conversion..." : "Téléverser un plan"}
                   </Button>
 
                   {selectedPlanUrl && (

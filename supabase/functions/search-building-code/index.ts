@@ -18,9 +18,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.error("ANTHROPIC_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -88,22 +88,25 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
 
     // Build messages array with conversation history
     const messages = [
-      { role: "system", content: systemPrompt },
-      ...conversationHistory,
+      ...conversationHistory.map((m: { role: string; content: string }) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
       { role: "user", content: query },
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-        temperature: 0.3,
+        model: "claude-sonnet-4-20250514",
         max_tokens: 2500,
+        system: systemPrompt,
+        messages,
       }),
     });
 
@@ -114,14 +117,16 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      if (response.status === 402 || response.status === 400) {
+        const errorData = await response.json();
+        console.error("Claude API error:", errorData);
         return new Response(
-          JSON.stringify({ error: "Crédits insuffisants. Veuillez recharger votre compte." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Erreur avec l'API Claude. Vérifiez votre clé API." }),
+          { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
-      console.error("AI API error:", errorText);
+      console.error("Claude API error:", errorText);
       return new Response(
         JSON.stringify({ error: "Failed to search building code" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -129,16 +134,16 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.content?.[0]?.text;
 
     if (!content) {
       return new Response(
-        JSON.stringify({ error: "No response from AI" }),
+        JSON.stringify({ error: "No response from Claude" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Parse the JSON response from AI
+    // Parse the JSON response from Claude
     let result;
     try {
       // Try to extract JSON from the response
@@ -161,7 +166,7 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
       };
     }
 
-    console.log("Search successful, type:", result.type);
+    console.log("Search successful with Claude, type:", result.type);
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

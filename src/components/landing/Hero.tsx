@@ -31,7 +31,7 @@ export function Hero() {
             <img 
               src={logoSlim} 
               alt="MonProjetMaison.ca - Planifier. Construire. Réussir." 
-              className="h-24 sm:h-32 w-auto drop-shadow-lg"
+              className="h-[120px] sm:h-40 w-auto drop-shadow-lg"
             />
           </div>
 

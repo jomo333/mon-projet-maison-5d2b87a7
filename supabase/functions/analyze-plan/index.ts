@@ -26,19 +26,34 @@ serve(async (req) => {
 
     let systemPrompt: string;
     let userMessage: string;
-    let imageUrl: string | null = null;
+    let imageUrls: string[] = [];
 
     if (mode === "plan") {
-      // Plan analysis mode - analyze uploaded plan image
-      imageUrl = body.imageUrl;
+      // Plan analysis mode - analyze uploaded plan images (supports multiple)
+      // Support both single imageUrl (legacy) and multiple imageUrls
+      if (body.imageUrls && Array.isArray(body.imageUrls)) {
+        imageUrls = body.imageUrls;
+      } else if (body.imageUrl) {
+        imageUrls = [body.imageUrl];
+      }
       
-      console.log('Analyzing plan image:', { hasImage: !!imageUrl });
+      console.log('Analyzing plan images:', { imageCount: imageUrls.length });
 
       systemPrompt = `Tu es un expert en analyse de plans de construction et rénovation résidentielle au QUÉBEC, CANADA.
-Tu dois analyser l'image du plan fourni et IDENTIFIER PRÉCISÉMENT LE TYPE DE PROJET avant de générer une estimation budgétaire.
+Tu dois analyser TOUS les plans fournis ENSEMBLE pour obtenir une vision complète du projet avant de générer une estimation budgétaire.
+
+IMPORTANT - ANALYSE MULTI-PLANS:
+- Tu recevras possiblement PLUSIEURS images de plans (plans d'étages, élévations, coupes, détails, etc.)
+- ANALYSE TOUS LES PLANS ENSEMBLE pour comprendre le projet dans sa globalité
+- NE DUPLIQUE PAS les coûts - chaque élément ne doit être compté qu'une seule fois
+- Utilise les différentes vues pour obtenir des informations complémentaires:
+  * Plans d'étages: superficies, disposition des pièces
+  * Élévations: hauteurs, finitions extérieures, fenestration
+  * Coupes: structure, isolation, fondations
+  * Détails: spécifications techniques
 
 ÉTAPE 1 - IDENTIFICATION DU TYPE DE PROJET (CRITIQUE):
-Examine attentivement le plan pour déterminer s'il s'agit de:
+Examine attentivement TOUS les plans pour déterminer s'il s'agit de:
 1. CONSTRUCTION NEUVE COMPLÈTE: Nouvelle maison sur terrain vierge
 2. AGRANDISSEMENT/EXTENSION: Ajout à une structure existante (rallonge, nouvelle aile)
 3. RÉNOVATION MAJEURE: Modification substantielle d'une structure existante
@@ -76,14 +91,15 @@ IMPORTANT - CONTEXTE QUÉBÉCOIS:
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) avec cette structure:
 {
   "projectType": "AGRANDISSEMENT" | "CONSTRUCTION_NEUVE" | "RENOVATION" | "SURELEVATION" | "GARAGE",
-  "projectSummary": "Description précise: type de projet + superficie de la NOUVELLE partie seulement + caractéristiques",
+  "projectSummary": "Description précise: type de projet + superficie de la NOUVELLE partie seulement + caractéristiques observées dans tous les plans",
   "estimatedTotal": number,
   "newSquareFootage": number (superficie de la NOUVELLE construction seulement),
+  "plansAnalyzed": number (nombre de plans analysés),
   "categories": [
     {
       "name": "Nom de la catégorie",
       "budget": number,
-      "description": "Description des travaux",
+      "description": "Description des travaux basée sur les détails de tous les plans",
       "items": [
         { "name": "Item", "cost": number, "quantity": "quantité", "unit": "unité" }
       ]
@@ -97,9 +113,15 @@ Catégories pour AGRANDISSEMENT: Fondations (nouvelle partie), Structure/Charpen
 
 Catégories pour CONSTRUCTION NEUVE: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Garage (si présent).`;
 
-      userMessage = `Analyse ce plan de construction/rénovation pour un projet AU QUÉBEC.
+      userMessage = `Analyse ${imageUrls.length > 1 ? 'ces ' + imageUrls.length + ' plans' : 'ce plan'} de construction/rénovation pour un projet AU QUÉBEC.
 
-IMPORTANT - IDENTIFICATION DU TYPE DE PROJET:
+${imageUrls.length > 1 ? `IMPORTANT - ANALYSE MULTI-PLANS (${imageUrls.length} images):
+- Analyse TOUS les plans ENSEMBLE pour une vision complète
+- Utilise les informations complémentaires de chaque vue (plan d'étage, élévation, coupe, etc.)
+- NE DUPLIQUE PAS les coûts - chaque élément ne doit être compté qu'une seule fois
+- Consolide les informations pour générer UN SEUL budget unifié
+
+` : ''}IMPORTANT - IDENTIFICATION DU TYPE DE PROJET:
 1. EXAMINE D'ABORD si le plan montre une construction NEUVE COMPLÈTE ou un AGRANDISSEMENT/EXTENSION
 2. Cherche des indices: mentions "existant", lignes pointillées, structure à conserver, etc.
 3. Si c'est un agrandissement, estime SEULEMENT la superficie de la NOUVELLE partie
@@ -109,7 +131,7 @@ ANALYSE DEMANDÉE:
 - Estimer la superficie de la NOUVELLE construction seulement
 - Générer un budget adapté au type de projet identifié
 
-Génère une estimation budgétaire réaliste basée sur l'analyse du plan et les coûts actuels au Québec (2024-2025).`;
+Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.length > 1 ? 'de tous les plans' : 'du plan'} et les coûts actuels au Québec (2024-2025).`;
 
     } else {
       // Manual mode - use provided parameters
@@ -181,13 +203,20 @@ ${hasGarage ? 'IMPORTANT: Inclure une catégorie spécifique pour le Garage avec
       { role: "system", content: systemPrompt }
     ];
 
-    if (imageUrl) {
+    if (imageUrls.length > 0) {
+      // Build content array with text and all images
+      const contentArray: any[] = [
+        { type: "text", text: userMessage }
+      ];
+      
+      // Add all images to the content
+      for (const url of imageUrls) {
+        contentArray.push({ type: "image_url", image_url: { url } });
+      }
+      
       messages.push({
         role: "user",
-        content: [
-          { type: "text", text: userMessage },
-          { type: "image_url", image_url: { url: imageUrl } }
-        ]
+        content: contentArray
       });
     } else {
       messages.push({ role: "user", content: userMessage });

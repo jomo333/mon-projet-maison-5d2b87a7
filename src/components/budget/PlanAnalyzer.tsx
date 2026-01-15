@@ -67,8 +67,8 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
   const [foundationSqft, setFoundationSqft] = useState("");
   const [floorSqftDetails, setFloorSqftDetails] = useState<string[]>([""]);
   
-  // Plan mode state
-  const [selectedPlanUrl, setSelectedPlanUrl] = useState<string | null>(null);
+  // Plan mode state - now supports multiple plans
+  const [selectedPlanUrls, setSelectedPlanUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -123,7 +123,7 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
     },
     onSuccess: (publicUrl) => {
       queryClient.invalidateQueries({ queryKey: ["all-plans"] });
-      setSelectedPlanUrl(publicUrl);
+      setSelectedPlanUrls(prev => [...prev, publicUrl]);
       toast.success("Plan téléversé avec succès!");
     },
     onError: (error) => {
@@ -148,9 +148,9 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["all-plans"] });
-      setSelectedPlanUrl(null);
+      setSelectedPlanUrls(prev => prev.filter(url => url !== variables.file_url));
       toast.success("Plan supprimé");
     },
     onError: (error) => {
@@ -200,8 +200,8 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
   };
 
   const handleAnalyze = async () => {
-    if (analysisMode === "plan" && !selectedPlanUrl) {
-      toast.error("Veuillez sélectionner ou téléverser un plan");
+    if (analysisMode === "plan" && selectedPlanUrls.length === 0) {
+      toast.error("Veuillez sélectionner ou téléverser au moins un plan");
       return;
     }
 
@@ -224,7 +224,7 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
           }
         : {
             mode: "plan",
-            imageUrl: selectedPlanUrl,
+            imageUrls: selectedPlanUrls, // Now sending multiple URLs
           };
 
       const { data, error } = await supabase.functions.invoke('analyze-plan', {
@@ -402,20 +402,28 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Plan de construction</Label>
+                <Label>Plans de construction (sélection multiple)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ajoutez tous les plans nécessaires (plans d'étages, élévations, coupes, etc.) pour une analyse complète.
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <Select 
-                    value={selectedPlanUrl || "none"} 
-                    onValueChange={(v) => setSelectedPlanUrl(v === "none" ? null : v)}
+                    value="none" 
+                    onValueChange={(v) => {
+                      if (v !== "none" && !selectedPlanUrls.includes(v)) {
+                        setSelectedPlanUrls(prev => [...prev, v]);
+                      }
+                    }}
                   >
                     <SelectTrigger className="flex-1 min-w-[200px]">
-                      <SelectValue placeholder="Sélectionner un plan" />
+                      <SelectValue placeholder="Ajouter un plan existant..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Sélectionner un plan...</SelectItem>
+                      <SelectItem value="none">Ajouter un plan existant...</SelectItem>
                       {plans.filter(plan => 
-                        plan.file_type?.startsWith('image/') || 
-                        plan.file_url?.match(/\.(png|jpg|jpeg|gif|webp)$/i)
+                        (plan.file_type?.startsWith('image/') || 
+                        plan.file_url?.match(/\.(png|jpg|jpeg|gif|webp)$/i)) &&
+                        !selectedPlanUrls.includes(plan.file_url)
                       ).map((plan) => (
                         <SelectItem key={plan.id} value={plan.file_url}>
                           <div className="flex items-center gap-2">
@@ -433,6 +441,7 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
                     onChange={handleFileUpload}
                     className="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                    multiple
                   />
                   
                   <Button
@@ -447,64 +456,90 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    {isConverting ? "Conversion..." : "Téléverser un plan"}
+                    {isConverting ? "Conversion..." : "Téléverser des plans"}
                   </Button>
 
-                  {selectedPlanUrl && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        asChild
-                        title="Télécharger le plan"
-                      >
-                        <a href={selectedPlanUrl} download target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        title="Supprimer le plan"
-                        onClick={() => {
-                          const plan = plans.find(p => p.file_url === selectedPlanUrl);
-                          if (plan) {
-                            deleteMutation.mutate({ id: plan.id, file_url: plan.file_url });
-                          }
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
+                  {selectedPlanUrls.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={() => setSelectedPlanUrls([])}
+                      className="gap-2 text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                      Tout effacer
+                    </Button>
                   )}
                 </div>
-                {plans.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {plans.length} plan(s) disponible(s)
-                  </p>
-                )}
               </div>
 
-              {selectedPlanUrl && (
+              {/* Selected plans list */}
+              {selectedPlanUrls.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Plans sélectionnés ({selectedPlanUrls.length})</Label>
+                  <div className="grid gap-2 max-h-[200px] overflow-y-auto">
+                    {selectedPlanUrls.map((url, index) => {
+                      const plan = plans.find(p => p.file_url === url);
+                      return (
+                        <div 
+                          key={url}
+                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50 group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium">
+                              {index + 1}
+                            </span>
+                            <span className="text-sm truncate max-w-[200px]">
+                              {plan?.file_name || `Plan ${index + 1}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              asChild
+                            >
+                              <a href={url} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-3 w-3" />
+                              </a>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setSelectedPlanUrls(prev => prev.filter(u => u !== url))}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {selectedPlanUrls.length > 0 && (
                 <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                     <CheckCircle2 className="h-5 w-5" />
-                    <span className="font-medium">Plan sélectionné</span>
+                    <span className="font-medium">{selectedPlanUrls.length} plan(s) sélectionné(s)</span>
                   </div>
                   <p className="text-sm text-green-600 dark:text-green-300 mt-1">
-                    L'IA va analyser ce plan pour extraire les dimensions et générer un budget détaillé.
+                    L'IA va analyser tous les plans ensemble pour extraire les dimensions et générer un budget consolidé sans doublons.
                   </p>
                 </div>
               )}
 
-              {!selectedPlanUrl && (
+              {selectedPlanUrls.length === 0 && (
                 <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                   <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                     <AlertTriangle className="h-5 w-5" />
                     <span className="font-medium">Aucun plan sélectionné</span>
                   </div>
                   <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
-                    Veuillez sélectionner ou téléverser un plan pour utiliser ce mode d'analyse.
+                    Ajoutez un ou plusieurs plans (étages, élévations, coupes) pour une analyse complète.
                   </p>
                 </div>
               )}
@@ -514,7 +549,7 @@ export function PlanAnalyzer({ onBudgetGenerated }: PlanAnalyzerProps) {
 
         <Button 
           onClick={handleAnalyze} 
-          disabled={isAnalyzing || (analysisMode === "plan" && !selectedPlanUrl)}
+          disabled={isAnalyzing || (analysisMode === "plan" && selectedPlanUrls.length === 0)}
           className="w-full sm:w-auto gap-2"
           variant="accent"
         >

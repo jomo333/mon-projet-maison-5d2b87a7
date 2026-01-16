@@ -540,25 +540,42 @@ const StartProject = () => {
                 </PopoverContent>
               </Popover>
 
-              {projectData.targetStartDate && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-primary">Échéancier automatique</p>
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                      ~{calculateTotalProjectDuration(projectData.currentStage)} jours ouvrables
-                    </span>
+              {projectData.targetStartDate && (() => {
+                const duration = calculateTotalProjectDuration(projectData.currentStage);
+                return (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-primary">Échéancier automatique</p>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        ~{duration.totalDays} jours ouvrables
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 py-2">
+                      <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{duration.preparationDays}</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">jours de préparation</p>
+                        <p className="text-xs text-muted-foreground mt-1">avant le début des travaux</p>
+                      </div>
+                      <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <p className="text-2xl font-bold text-primary">{duration.constructionDays}</p>
+                        <p className="text-xs text-primary">jours de construction</p>
+                        <p className="text-xs text-muted-foreground mt-1">à partir de la date visée</p>
+                      </div>
+                    </div>
+                    <div className="bg-muted/50 rounded p-3 text-sm">
+                      <p className="font-medium text-foreground mb-1">📅 Date visée = Jour 1 des travaux</p>
+                      <p className="text-muted-foreground text-xs">
+                        Les étapes de préparation (plans, permis, financement) seront planifiées <strong>avant</strong> cette date pour vous donner une vision claire des délais.
+                      </p>
+                    </div>
+                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                      <li>Planification et financement avant la date visée</li>
+                      <li>Alertes pour les demandes de permis</li>
+                      <li>Délais fournisseurs et fabrication calculés</li>
+                    </ul>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Un échéancier complet sera généré automatiquement avec :
-                  </p>
-                  <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                    <li>Toutes les étapes de construction planifiées</li>
-                    <li>Les alertes pour appeler les fournisseurs</li>
-                    <li>Les délais de fabrication et livraison</li>
-                    <li>Les rappels pour les mesures et inspections</li>
-                  </ul>
-                </div>
-              )}
+                );
+              })()}
 
               {!projectData.targetStartDate && (
                 <p className="text-center text-sm text-muted-foreground">

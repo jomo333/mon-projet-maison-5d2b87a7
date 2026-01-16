@@ -212,6 +212,15 @@ export const constructionSteps: Step[] = [
         title: "Installation des fermes de toit",
         description: "Pose des fermes préfabriquées ou construction de la charpente traditionnelle.",
         documents: ["Plans de fermes certifiés"]
+      },
+      {
+        id: "pontage",
+        title: "Pontage de toit",
+        description: "Installation du contreplaqué sur les fermes de toit pour fermer la structure.",
+        tips: [
+          "Protégez le pontage des intempéries rapidement",
+          "Vérifiez l'alignement des panneaux"
+        ]
       }
     ]
   },
@@ -224,11 +233,6 @@ export const constructionSteps: Step[] = [
     icon: "Umbrella",
     duration: "1-2 semaines",
     tasks: [
-      {
-        id: "pontage",
-        title: "Pontage de toit",
-        description: "Installation du contreplaqué sur les fermes de toit.",
-      },
       {
         id: "membrane",
         title: "Membrane et bardeaux",

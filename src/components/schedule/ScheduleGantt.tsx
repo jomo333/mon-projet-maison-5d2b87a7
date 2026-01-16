@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import {
   format,
   parseISO,
@@ -28,6 +28,48 @@ interface ScheduleGanttProps {
 }
 
 export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const scrollContainer = containerRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainer.offsetLeft);
+    setScrollLeft(scrollContainer.scrollLeft);
+    scrollContainer.style.cursor = 'grabbing';
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    const scrollContainer = containerRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    e.preventDefault();
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 1.5; // Vitesse du scroll
+    scrollContainer.scrollLeft = scrollLeft - walk;
+  }, [isDragging, startX, scrollLeft]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!containerRef.current) return;
+    const scrollContainer = containerRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (scrollContainer) {
+      scrollContainer.style.cursor = 'grab';
+    }
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isDragging) {
+      handleMouseUp();
+    }
+  }, [isDragging, handleMouseUp]);
+
   const schedulesWithDates = schedules.filter(
     (s) => s.start_date && s.end_date
   );
@@ -96,7 +138,15 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
   }
 
   return (
-    <div className="bg-card rounded-lg border">
+    <div 
+      ref={containerRef}
+      className="bg-card rounded-lg border"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+    >
       <ScrollArea className="w-full">
         <div
           style={{

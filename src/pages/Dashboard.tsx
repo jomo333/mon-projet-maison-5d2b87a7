@@ -128,6 +128,13 @@ const Dashboard = () => {
     }
   }, [stepFromUrl]);
 
+  // Scroll to top when a step is selected
+  useEffect(() => {
+    if (selectedStepId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedStepId]);
+
   // Mock project data (would come from state/context after wizard)
   const projectData = {
     projectName: "Mon projet maison",

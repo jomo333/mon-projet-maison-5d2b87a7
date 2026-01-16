@@ -131,6 +131,10 @@ IMPORTANT POUR LES ITEMS - PERSONNALISATION SELON LES PLANS ANALYSÉS:
   * "Béton" (pas de dimension)
 - Si tu vois des détails spécifiques sur les plans (type de toiture, style de fenêtres, matériaux notés), INCLUS-LES ABSOLUMENT dans les noms d'items
 
+CATÉGORIES À EXCLURE (projet autoconstruction - pas de frais de gestion):
+- NE PAS inclure: Gestion de projet, Administration, Supervision, Frais généraux d'entrepreneur, Profit d'entrepreneur, Honoraires de gestion
+- L'autoconstructeur gère lui-même son projet, donc aucun frais de gestion ne doit apparaître
+
 Catégories pour AGRANDISSEMENT: Fondations (nouvelle partie), Structure/Charpente, Toiture, Raccordement à l'existant, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Démolition (si applicable).
 
 Catégories pour CONSTRUCTION NEUVE: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Garage (si présent).`;
@@ -219,6 +223,10 @@ IMPORTANT POUR LES ITEMS - DESCRIPTIONS PERSONNALISÉES AU PROJET:
   * "Charpente" (trop vague)
   * "Électricité" (pas de détail)
   * "Isolation" (pas de valeur R ni superficie)
+
+CATÉGORIES À EXCLURE (projet autoconstruction - pas de frais de gestion):
+- NE PAS inclure: Gestion de projet, Administration, Supervision, Frais généraux d'entrepreneur, Profit d'entrepreneur, Honoraires de gestion
+- L'autoconstructeur gère lui-même son projet, donc aucun frais de gestion ne doit apparaître
 
 Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures${hasGarage ? ', Garage' : ''}.`;
 

@@ -301,12 +301,8 @@ const StartProject = () => {
     const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
     toast.success("Projet créé avec succès!");
     
-    // Navigate to schedule page if date was set, otherwise dashboard
-    if (projectData.targetStartDate) {
-      navigate(`/echeancier?project=${projectId || ""}`);
-    } else {
-      navigate(`/dashboard?step=${guideStepId}&project=${projectId || ""}`);
-    }
+    // Navigate to guide with the selected step
+    navigate(`/guide?step=${guideStepId}&project=${projectId || ""}`);
   };
 
   const handleNext = async () => {

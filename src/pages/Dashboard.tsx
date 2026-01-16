@@ -9,18 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, MapPin, Calendar, ChevronRight } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X } from "lucide-react";
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const stepFromUrl = searchParams.get("step");
+  const projectFromUrl = searchParams.get("project");
   const [selectedStepId, setSelectedStepId] = useState<string | null>(stepFromUrl);
   const [activePhase, setActivePhase] = useState<string | null>(null);
+  const [showPreviousStepsAlert, setShowPreviousStepsAlert] = useState(!!stepFromUrl);
 
   // Update selected step when URL changes
   useEffect(() => {
     if (stepFromUrl && constructionSteps.find(s => s.id === stepFromUrl)) {
       setSelectedStepId(stepFromUrl);
+      setShowPreviousStepsAlert(true);
     }
   }, [stepFromUrl]);
 
@@ -63,6 +67,40 @@ const Dashboard = () => {
               <ArrowLeft className="h-4 w-4" />
               Retour aux étapes
             </Button>
+
+            {/* Alert for suggested step */}
+            {showPreviousStepsAlert && currentStepIndex > 1 && (
+              <Alert className="mb-6 border-warning/50 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertTitle className="text-warning">Rappel important</AlertTitle>
+                <AlertDescription className="flex items-start justify-between gap-4">
+                  <span>
+                    Assurez-vous que toutes les étapes précédentes ont bien été complétées avant de commencer celle-ci. 
+                    Vous êtes actuellement à l'étape {currentStepIndex} sur {totalSteps}.
+                    {currentStepIndex > 1 && (
+                      <Button 
+                        variant="link" 
+                        className="px-1 h-auto text-warning underline"
+                        onClick={() => {
+                          setSelectedStepId(null);
+                          setShowPreviousStepsAlert(false);
+                        }}
+                      >
+                        Voir toutes les étapes
+                      </Button>
+                    )}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => setShowPreviousStepsAlert(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="mb-6">
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">

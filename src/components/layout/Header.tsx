@@ -1,5 +1,5 @@
-import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, Camera } from "lucide-react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,7 +14,9 @@ import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 
 const navItems = [
-  { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/mes-projets", label: "Mes Projets", icon: FolderOpen },
+  { href: "/dashboard", label: "Étapes", icon: LayoutDashboard },
+  { href: "/galerie", label: "Mes Dossiers", icon: Camera },
   { href: "/budget", label: "Budget", icon: Calculator },
   { href: "/code-batiment", label: "Code du bâtiment", icon: Scale },
   { href: "/guide", label: "Guide", icon: BookOpen },
@@ -23,7 +25,11 @@ const navItems = [
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, profile, signOut, loading } = useAuth();
+  
+  // Get project ID from URL if available
+  const projectId = searchParams.get("project") || location.pathname.match(/\/projet\/([^/]+)/)?.[1];
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,11 +56,19 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+              (item.href === "/galerie" && location.pathname === "/galerie");
+            
+            // Add project parameter for relevant pages
+            let href = item.href;
+            if (projectId && (item.href === "/galerie" || item.href === "/dashboard")) {
+              href = `${item.href}?project=${projectId}`;
+            }
+            
             return (
               <Link
                 key={item.href}
-                to={item.href}
+                to={href}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive

@@ -249,30 +249,51 @@ export const ProjectSummary = ({
               <div className="space-y-3">
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-green-600">
-                    {formatCurrency(budgetSummary.totalBudget)}
+                    {budgetSummary.categories}
                   </span>
+                  <span className="text-muted-foreground">catégories créées</span>
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span>{budgetSummary.categories} catégories</span>
-                  {budgetSummary.totalSpent > 0 && (
-                    <Badge variant="outline" className="ml-auto">
-                      {formatCurrency(budgetSummary.totalSpent)} dépensé
-                    </Badge>
-                  )}
-                </div>
-
-                {budgetSummary.totalBudget > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Utilisé</span>
-                      <span>{Math.round((budgetSummary.totalSpent / budgetSummary.totalBudget) * 100)}%</span>
+                {budgetSummary.totalBudget > 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 text-sm">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <span>Budget total: {formatCurrency(budgetSummary.totalBudget)}</span>
+                      {budgetSummary.totalSpent > 0 && (
+                        <Badge variant="outline" className="ml-auto">
+                          {formatCurrency(budgetSummary.totalSpent)} dépensé
+                        </Badge>
+                      )}
                     </div>
-                    <Progress 
-                      value={(budgetSummary.totalSpent / budgetSummary.totalBudget) * 100} 
-                      className="h-2" 
-                    />
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Utilisé</span>
+                        <span>{Math.round((budgetSummary.totalSpent / budgetSummary.totalBudget) * 100)}%</span>
+                      </div>
+                      <Progress 
+                        value={(budgetSummary.totalSpent / budgetSummary.totalBudget) * 100} 
+                        className="h-2" 
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Montants à définir dans chaque catégorie
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/budget?project=${projectId}`);
+                      }}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Définir les montants
+                    </Button>
                   </div>
                 )}
               </div>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { constructionSteps, phases } from "@/data/constructionSteps";
@@ -11,8 +12,17 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Home, MapPin, Calendar, ChevronRight } from "lucide-react";
 
 const Dashboard = () => {
-  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const stepFromUrl = searchParams.get("step");
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(stepFromUrl);
   const [activePhase, setActivePhase] = useState<string | null>(null);
+
+  // Update selected step when URL changes
+  useEffect(() => {
+    if (stepFromUrl && constructionSteps.find(s => s.id === stepFromUrl)) {
+      setSelectedStepId(stepFromUrl);
+    }
+  }, [stepFromUrl]);
 
   // Mock project data (would come from state/context after wizard)
   const projectData = {

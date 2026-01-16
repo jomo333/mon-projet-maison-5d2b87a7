@@ -473,7 +473,7 @@ export const useProjectSchedule = (projectId: string | null) => {
       "inspections-finales": 5,
     };
 
-    // Si le schedule n'existe pas, on doit le créer
+    // Si le schedule n'existe pas, on doit le créer avec upsert
     if (!existingSchedule) {
       const step = constructionSteps.find((s) => s.id === stepId);
       if (!step) return { daysAhead: 0, alertsCreated: 0 };
@@ -485,10 +485,10 @@ export const useProjectSchedule = (projectId: string | null) => {
       // Calculer la date de début basée sur la durée réelle
       const startDate = format(subBusinessDays(todayDate, usedDays - 1), "yyyy-MM-dd");
 
-      // Créer le schedule comme "completed"
+      // Utiliser upsert pour éviter les doublons
       const { data: newSchedule, error } = await supabase
         .from("project_schedules")
-        .insert({
+        .upsert({
           project_id: projectId,
           step_id: stepId,
           step_name: step.title,
@@ -501,6 +501,9 @@ export const useProjectSchedule = (projectId: string | null) => {
           status: "completed",
           supplier_schedule_lead_days: 21,
           fabrication_lead_days: 0,
+        }, {
+          onConflict: "project_id,step_id",
+          ignoreDuplicates: false,
         })
         .select()
         .single();
@@ -644,8 +647,8 @@ export const useProjectSchedule = (projectId: string | null) => {
           }
         }
       } else {
-        // Créer un nouveau schedule pour cette étape
-        const { error } = await supabase.from("project_schedules").insert({
+        // Utiliser upsert pour créer le schedule sans risque de doublon
+        const { error } = await supabase.from("project_schedules").upsert({
           project_id: projectId,
           step_id: step.id,
           step_name: step.title,
@@ -657,6 +660,9 @@ export const useProjectSchedule = (projectId: string | null) => {
           status: "scheduled",
           supplier_schedule_lead_days: 21,
           fabrication_lead_days: 0,
+        }, {
+          onConflict: "project_id,step_id",
+          ignoreDuplicates: false,
         });
 
         if (error) {

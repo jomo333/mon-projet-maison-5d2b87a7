@@ -68,7 +68,8 @@ const ConstructionGuide = () => {
             </div>
 
             <StepDetail 
-              step={selectedStep} 
+              step={selectedStep}
+              projectId={projectId || undefined}
               onNext={() => {
                 const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
                 if (nextIndex < constructionSteps.length) {

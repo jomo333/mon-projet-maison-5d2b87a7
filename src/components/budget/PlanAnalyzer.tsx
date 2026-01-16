@@ -124,10 +124,16 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId }: PlanAnalyzerProps
 
       // Merge and deduplicate by file_url
       const allPlans = [...(attachments || []), ...photos];
-      const uniquePlans = allPlans.filter((plan, index, self) => 
+      const uniquePlans = allPlans.filter((plan, index, self) =>
         index === self.findIndex(p => p.file_url === plan.file_url)
       );
-      
+
+      console.log("[PlanAnalyzer] projectId", projectId, {
+        attachments: attachments?.length ?? 0,
+        photos: photos.length,
+        unique: uniquePlans.length,
+      });
+
       return uniquePlans;
     },
     enabled: true,
@@ -526,6 +532,9 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId }: PlanAnalyzerProps
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Plans de construction (sélection multiple)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Plans trouvés pour ce projet : <span className="font-medium">{plans.length}</span>
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Ajoutez tous les plans nécessaires (plans d'étages, élévations, coupes, etc.) pour une analyse complète.
                 </p>

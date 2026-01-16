@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,9 +71,12 @@ const categoryColors = [
 const Budget = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectFromUrl = searchParams.get("project");
+
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>(defaultCategories);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projectFromUrl);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   // Fetch user's projects
@@ -126,12 +130,21 @@ const Budget = () => {
     }
   }, [savedBudget, selectedProjectId]);
 
-  // Auto-select first project if available
+  // Auto-select first project if available (and sync URL)
   useEffect(() => {
-    if (projects.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(projects[0].id);
+    if (projectFromUrl && projectFromUrl !== selectedProjectId) {
+      setSelectedProjectId(projectFromUrl);
+      return;
     }
-  }, [projects, selectedProjectId]);
+
+    if (projects.length > 0 && !selectedProjectId) {
+      const firstId = projects[0].id;
+      setSelectedProjectId(firstId);
+      const next = new URLSearchParams(searchParams);
+      next.set("project", firstId);
+      setSearchParams(next, { replace: true });
+    }
+  }, [projects, selectedProjectId, projectFromUrl, searchParams, setSearchParams]);
 
   // Save budget mutation
   const saveBudgetMutation = useMutation({
@@ -267,7 +280,12 @@ const Budget = () => {
                     <div className="flex-1 w-full sm:max-w-xs">
                       <Select 
                         value={selectedProjectId || ""} 
-                        onValueChange={setSelectedProjectId}
+                        onValueChange={(v) => {
+                          setSelectedProjectId(v);
+                          const next = new URLSearchParams(searchParams);
+                          next.set("project", v);
+                          setSearchParams(next, { replace: true });
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionner un projet" />

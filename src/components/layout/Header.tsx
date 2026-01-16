@@ -61,7 +61,7 @@ export function Header() {
             
             // Add project parameter for relevant pages
             let href = item.href;
-            if (projectId && (item.href === "/galerie" || item.href === "/dashboard")) {
+            if (projectId && (item.href === "/galerie" || item.href === "/dashboard" || item.href === "/budget")) {
               href = `${item.href}?project=${projectId}`;
             }
             

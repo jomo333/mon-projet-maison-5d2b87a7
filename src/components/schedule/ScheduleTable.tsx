@@ -31,6 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -191,16 +196,28 @@ export const ScheduleTable = ({
                 <TableCell>
                   <div className="flex gap-1">
                     {schedule.supplier_schedule_lead_days > 0 && (
-                      <Phone className="h-4 w-4 text-blue-500" title="Appel prévu" />
+                      <Tooltip>
+                        <TooltipTrigger><Phone className="h-4 w-4 text-blue-500" /></TooltipTrigger>
+                        <TooltipContent>Appel prévu</TooltipContent>
+                      </Tooltip>
                     )}
                     {schedule.fabrication_lead_days > 0 && (
-                      <Factory className="h-4 w-4 text-orange-500" title="Fabrication requise" />
+                      <Tooltip>
+                        <TooltipTrigger><Factory className="h-4 w-4 text-orange-500" /></TooltipTrigger>
+                        <TooltipContent>Fabrication requise</TooltipContent>
+                      </Tooltip>
                     )}
                     {schedule.measurement_required && (
-                      <Ruler className="h-4 w-4 text-purple-500" title="Mesures requises" />
+                      <Tooltip>
+                        <TooltipTrigger><Ruler className="h-4 w-4 text-purple-500" /></TooltipTrigger>
+                        <TooltipContent>Mesures requises</TooltipContent>
+                      </Tooltip>
                     )}
                     {hasConflict(schedule.id) && (
-                      <AlertTriangle className="h-4 w-4 text-destructive" title="Conflit de métier" />
+                      <Tooltip>
+                        <TooltipTrigger><AlertTriangle className="h-4 w-4 text-destructive" /></TooltipTrigger>
+                        <TooltipContent>Conflit de métier</TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </TableCell>

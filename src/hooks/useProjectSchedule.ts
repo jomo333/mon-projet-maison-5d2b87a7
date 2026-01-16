@@ -76,10 +76,10 @@ export const useProjectSchedule = (projectId: string | null) => {
   });
 
   const createScheduleMutation = useMutation({
-    mutationFn: async (schedule: Partial<ScheduleItem>) => {
+    mutationFn: async (schedule: Omit<ScheduleItem, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from("project_schedules")
-        .insert([schedule])
+        .insert([schedule as any])
         .select()
         .single();
       
@@ -149,10 +149,10 @@ export const useProjectSchedule = (projectId: string | null) => {
   });
 
   const createAlertMutation = useMutation({
-    mutationFn: async (alert: Partial<ScheduleAlert>) => {
+    mutationFn: async (alert: Omit<ScheduleAlert, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
         .from("schedule_alerts")
-        .insert([alert])
+        .insert([alert as any])
         .select()
         .single();
       
@@ -183,7 +183,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     if (!projectId || !schedule.start_date) return;
 
     const startDate = parseISO(schedule.start_date);
-    const alerts: Partial<ScheduleAlert>[] = [];
+    const alerts: Omit<ScheduleAlert, 'id' | 'created_at'>[] = [];
 
     // Alerte appel fournisseur
     if (schedule.supplier_schedule_lead_days > 0) {
@@ -194,6 +194,7 @@ export const useProjectSchedule = (projectId: string | null) => {
         alert_type: "supplier_call",
         alert_date: format(alertDate, "yyyy-MM-dd"),
         message: `Appeler ${schedule.supplier_name || "le fournisseur"} pour ${schedule.step_name}`,
+        is_dismissed: false,
       });
     }
 
@@ -206,6 +207,7 @@ export const useProjectSchedule = (projectId: string | null) => {
         alert_type: "fabrication_start",
         alert_date: format(fabDate, "yyyy-MM-dd"),
         message: `Lancer la fabrication pour ${schedule.step_name}`,
+        is_dismissed: false,
       });
     }
 
@@ -220,6 +222,7 @@ export const useProjectSchedule = (projectId: string | null) => {
           alert_type: "measurement",
           alert_date: prevSchedule.end_date,
           message: `Prendre les mesures pour ${schedule.step_name}${schedule.measurement_notes ? ` - ${schedule.measurement_notes}` : ""}`,
+          is_dismissed: false,
         });
       }
     }

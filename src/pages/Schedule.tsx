@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/landing/Footer";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/landing/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ import { AlertsPanel } from "@/components/schedule/AlertsPanel";
 import { AddScheduleDialog } from "@/components/schedule/AddScheduleDialog";
 
 const Schedule = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
@@ -131,7 +131,7 @@ const Schedule = () => {
               <AddScheduleDialog
                 projectId={selectedProjectId}
                 onAdd={(schedule) => {
-                  createSchedule(schedule);
+                  createSchedule(schedule as any);
                 }}
                 calculateEndDate={calculateEndDate}
               />

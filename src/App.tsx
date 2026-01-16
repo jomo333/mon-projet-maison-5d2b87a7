@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import MyProjects from "./pages/MyProjects";
 import ProjectGallery from "./pages/ProjectGallery";
 import Project from "./pages/Project";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projet/:id" element={<Project />} />
             <Route path="/budget" element={<Budget />} />
+            <Route path="/echeancier" element={<Schedule />} />
             <Route path="/code-batiment" element={<BuildingCode />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/etapes" element={<ConstructionGuide />} />

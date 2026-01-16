@@ -14,6 +14,7 @@ import ConstructionGuide from "./pages/ConstructionGuide";
 import Auth from "./pages/Auth";
 import MyProjects from "./pages/MyProjects";
 import ProjectGallery from "./pages/ProjectGallery";
+import Project from "./pages/Project";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/start" element={<StartProject />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/projet/:id" element={<Project />} />
             <Route path="/budget" element={<Budget />} />
             <Route path="/code-batiment" element={<BuildingCode />} />
             <Route path="/guide" element={<Guide />} />

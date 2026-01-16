@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      completed_tasks: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          project_id: string
+          step_id: string
+          task_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          project_id: string
+          step_id: string
+          task_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          step_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completed_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

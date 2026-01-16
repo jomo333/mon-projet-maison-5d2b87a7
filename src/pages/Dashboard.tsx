@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, Camera, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
-
+import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const stepFromUrl = searchParams.get("step");
@@ -24,6 +24,14 @@ const Dashboard = () => {
 
   // Fetch project schedules
   const { schedules, isLoading: isLoadingSchedules, updateSchedule } = useProjectSchedule(projectFromUrl);
+
+  // Fetch completed tasks
+  const { isTaskCompleted, toggleTask } = useCompletedTasks(projectFromUrl);
+
+  // Handle toggle task for individual tasks
+  const handleToggleTask = (stepId: string, taskId: string, isCompleted: boolean) => {
+    toggleTask({ stepId, taskId, isCompleted });
+  };
 
   // Create a map of step_id to schedule data
   const scheduleByStepId = useMemo(() => {
@@ -182,6 +190,8 @@ const Dashboard = () => {
               }}
               hasNext={currentStepIndex < totalSteps}
               hasPrevious={currentStepIndex > 1}
+              isTaskCompleted={isTaskCompleted}
+              onToggleTask={handleToggleTask}
             />
           </div>
         </main>

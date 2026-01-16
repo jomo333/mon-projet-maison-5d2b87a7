@@ -103,165 +103,178 @@ const Schedule = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Échéancier</h1>
-            <p className="text-muted-foreground">
-              Planifiez et suivez les étapes de votre projet de construction
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Select
-              value={selectedProjectId || ""}
-              onValueChange={(value) => setSearchParams({ project: value })}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Sélectionner un projet" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects?.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedProjectId && (
-              <AddScheduleDialog
-                projectId={selectedProjectId}
-                onAdd={(schedule) => {
-                  createSchedule(schedule as any);
-                }}
-                calculateEndDate={calculateEndDate}
-              />
-            )}
+      
+      {/* Barre d'onglets rapide sticky */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-6">
+              <h1 className="text-xl font-bold hidden md:block">Échéancier</h1>
+              
+              {/* Onglets rapides */}
+              <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab("table")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === "table"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <TableIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Tableau</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("calendar")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === "calendar"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  <span className="hidden sm:inline">Calendrier</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("gantt")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === "gantt"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Gantt</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Indicateurs rapides */}
+              {conflicts.length > 0 && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {conflicts.length} conflit{conflicts.length > 1 ? "s" : ""}
+                </Badge>
+              )}
+              {alerts.length > 0 && (
+                <Badge variant="secondary" className="flex items-center gap-1 bg-orange-500/10 text-orange-600 border-orange-500/20">
+                  <Clock className="h-3 w-3" />
+                  {alerts.length} alerte{alerts.length > 1 ? "s" : ""}
+                </Badge>
+              )}
+              
+              <Select
+                value={selectedProjectId || ""}
+                onValueChange={(value) => setSearchParams({ project: value })}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedProjectId && (
+                <AddScheduleDialog
+                  projectId={selectedProjectId}
+                  onAdd={(schedule) => {
+                    createSchedule(schedule as any);
+                  }}
+                  calculateEndDate={calculateEndDate}
+                />
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-sm text-muted-foreground">Étapes totales</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold">{stats.pending}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">En attente</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">{stats.inProgress}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">En cours</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-2xl font-bold">{stats.completed}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Terminées</p>
-            </CardContent>
-          </Card>
-          <Card className={conflicts.length > 0 ? "border-destructive" : ""}>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle
-                  className={`h-5 w-5 ${
-                    conflicts.length > 0
-                      ? "text-destructive"
-                      : "text-muted-foreground"
-                  }`}
-                />
-                <span className="text-2xl font-bold">{stats.conflicts}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Conflits</p>
-            </CardContent>
-          </Card>
-          <Card className={alerts.length > 0 ? "border-orange-500" : ""}>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <CalendarDays
-                  className={`h-5 w-5 ${
-                    alerts.length > 0 ? "text-orange-500" : "text-muted-foreground"
-                  }`}
-                />
-                <span className="text-2xl font-bold">{stats.alerts}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Alertes</p>
-            </CardContent>
-          </Card>
+      <main className="container mx-auto px-4 py-6">
+        {/* Stats compacts */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+          <div className="bg-card rounded-lg border p-3 text-center">
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </div>
+          <div className="bg-card rounded-lg border p-3 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-2xl font-bold">{stats.pending}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">En attente</p>
+          </div>
+          <div className="bg-card rounded-lg border p-3 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <Loader2 className="h-4 w-4 text-primary" />
+              <span className="text-2xl font-bold">{stats.inProgress}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">En cours</p>
+          </div>
+          <div className="bg-card rounded-lg border p-3 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-2xl font-bold">{stats.completed}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Terminées</p>
+          </div>
+          <div className={`bg-card rounded-lg border p-3 text-center ${conflicts.length > 0 ? "border-destructive" : ""}`}>
+            <div className="flex items-center justify-center gap-1">
+              <AlertTriangle className={`h-4 w-4 ${conflicts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+              <span className="text-2xl font-bold">{stats.conflicts}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Conflits</p>
+          </div>
+          <div className={`bg-card rounded-lg border p-3 text-center ${alerts.length > 0 ? "border-orange-500" : ""}`}>
+            <div className="flex items-center justify-center gap-1">
+              <CalendarDays className={`h-4 w-4 ${alerts.length > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
+              <span className="text-2xl font-bold">{stats.alerts}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Alertes</p>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Main content */}
           <div className="lg:col-span-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="table" className="flex items-center gap-2">
-                  <TableIcon className="h-4 w-4" />
-                  Tableau
-                </TabsTrigger>
-                <TabsTrigger
-                  value="calendar"
-                  className="flex items-center gap-2"
-                >
-                  <CalendarDays className="h-4 w-4" />
-                  Calendrier
-                </TabsTrigger>
-                <TabsTrigger value="gantt" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Gantt
-                </TabsTrigger>
-              </TabsList>
-
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (
-                <>
-                  <TabsContent value="table">
-                    <ScheduleTable
-                      schedules={schedules}
-                      onUpdate={(schedule) => {
-                        updateSchedule(schedule);
-                        // Régénérer les alertes après mise à jour
-                        const fullSchedule = schedules.find(
-                          (s) => s.id === schedule.id
-                        );
-                        if (fullSchedule) {
-                          generateAlerts({ ...fullSchedule, ...schedule });
-                        }
-                      }}
-                      onDelete={deleteSchedule}
-                      conflicts={conflicts}
-                      calculateEndDate={calculateEndDate}
-                    />
-                  </TabsContent>
-                  <TabsContent value="calendar">
-                    <ScheduleCalendar
-                      schedules={schedules}
-                      conflicts={conflicts}
-                    />
-                  </TabsContent>
-                  <TabsContent value="gantt">
-                    <ScheduleGantt schedules={schedules} conflicts={conflicts} />
-                  </TabsContent>
-                </>
-              )}
-            </Tabs>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {activeTab === "table" && (
+                  <ScheduleTable
+                    schedules={schedules}
+                    onUpdate={(schedule) => {
+                      updateSchedule(schedule);
+                      const fullSchedule = schedules.find(
+                        (s) => s.id === schedule.id
+                      );
+                      if (fullSchedule) {
+                        generateAlerts({ ...fullSchedule, ...schedule });
+                      }
+                    }}
+                    onDelete={deleteSchedule}
+                    conflicts={conflicts}
+                    calculateEndDate={calculateEndDate}
+                  />
+                )}
+                {activeTab === "calendar" && (
+                  <ScheduleCalendar
+                    schedules={schedules}
+                    conflicts={conflicts}
+                  />
+                )}
+                {activeTab === "gantt" && (
+                  <ScheduleGantt schedules={schedules} conflicts={conflicts} />
+                )}
+              </>
+            )}
 
             {/* Légende des conflits */}
             {conflicts.length > 0 && (

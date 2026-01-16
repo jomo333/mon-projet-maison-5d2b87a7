@@ -305,7 +305,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
               <div className="flex items-center gap-2 mt-3">
                 <Button 
                   size="sm" 
-                  onClick={() => navigate(projectId ? `/budget?project=${projectId}` : "/budget")}
+                  onClick={() => navigate(projectId ? `/budget?project=${projectId}&autoAnalyze=1` : "/budget?autoAnalyze=1")}
                   className="gap-2 bg-green-600 hover:bg-green-700"
                 >
                   Créer mon budget

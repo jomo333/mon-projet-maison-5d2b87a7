@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -73,11 +73,16 @@ const Budget = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const projectFromUrl = searchParams.get("project");
+  const autoAnalyze = searchParams.get("autoAnalyze") === "1";
 
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>(defaultCategories);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projectFromUrl);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  
+  // Ref for the PlanAnalyzer section to scroll into view
+  const planAnalyzerRef = useRef<HTMLDivElement>(null);
+  const didScrollRef = useRef(false);
 
   // Fetch user's projects
   const { data: projects = [] } = useQuery({
@@ -145,6 +150,18 @@ const Budget = () => {
       setSearchParams(next, { replace: true });
     }
   }, [projects, selectedProjectId, projectFromUrl, searchParams, setSearchParams]);
+
+  // Auto-scroll to PlanAnalyzer when autoAnalyze is set
+  useEffect(() => {
+    if (autoAnalyze && planAnalyzerRef.current && !didScrollRef.current) {
+      didScrollRef.current = true;
+      // Small delay to let the component mount properly
+      const timer = setTimeout(() => {
+        planAnalyzerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [autoAnalyze]);
 
   // Save budget mutation
   const saveBudgetMutation = useMutation({
@@ -326,7 +343,13 @@ const Budget = () => {
           )}
 
           {/* AI Plan Analyzer */}
-          <PlanAnalyzer onBudgetGenerated={handleBudgetGenerated} projectId={selectedProjectId} />
+          <div ref={planAnalyzerRef}>
+            <PlanAnalyzer 
+              onBudgetGenerated={handleBudgetGenerated} 
+              projectId={selectedProjectId}
+              autoSelectPlanTab={autoAnalyze}
+            />
+          </div>
 
           {/* Summary Cards */}
           <div className="grid gap-4 md:grid-cols-3">

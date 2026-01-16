@@ -53,12 +53,14 @@ interface BudgetAnalysis {
 interface PlanAnalyzerProps {
   onBudgetGenerated: (categories: BudgetCategory[]) => void;
   projectId?: string | null;
+  /** When true, auto-select the "Analyse de plan" tab on mount */
+  autoSelectPlanTab?: boolean;
 }
 
-export function PlanAnalyzer({ onBudgetGenerated, projectId }: PlanAnalyzerProps) {
+export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab = false }: PlanAnalyzerProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BudgetAnalysis | null>(null);
-  const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">("manual");
+  const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">(autoSelectPlanTab ? "plan" : "manual");
   
   // Manual mode state
   const [projectType, setProjectType] = useState("maison-unifamiliale");

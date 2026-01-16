@@ -13,8 +13,49 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { mode } = body;
-
+    const { mode, finishQuality = "standard" } = body;
+    
+    // Quality level descriptions for the AI
+    const qualityDescriptions: Record<string, string> = {
+      "economique": `QUALITÉ ÉCONOMIQUE - Matériaux d'entrée de gamme:
+- Planchers: Plancher flottant stratifié 8mm dans toutes les pièces, céramique de base dans salle de bain
+- Armoires: Mélamine blanche ou bois, charnières standard, pas de tiroirs coulissants
+- Comptoirs: Stratifié (Formica/Arborite)
+- Quincaillerie: Poignées de base en métal chromé
+- Portes intérieures: Portes creuses masonite blanches
+- Moulures: Plinthes 3" MDF peintes, pas de cadrage élaboré
+- Peinture: Latex standard, 2 couleurs maximum
+- Salle de bain: Vanité préfabriquée mélamine, robinetterie de base chrome
+- Électricité: Prises et interrupteurs blancs standards
+- Éclairage: Luminaires de base (plafonniers simples)`,
+      "standard": `QUALITÉ STANDARD - Bon rapport qualité-prix:
+- Planchers: Bois franc ingénierie (chêne/érable) au salon/chambres, céramique 12"x24" aux salles de bain/entrée
+- Armoires: Semi-custom en thermoplastique ou bois, tiroirs à fermeture douce, quincaillerie de qualité
+- Comptoirs: Quartz (Silestone, Caesarstone) 
+- Quincaillerie: Poignées en acier inoxydable brossé
+- Portes intérieures: Portes pleines MDF peintes, modèle shaker
+- Moulures: Plinthes 5", cadrages 3", moulure de couronne dans pièces principales
+- Peinture: Latex premium, palette de couleurs variée
+- Salle de bain: Vanité semi-custom, robinetterie Moen/Delta, douche céramique
+- Électricité: Prises Decora, variateurs dans pièces principales
+- Éclairage: Luminaires encastrés LED, suspensions design dans cuisine/salle à manger`,
+      "haut-de-gamme": `QUALITÉ HAUT DE GAMME - Finitions luxueuses:
+- Planchers: Bois franc massif 3/4" (chêne blanc, noyer, hickory), tuile grand format porcelaine/marbre aux SDB
+- Armoires: Sur mesure en bois massif (érable, merisier, noyer), tiroirs Blum, intérieurs organisés
+- Comptoirs: Granite, marbre ou quartz premium avec dosseret assorti
+- Quincaillerie: Design haut de gamme (Top Knobs, Emtek)
+- Portes intérieures: Portes massives avec moulures, ferrures haut de gamme
+- Moulures: Plinthes 7"+, cadrages élaborés, caissons au plafond, lambris décoratifs
+- Peinture: Benjamin Moore/Sherwin-Williams premium, faux-finis et accents
+- Salle de bain: Vanité sur mesure, robinetterie Grohe/Kohler haut de gamme, douche à l'italienne
+- Électricité: Système domotique, prises USB intégrées, variateurs centralisés
+- Éclairage: Luminaires design signés, éclairage indirect, automatisation`
+    };
+    
+    const qualityContext = qualityDescriptions[finishQuality] || qualityDescriptions["standard"];
+    const qualityLabel = finishQuality === "economique" ? "ÉCONOMIQUE" : 
+                        finishQuality === "haut-de-gamme" ? "HAUT DE GAMME" : "STANDARD";
+    
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       console.error('LOVABLE_API_KEY not configured');
@@ -41,6 +82,9 @@ serve(async (req) => {
 
       systemPrompt = `Tu es un expert en analyse de plans de construction et rénovation résidentielle au QUÉBEC, CANADA.
 Tu dois analyser TOUS les plans fournis ENSEMBLE pour obtenir une vision complète du projet avant de générer une estimation budgétaire.
+
+NIVEAU DE QUALITÉ DES FINITIONS CHOISI PAR LE CLIENT: ${qualityLabel}
+${qualityContext}
 
 IMPORTANT - ANALYSE MULTI-PLANS:
 - Tu recevras possiblement PLUSIEURS images de plans (plans d'étages, élévations, coupes, détails, etc.)
@@ -102,6 +146,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
   "estimatedTotal": number,
   "newSquareFootage": number (superficie de la NOUVELLE construction seulement),
   "plansAnalyzed": number (nombre de plans analysés),
+  "finishQuality": "${finishQuality}",
   "categories": [
     {
       "name": "Nom de la catégorie",
@@ -109,7 +154,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
       "description": "Description SPÉCIFIQUE des travaux basée sur ce que tu vois RÉELLEMENT dans les plans (dimensions, matériaux, configurations observées)",
       "items": [
         { 
-          "name": "Nom PRÉCIS et DESCRIPTIF de l'élément basé sur les plans - DOIT inclure dimensions, matériaux et quantités observés", 
+          "name": "Nom PRÉCIS et DESCRIPTIF - DOIT inclure la PIÈCE ou l'ÉTAGE concerné, le TYPE EXACT de matériau selon la qualité ${qualityLabel}, les dimensions et quantités", 
           "cost": number, 
           "quantity": "quantité exacte basée sur les plans", 
           "unit": "unité" 
@@ -121,22 +166,48 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
   "warnings": ["Avertissement si applicable"]
 }
 
-IMPORTANT POUR LES ITEMS - PERSONNALISATION SELON LES PLANS ANALYSÉS:
-- Chaque item DOIT avoir un nom DESCRIPTIF et SPÉCIFIQUE basé sur les plans
-- OBLIGATOIRE: Inclure les dimensions, types de matériaux et quantités observés dans les plans
-- Exemples de noms BONS et ACCEPTÉS:
-  * "Semelles de béton 24\"x12\" - périmètre 120 pi.lin."
-  * "Fenêtres coulissantes PVC 48\"x36\" - façade sud (3 unités)"
-  * "Poutrelles de plancher TJI 11-7/8\" - portée 14 pi"
-  * "Bardage de cèdre horizontal - 450 pi²"
-  * "Porte-patio coulissante 6' - accès terrasse"
-  * "Escalier droit 13 marches - contremarche 7\""
-- Exemples de noms MAUVAIS et INTERDITS:
-  * "Fenêtres" (trop vague)
-  * "Structure" (non descriptif)
-  * "Revêtement" (pas de spécification)
-  * "Béton" (pas de dimension)
-- Si tu vois des détails spécifiques sur les plans (type de toiture, style de fenêtres, matériaux notés), INCLUS-LES ABSOLUMENT dans les noms d'items
+IMPORTANT POUR LES ITEMS - PERSONNALISATION DÉTAILLÉE PAR PIÈCE/ÉTAGE:
+- Chaque item DOIT préciser la PIÈCE ou l'ÉTAGE concerné
+- DOIT spécifier le TYPE EXACT de matériau selon la qualité ${qualityLabel} choisie
+- DOIT justifier le coût par la qualité du matériau choisi
+
+Exemples de noms EXCELLENTS pour catégorie "Finitions intérieures" selon qualité ${qualityLabel}:
+${finishQuality === "economique" ? `
+  * "Plancher flottant stratifié 8mm - Salon/salle à manger rez-de-chaussée (350 pi²)"
+  * "Plancher flottant stratifié 8mm - Chambres étage (280 pi²)"  
+  * "Céramique de base 12x12 - Salle de bain principale (45 pi²)"
+  * "Armoires de cuisine mélamine blanche - 15 pi.lin. base + 12 pi.lin. haut"
+  * "Comptoir stratifié Formica - Cuisine en L (25 pi.lin.)"
+  * "Vanité préfabriquée mélamine 36\" - Salle de bain principale"
+  * "Portes intérieures creuses masonite blanches (8 unités)"
+  * "Plinthes MDF 3\" peintes - Tout le rez-de-chaussée (120 pi.lin.)"
+  * "Robinetterie chrome de base - Cuisine et SDB (3 robinets)"` : 
+finishQuality === "haut-de-gamme" ? `
+  * "Plancher bois franc massif chêne blanc 3/4\" - Salon/salle à manger (350 pi²)"
+  * "Plancher bois franc massif noyer 3/4\" - Chambres maîtresse (180 pi²)"
+  * "Tuile porcelaine grand format 24x48 - Salle de bain principale (60 pi²)"
+  * "Armoires cuisine sur mesure érable massif - 18 pi.lin. base + 15 pi.lin. haut + îlot 6'"
+  * "Comptoir granite noir absolu poli 1.25\" - Cuisine + îlot (35 pi.lin.)"
+  * "Vanité sur mesure merisier massif 60\" double vasque - SDB maîtresse"
+  * "Portes intérieures massives shaker avec moulures (10 unités + ferrures Emtek)"
+  * "Moulures élaborées: plinthes 7\", cadrages 5\", couronne 6\" - Pièces principales"
+  * "Robinetterie Grohe/Kohler haut de gamme - Cuisine et 3 SDB (6 robinets)"
+  * "Douche à l'italienne céramique grand format - SDB maîtresse (35 pi²)"` : `
+  * "Plancher bois franc ingénierie chêne 5\" - Salon/salle à manger rez-de-chaussée (350 pi²)"
+  * "Plancher bois franc ingénierie érable 5\" - Chambres étage (280 pi²)"
+  * "Céramique porcelaine 12x24 - Salle de bain principale + secondaire (90 pi²)"
+  * "Armoires semi-custom thermoplastique shaker - 16 pi.lin. base + 14 pi.lin. haut"
+  * "Comptoir quartz Silestone 1.25\" - Cuisine en L + îlot (30 pi.lin.)"
+  * "Vanité semi-custom 48\" simple vasque - SDB principale"
+  * "Portes intérieures MDF pleines shaker peintes (9 unités)"
+  * "Plinthes MDF 5\" + cadrages 3\" + couronne salon - Pièces principales (180 pi.lin.)"
+  * "Robinetterie Moen/Delta - Cuisine et 2 SDB (4 robinets)"`}
+
+Exemples de noms MAUVAIS et INTERDITS:
+  * "Plancher" (pas de type ni de pièce)
+  * "Armoires de cuisine" (pas de matériau ni dimensions)
+  * "Comptoir" (pas de matériau ni longueur)
+  * "Finitions" (beaucoup trop vague)
 
 CATÉGORIES À EXCLURE (projet autoconstruction):
 - NE PAS inclure: Gestion de projet, Administration, Supervision, Frais généraux d'entrepreneur, Profit d'entrepreneur, Honoraires de gestion
@@ -149,6 +220,9 @@ Catégories pour AGRANDISSEMENT: Fondations (nouvelle partie), Structure/Charpen
 Catégories pour CONSTRUCTION NEUVE: Fondations, Structure/Charpente, Toiture, Fenêtres et Portes, Électricité, Plomberie, Chauffage/Ventilation, Isolation, Revêtements extérieurs, Finitions intérieures, Garage (si présent), Contingence (5%), Taxes (TPS + TVQ).`;
 
       userMessage = `Analyse ${imageUrls.length > 1 ? 'ces ' + imageUrls.length + ' plans' : 'ce plan'} de construction/rénovation pour un projet AU QUÉBEC.
+
+QUALITÉ DE FINITION SÉLECTIONNÉE: ${qualityLabel}
+Le client a choisi un niveau de finition ${qualityLabel.toLowerCase()}. Adapte TOUS les matériaux et coûts en conséquence.
 
 ${imageUrls.length > 1 ? `IMPORTANT - ANALYSE MULTI-PLANS (${imageUrls.length} images):
 - Analyse TOUS les plans ENSEMBLE pour une vision complète
@@ -164,10 +238,14 @@ ${imageUrls.length > 1 ? `IMPORTANT - ANALYSE MULTI-PLANS (${imageUrls.length} i
 ANALYSE DEMANDÉE:
 - Identifier clairement le type de projet (agrandissement, construction neuve, rénovation, etc.)
 - Estimer la superficie de la NOUVELLE construction seulement
-- Générer un budget adapté au type de projet identifié
-- IMPORTANT: Pour chaque item, utilise des noms TRÈS DESCRIPTIFS avec dimensions et spécifications visibles sur les plans
+- Générer un budget adapté au type de projet identifié ET au niveau de qualité ${qualityLabel}
+- CRITIQUE: Pour chaque item de finition, précise:
+  * La PIÈCE concernée (ex: "Salon", "Chambre maître", "SDB principale")
+  * L'ÉTAGE si multi-niveaux (ex: "rez-de-chaussée", "étage")
+  * Le TYPE EXACT de matériau selon la qualité ${qualityLabel} (ex: "plancher flottant 8mm" vs "bois franc massif chêne 3/4")
+  * Les DIMENSIONS ou QUANTITÉS observées sur les plans
 
-Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.length > 1 ? 'de tous les plans' : 'du plan'} et les coûts actuels au Québec (2024-2025).`;
+Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.length > 1 ? 'de tous les plans' : 'du plan'} et les coûts actuels au Québec (2024-2025) pour une finition ${qualityLabel.toLowerCase()}.`;
 
     } else {
       // Manual mode - use provided parameters
@@ -184,6 +262,9 @@ Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.l
 
       systemPrompt = `Tu es un expert en estimation de coûts de construction résidentielle au QUÉBEC, CANADA. 
 Tu dois analyser les informations fournies sur un projet de construction et générer une estimation budgétaire détaillée.
+
+NIVEAU DE QUALITÉ DES FINITIONS CHOISI PAR LE CLIENT: ${qualityLabel}
+${qualityContext}
 
 IMPORTANT - CONTEXTE QUÉBÉCOIS:
 - Tous les prix doivent refléter le marché québécois 2024-2025
@@ -203,16 +284,17 @@ IMPORTANT - STRUCTURE DU BUDGET:
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) avec cette structure:
 {
-  "projectSummary": "Description courte du projet",
+  "projectSummary": "Description courte du projet incluant le niveau de qualité ${qualityLabel}",
   "estimatedTotal": number,
+  "finishQuality": "${finishQuality}",
   "categories": [
     {
       "name": "Nom de la catégorie",
       "budget": number,
-      "description": "Description SPÉCIFIQUE des travaux adaptée à ce projet",
+      "description": "Description SPÉCIFIQUE des travaux adaptée à ce projet et au niveau de qualité ${qualityLabel}",
       "items": [
         { 
-          "name": "Nom PRÉCIS et DESCRIPTIF incluant dimensions et spécifications calculées selon la superficie du projet", 
+          "name": "Nom PRÉCIS - DOIT inclure la PIÈCE/ÉTAGE, le TYPE EXACT de matériau selon qualité ${qualityLabel}, dimensions", 
           "cost": number, 
           "quantity": "quantité calculée selon la superficie", 
           "unit": "unité" 
@@ -224,21 +306,41 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) av
   "warnings": ["Avertissement si applicable"]
 }
 
-IMPORTANT POUR LES ITEMS - DESCRIPTIONS PERSONNALISÉES AU PROJET:
-- Chaque item DOIT être SPÉCIFIQUE à ce projet (taille, nombre d'étages, type)
-- OBLIGATOIRE: Calculer et inclure les dimensions basées sur la superficie fournie
-- Exemples de noms BONS:
-  * "Dalle de béton 4\" avec treillis armé - 1500 pi²"
-  * "Murs extérieurs 2x6 @ 16\" c/c - périmètre estimé 180 pi.lin."
-  * "Fermes de toit préfabriquées 4/12 - portée 28 pi (14 unités)"
-  * "Panneau électrique 200A avec 40 circuits"
-  * "Fenêtres PVC double vitrage Low-E - estimation 12 unités"
-  * "Isolation R-24 murs + R-60 combles - 2800 pi²"
-- Exemples de noms MAUVAIS:
-  * "Murs" (pas de spécification)
-  * "Charpente" (trop vague)
-  * "Électricité" (pas de détail)
-  * "Isolation" (pas de valeur R ni superficie)
+IMPORTANT POUR LES ITEMS - DESCRIPTIONS DÉTAILLÉES PAR PIÈCE/ÉTAGE:
+- Chaque item de finition DOIT préciser la PIÈCE ou l'ÉTAGE concerné
+- DOIT spécifier le TYPE EXACT de matériau selon la qualité ${qualityLabel} choisie
+- DOIT justifier le coût par la qualité du matériau choisi
+
+Exemples de noms EXCELLENTS pour catégorie "Finitions intérieures" qualité ${qualityLabel}:
+${finishQuality === "economique" ? `
+  * "Plancher flottant stratifié 8mm - Salon/SAM rez-de-chaussée (estimé 350 pi²)"
+  * "Plancher flottant stratifié 8mm - Chambres étage (estimé 280 pi²)"
+  * "Céramique de base 12x12 - Salle de bain (estimé 45 pi²)"
+  * "Armoires mélamine blanche - Cuisine (estimé 15 pi.lin. base + 12 haut)"
+  * "Comptoir stratifié Formica - Cuisine (estimé 20 pi.lin.)"
+  * "Vanité préfabriquée mélamine 36\" - SDB"
+  * "Portes creuses masonite blanches (estimé 8 unités)"` : 
+finishQuality === "haut-de-gamme" ? `
+  * "Plancher bois franc massif chêne blanc 3/4\" - Salon/SAM (estimé 350 pi²)"
+  * "Plancher bois franc massif noyer 3/4\" - Chambre maîtresse (estimé 180 pi²)"
+  * "Tuile porcelaine grand format 24x48 - SDB principale (estimé 60 pi²)"
+  * "Armoires sur mesure érable massif - Cuisine (estimé 18 base + 15 haut + îlot)"
+  * "Comptoir granite noir absolu poli 1.25\" - Cuisine + îlot (estimé 35 pi.lin.)"
+  * "Vanité sur mesure merisier 60\" double vasque - SDB maîtresse"
+  * "Portes massives shaker avec ferrures Emtek (estimé 10 unités)"
+  * "Moulures élaborées plinthes 7\", cadrages 5\", couronne - Pièces principales"` : `
+  * "Plancher bois franc ingénierie chêne 5\" - Salon/SAM (estimé 350 pi²)"
+  * "Plancher bois franc ingénierie érable 5\" - Chambres (estimé 280 pi²)"
+  * "Céramique porcelaine 12x24 - Salle de bain (estimé 80 pi²)"
+  * "Armoires semi-custom thermoplastique shaker - Cuisine (estimé 16 base + 14 haut)"
+  * "Comptoir quartz Silestone 1.25\" - Cuisine (estimé 25 pi.lin.)"
+  * "Vanité semi-custom 48\" - SDB principale"
+  * "Portes MDF pleines shaker peintes (estimé 9 unités)"`}
+
+Exemples de noms MAUVAIS:
+  * "Plancher" (pas de type ni de pièce)
+  * "Armoires" (pas de matériau ni dimensions)
+  * "Comptoir" (pas de matériau)
 
 CATÉGORIES À EXCLURE (projet autoconstruction):
 - NE PAS inclure: Gestion de projet, Administration, Supervision, Frais généraux d'entrepreneur, Profit d'entrepreneur, Honoraires de gestion
@@ -263,14 +365,18 @@ Catégories typiques: Fondations, Structure/Charpente, Toiture, Fenêtres et Por
 ${foundationSqft ? `- Superficie de la fondation: ${foundationSqft} pi²` : ''}
 ${floorDetailsStr ? `- Détail par étage:\n${floorDetailsStr}` : ''}
 - Garage: ${hasGarage ? 'Oui (simple ou double selon la superficie)' : 'Non'}
+- QUALITÉ DE FINITION: ${qualityLabel}
 - Région: Québec, Canada
 
-IMPORTANT: Pour chaque item du budget, utilise des noms TRÈS DESCRIPTIFS avec:
-- Les dimensions calculées selon la superficie fournie
-- Les spécifications techniques (type de matériaux, épaisseurs, valeurs R, etc.)
-- Les quantités estimées basées sur les paramètres du projet
+IMPORTANT - QUALITÉ ${qualityLabel}:
+Le client a choisi un niveau de finition ${qualityLabel.toLowerCase()}. Adapte TOUS les matériaux de finition (planchers, armoires, comptoirs, portes, moulures, robinetterie) en conséquence.
 
-Génère une estimation budgétaire complète et réaliste basée sur les coûts actuels au Québec (2024-2025).
+Pour chaque item du budget, utilise des noms TRÈS DESCRIPTIFS avec:
+- La PIÈCE ou l'ÉTAGE concerné (ex: "Salon rez-de-chaussée", "Chambres étage")
+- Le TYPE EXACT de matériau selon la qualité ${qualityLabel}
+- Les dimensions/quantités estimées selon la superficie
+
+Génère une estimation budgétaire complète et réaliste basée sur les coûts actuels au Québec (2024-2025) pour une finition ${qualityLabel.toLowerCase()}.
 ${hasGarage ? 'IMPORTANT: Inclure une catégorie spécifique pour le Garage avec tous les coûts associés (dalle, structure, porte de garage, électricité, etc.).' : ''}`;
     }
 

@@ -70,6 +70,9 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
   const [foundationSqft, setFoundationSqft] = useState("");
   const [floorSqftDetails, setFloorSqftDetails] = useState<string[]>([""]);
   
+  // Quality level state (shared between manual and plan modes)
+  const [finishQuality, setFinishQuality] = useState<"economique" | "standard" | "haut-de-gamme">("standard");
+  
   // Plan mode state - now supports multiple plans
   const [selectedPlanUrls, setSelectedPlanUrls] = useState<string[]>([]);
   // Used to avoid re-importing the same existing file (especially PDFs that we convert)
@@ -419,10 +422,12 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
             hasGarage,
             foundationSqft: parseInt(foundationSqft) || null,
             floorSqftDetails: floorSqftDetails.filter(s => s).map(s => parseInt(s)),
+            finishQuality,
           }
         : {
             mode: "plan",
-            imageUrls: selectedPlanUrls, // Now sending multiple URLs
+            imageUrls: selectedPlanUrls,
+            finishQuality,
           };
 
       const { data, error } = await supabase.functions.invoke('analyze-plan', {
@@ -575,6 +580,38 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
                   </label>
                 </div>
               </div>
+
+              <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                <Label>Qualité des finitions intérieures</Label>
+                <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="economique">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">🏷️ Économique</span>
+                        <span className="text-xs text-muted-foreground">Matériaux de base, plancher flottant, armoires mélamine, comptoirs stratifiés</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="standard">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">⭐ Standard</span>
+                        <span className="text-xs text-muted-foreground">Bois franc ingénierie, armoires semi-custom, comptoirs quartz</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="haut-de-gamme">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">💎 Haut de gamme</span>
+                        <span className="text-xs text-muted-foreground">Bois franc massif, armoires sur mesure, comptoirs granite/marbre</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Ce choix affecte les coûts des planchers, armoires, comptoirs, quincaillerie et finitions.
+                </p>
+              </div>
             </div>
           </TabsContent>
           
@@ -583,6 +620,39 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Téléversez votre plan</strong> (image ou PDF). Les fichiers PDF seront automatiquement convertis en images pour l'analyse IA.
+              </p>
+            </div>
+            
+            {/* Quality Level Selector for Plan Mode */}
+            <div className="space-y-2">
+              <Label>Qualité des finitions intérieures</Label>
+              <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="economique">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">🏷️ Économique</span>
+                      <span className="text-xs text-muted-foreground">Plancher flottant, armoires mélamine, comptoirs stratifiés</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="standard">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">⭐ Standard</span>
+                      <span className="text-xs text-muted-foreground">Bois franc ingénierie, armoires semi-custom, quartz</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="haut-de-gamme">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">💎 Haut de gamme</span>
+                      <span className="text-xs text-muted-foreground">Bois franc massif, armoires sur mesure, granite/marbre</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choisissez selon votre budget. Cela affecte les coûts des planchers, armoires, comptoirs et finitions.
               </p>
             </div>
             

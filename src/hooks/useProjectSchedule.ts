@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { addBusinessDays, differenceInBusinessDays, format, parseISO, subBusinessDays } from "date-fns";
 import { sortSchedulesByExecutionOrder, getStepExecutionOrder } from "@/lib/scheduleOrder";
 import { constructionSteps } from "@/data/constructionSteps";
+import { addDays } from "date-fns";
 import { getTradeColor } from "@/data/tradeTypes";
 export interface ScheduleItem {
   id: string;
@@ -40,6 +41,16 @@ export interface ScheduleAlert {
   is_dismissed: boolean;
   created_at: string;
 }
+
+// Délais obligatoires après certaines étapes (jours calendrier)
+// Ex: cure du béton avant structure
+const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; reason: string }> = {
+  structure: {
+    afterStep: "excavation-fondation",
+    days: 21, // 3 semaines minimum pour la cure du béton
+    reason: "Cure du béton des fondations (minimum 3 semaines)",
+  },
+};
 
 export const useProjectSchedule = (projectId: string | null) => {
   const queryClient = useQueryClient();
@@ -332,14 +343,34 @@ export const useProjectSchedule = (projectId: string | null) => {
     const alertsToCreate: Omit<ScheduleAlert, 'id' | 'created_at'>[] = [];
     const updates: { id: string; start_date: string; end_date: string }[] = [];
 
+    // Stocker les dates de fin pour les délais minimum
+    const previousStepEndDates: Record<string, string> = {};
+    previousStepEndDates[completedSchedule.step_id] = actualEndDate;
+
     for (const schedule of subsequentSchedules) {
       if (schedule.status === "completed") {
+        if (schedule.end_date) {
+          previousStepEndDates[schedule.step_id] = schedule.end_date;
+        }
         continue;
+      }
+
+      // Vérifier s'il y a un délai minimum après une étape précédente
+      const delayConfig = minimumDelayAfterStep[schedule.step_id];
+      if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
+        const requiredStartDate = addDays(parseISO(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
+        // Si le délai impose une date plus tardive, on l'utilise
+        if (requiredStartDate > newStartDate) {
+          newStartDate = requiredStartDate;
+        }
       }
 
       const newStart = format(newStartDate, "yyyy-MM-dd");
       const duration = schedule.actual_days || schedule.estimated_days;
       const newEnd = format(addBusinessDays(newStartDate, duration - 1), "yyyy-MM-dd");
+
+      // Stocker la date de fin pour les délais des étapes suivantes
+      previousStepEndDates[schedule.step_id] = newEnd;
 
       // Vérifier si le fournisseur doit être appelé plus tôt
       if (schedule.supplier_schedule_lead_days > 0 && schedule.start_date) {
@@ -620,14 +651,38 @@ export const useProjectSchedule = (projectId: string | null) => {
     let nextStartDate = addBusinessDays(parseISO(actualEndDate), 1);
     let updatedCount = 0;
 
+    // Stocker les dates de fin pour les délais minimum
+    const previousStepEndDates: Record<string, string> = {};
+    previousStepEndDates[completedSchedule.step_id] = actualEndDate;
+
+    // Aussi collecter les dates de fin des étapes déjà complétées
+    for (const schedule of existingSchedules) {
+      if (schedule.status === "completed" && schedule.end_date) {
+        previousStepEndDates[schedule.step_id] = schedule.end_date;
+      }
+    }
+
     for (const step of subsequentSteps) {
       // Vérifier si un schedule existe déjà pour cette étape
       const schedule = existingSchedules.find((s) => s.step_id === step.id);
+
+      // Vérifier s'il y a un délai minimum après une étape précédente
+      const delayConfig = minimumDelayAfterStep[step.id];
+      if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
+        const requiredStartDate = addDays(parseISO(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
+        // Si le délai impose une date plus tardive, on l'utilise
+        if (requiredStartDate > nextStartDate) {
+          nextStartDate = requiredStartDate;
+        }
+      }
 
       const tradeType = stepTradeMapping[step.id] || "autre";
       const estimatedDays = defaultDurations[step.id] || 5;
       const newStart = format(nextStartDate, "yyyy-MM-dd");
       const newEnd = format(addBusinessDays(nextStartDate, estimatedDays - 1), "yyyy-MM-dd");
+
+      // Stocker la date de fin pour les délais des étapes suivantes
+      previousStepEndDates[step.id] = newEnd;
 
       if (schedule) {
         // Mettre à jour le schedule existant (sauf s'il est déjà complété)
@@ -641,6 +696,7 @@ export const useProjectSchedule = (projectId: string | null) => {
           // Si complété, on utilise sa date de fin pour le suivant
           if (schedule.end_date) {
             nextStartDate = addBusinessDays(parseISO(schedule.end_date), 1);
+            previousStepEndDates[step.id] = schedule.end_date;
             continue;
           }
         }
@@ -729,14 +785,38 @@ export const useProjectSchedule = (projectId: string | null) => {
       }
     }
 
+    // Stocker les dates de fin pour les délais minimum
+    const previousStepEndDates: Record<string, string> = {};
+    
+    // Collecter les dates de fin des étapes complétées avant celle qu'on annule
+    for (let i = 0; i < uncompleteIndex; i++) {
+      const s = sortedSchedules[i];
+      if (s.status === "completed" && s.end_date) {
+        previousStepEndDates[s.step_id] = s.end_date;
+      }
+    }
+
     // Mettre à jour toutes les étapes directement via Supabase (batch)
     for (let i = uncompleteIndex; i < sortedSchedules.length; i++) {
       const schedule = sortedSchedules[i];
       
+      // Vérifier s'il y a un délai minimum après une étape précédente
+      const delayConfig = minimumDelayAfterStep[schedule.step_id];
+      if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
+        const requiredStartDate = addDays(parseISO(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
+        // Si le délai impose une date plus tardive, on l'utilise
+        if (requiredStartDate > newStartDate) {
+          newStartDate = requiredStartDate;
+        }
+      }
+
       // Utiliser toujours la durée estimée (pas actual_days) pour restaurer le plan original
       const duration = schedule.estimated_days;
       const newStart = format(newStartDate, "yyyy-MM-dd");
       const newEnd = format(addBusinessDays(newStartDate, duration - 1), "yyyy-MM-dd");
+
+      // Stocker la date de fin pour les délais des étapes suivantes
+      previousStepEndDates[schedule.step_id] = newEnd;
 
       await supabase
         .from("project_schedules")

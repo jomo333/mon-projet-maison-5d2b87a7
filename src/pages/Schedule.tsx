@@ -36,7 +36,7 @@ const Schedule = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
-  const [activeTab, setActiveTab] = useState("table");
+  const [activeTab, setActiveTab] = useState("gantt");
 
   // Fetch user projects
   const { data: projects, isLoading: projectsLoading } = useQuery({

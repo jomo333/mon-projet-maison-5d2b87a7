@@ -14,7 +14,7 @@ export const tradeTypes: TradeType[] = [
   { id: "plomberie", name: "Plombier", color: "#3B82F6" },
   { id: "hvac", name: "Chauffage/Ventilation", color: "#EF4444" },
   { id: "isolation", name: "Isolation", color: "#EC4899" },
-  { id: "gypse", name: "Plâtrier/Gypse", color: "#F5F5F4" },
+  { id: "gypse", name: "Plâtrier/Gypse", color: "#9CA3AF" },
   { id: "peinture", name: "Peintre", color: "#A855F7" },
   { id: "plancher", name: "Plancher", color: "#78350F" },
   { id: "ceramique", name: "Céramiste", color: "#14B8A6" },

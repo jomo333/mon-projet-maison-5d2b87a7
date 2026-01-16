@@ -4,6 +4,18 @@ import { constructionSteps } from "@/data/constructionSteps";
 import { getTradeColor } from "@/data/tradeTypes";
 import { supabase } from "@/integrations/supabase/client";
 
+// Interface pour les durées de référence
+interface ReferenceDuration {
+  step_id: string;
+  step_name: string;
+  base_duration_days: number;
+  base_square_footage: number;
+  min_duration_days: number | null;
+  max_duration_days: number | null;
+  scaling_factor: number;
+  notes: string | null;
+}
+
 // Étapes de préparation (à planifier AVANT la date visée de début des travaux)
 const preparationSteps = ["planification", "financement", "plans-permis"];
 
@@ -17,7 +29,9 @@ const stepTradeMapping: Record<string, string> = {
   toiture: "toiture",
   "fenetres-portes": "fenetre",
   electricite: "electricite",
+  "electricite-finition": "electricite",
   plomberie: "plomberie",
+  "plomberie-finition": "plomberie",
   hvac: "hvac",
   isolation: "isolation",
   gypse: "gypse",
@@ -28,51 +42,52 @@ const stepTradeMapping: Record<string, string> = {
   "inspections-finales": "inspecteur",
 };
 
-// Durées par défaut en jours ouvrables (basées sur projet réel - exclut weekends et fériés)
+// Durées par défaut en jours ouvrables (utilisé si pas de données de référence)
 const defaultDurations: Record<string, number> = {
-  planification: 5,        // 4-5 jours
-  financement: 10,         // ok - 2 semaines
-  "plans-permis": 15,      // ok - 3 semaines
-  "excavation-fondation": 10, // 2 semaines
-  structure: 10,           // 2 semaines
-  toiture: 2,              // 2 jours
-  "fenetres-portes": 2,    // 2 jours
-  electricite: 6,          // 5-7 jours
-  plomberie: 6,            // 5-7 jours
-  hvac: 3,                 // 2-3 jours
-  isolation: 5,            // ok
-  gypse: 11,               // 10-12 jours
-  "revetements-sol": 6,    // 5-7 jours
-  "cuisine-sdb": 4,        // 3-5 jours
-  "finitions-int": 5,      // ok
-  exterieur: 7,            // ok
-  "inspections-finales": 2, // ok
+  planification: 5,
+  financement: 10,
+  "plans-permis": 15,
+  "excavation-fondation": 10,
+  structure: 15,
+  toiture: 2,
+  "fenetres-portes": 2,
+  electricite: 4, // Rough-in
+  "electricite-finition": 3,
+  plomberie: 4, // Rough-in
+  "plomberie-finition": 3,
+  hvac: 7,
+  isolation: 5,
+  gypse: 15,
+  "revetements-sol": 7,
+  "cuisine-sdb": 10,
+  "finitions-int": 10,
+  exterieur: 15,
+  "inspections-finales": 2,
 };
 
 // Délais fournisseurs par métier (jours avant la date de début)
 const supplierLeadDays: Record<string, number> = {
-  "fenetres-portes": 42, // 6 semaines
-  "cuisine-sdb": 35, // 5 semaines
-  "revetements-sol": 14, // 2 semaines
+  "fenetres-portes": 42,
+  "cuisine-sdb": 35,
+  "revetements-sol": 14,
 };
 
 // Délais de fabrication
 const fabricationLeadDays: Record<string, number> = {
-  "cuisine-sdb": 21, // 3 semaines
-  "fenetres-portes": 28, // 4 semaines
+  "cuisine-sdb": 21,
+  "fenetres-portes": 28,
 };
 
 // Délais obligatoires après certaines étapes (jours calendrier)
-// Ex: cure du béton avant structure
 const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; reason: string }> = {
   structure: {
     afterStep: "excavation-fondation",
-    days: 21, // 3 semaines minimum pour la cure du béton
+    days: 21,
     reason: "Cure du béton des fondations (minimum 3 semaines)",
   },
   exterieur: {
     afterStep: "electricite",
-    days: 0, // Peut commencer dès que l'électricité est terminée
+    days: 0,
     reason: "Travaux extérieurs peuvent commencer après le filage électrique",
   },
 };
@@ -88,6 +103,74 @@ const measurementConfig: Record<string, { afterStep: string; notes: string }> = 
     notes: "Mesures après tirage de joints",
   },
 };
+
+/**
+ * Récupère les durées de référence depuis la base de données
+ */
+async function getReferenceDurations(): Promise<Map<string, ReferenceDuration>> {
+  const { data, error } = await supabase
+    .from("schedule_reference_durations")
+    .select("*");
+
+  const map = new Map<string, ReferenceDuration>();
+  if (data && !error) {
+    for (const ref of data) {
+      map.set(ref.step_id, ref as ReferenceDuration);
+    }
+  }
+  return map;
+}
+
+/**
+ * Calcule la durée ajustée au prorata de la superficie
+ * @param stepId - ID de l'étape
+ * @param projectSquareFootage - Superficie du projet en pi²
+ * @param referenceDurations - Map des durées de référence
+ * @returns Durée ajustée en jours ouvrables
+ */
+function calculateAdjustedDuration(
+  stepId: string,
+  projectSquareFootage: number | null,
+  referenceDurations: Map<string, ReferenceDuration>
+): number {
+  const ref = referenceDurations.get(stepId);
+  
+  // Si pas de référence ou pas de superficie, utiliser la durée par défaut
+  if (!ref || !projectSquareFootage) {
+    return defaultDurations[stepId] || 5;
+  }
+
+  const baseSquareFootage = ref.base_square_footage || 2000;
+  const baseDuration = ref.base_duration_days;
+  const scalingFactor = Number(ref.scaling_factor) || 1.0;
+  const minDuration = ref.min_duration_days || 1;
+  const maxDuration = ref.max_duration_days || baseDuration * 3;
+
+  // Calcul au prorata avec facteur d'échelle
+  // Formule: duration = baseDuration * (1 + (ratio - 1) * scalingFactor)
+  // où ratio = projectSquareFootage / baseSquareFootage
+  const ratio = projectSquareFootage / baseSquareFootage;
+  const adjustedDuration = Math.round(
+    baseDuration * (1 + (ratio - 1) * scalingFactor)
+  );
+
+  // Appliquer les limites min/max
+  return Math.max(minDuration, Math.min(maxDuration, adjustedDuration));
+}
+
+/**
+ * Récupère la superficie d'un projet
+ */
+async function getProjectSquareFootage(projectId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("square_footage")
+    .eq("id", projectId)
+    .single();
+
+  if (error || !data) return null;
+  return data.square_footage;
+}
 
 /**
  * Calcule la date de fin en ajoutant des jours ouvrables (vers le futur)
@@ -127,7 +210,7 @@ function calculateStartDateBackward(endDate: string, businessDays: number): stri
  * Génère automatiquement l'échéancier complet pour un projet
  * La préparation commence AUJOURD'HUI (jour de l'entrée des données)
  * La date visée correspond au JOUR 1 des travaux (excavation-fondation)
- * Retourne une alerte si la date visée est impossible
+ * Les durées sont ajustées au prorata de la superficie du projet
  */
 export async function generateProjectSchedule(
   projectId: string,
@@ -135,6 +218,12 @@ export async function generateProjectSchedule(
   currentStage?: string
 ): Promise<{ success: boolean; error?: string; warning?: string }> {
   try {
+    // Récupérer les durées de référence et la superficie du projet
+    const [referenceDurations, projectSquareFootage] = await Promise.all([
+      getReferenceDurations(),
+      getProjectSquareFootage(projectId),
+    ]);
+
     // Mapping des stages utilisateur vers les étapes de construction
     const stageToStepMapping: Record<string, string> = {
       planification: "planification",
@@ -160,6 +249,11 @@ export async function generateProjectSchedule(
     const today = format(new Date(), "yyyy-MM-dd");
     let warning: string | undefined;
 
+    // Info sur le calcul au prorata
+    if (projectSquareFootage && referenceDurations.size > 0) {
+      console.log(`Calcul des durées au prorata - Superficie projet: ${projectSquareFootage} pi² (référence: 2000 pi²)`);
+    }
+
     // 1. Planifier les étapes de PRÉPARATION à partir d'AUJOURD'HUI
     let currentPrepDate = today;
     let prepEndDate = today;
@@ -167,7 +261,7 @@ export async function generateProjectSchedule(
     if (prepSteps.length > 0) {
       for (const step of prepSteps) {
         const tradeType = stepTradeMapping[step.id] || "autre";
-        const duration = defaultDurations[step.id] || 5;
+        const duration = calculateAdjustedDuration(step.id, projectSquareFootage, referenceDurations);
         const endDate = calculateEndDate(currentPrepDate, duration);
         
         schedulesToInsert.push({
@@ -188,20 +282,17 @@ export async function generateProjectSchedule(
         });
 
         prepEndDate = endDate;
-        // Prochaine étape commence après la fin de celle-ci
         currentPrepDate = calculateEndDate(endDate, 1);
       }
     }
 
     // 2. Vérifier si la date visée est réalisable
-    // La préparation doit se terminer AVANT la date visée
     const prepFinishDate = prepSteps.length > 0 ? prepEndDate : today;
     const earliestConstructionStart = calculateEndDate(prepFinishDate, 1);
     
     let actualConstructionStart = targetStartDate;
     
     if (earliestConstructionStart > targetStartDate) {
-      // La date visée est impossible - on décale et on avertit
       actualConstructionStart = earliestConstructionStart;
       const delayDays = Math.ceil(
         (new Date(earliestConstructionStart).getTime() - new Date(targetStartDate).getTime()) / (1000 * 60 * 60 * 24)
@@ -211,11 +302,11 @@ export async function generateProjectSchedule(
 
     // 3. Planifier les étapes de CONSTRUCTION à partir de la date effective
     let currentDate = actualConstructionStart;
-    let previousStepEndDates: Record<string, string> = {}; // Pour stocker les dates de fin par step_id
+    let previousStepEndDates: Record<string, string> = {};
 
     for (const step of constructionStepsFiltered) {
       const tradeType = stepTradeMapping[step.id] || "autre";
-      const duration = defaultDurations[step.id] || 5;
+      const duration = calculateAdjustedDuration(step.id, projectSquareFootage, referenceDurations);
       
       // Vérifier s'il y a un délai minimum après une étape précédente
       const delayConfig = minimumDelayAfterStep[step.id];
@@ -223,7 +314,6 @@ export async function generateProjectSchedule(
         const requiredStartDate = addDays(new Date(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
         const requiredStartStr = format(requiredStartDate, "yyyy-MM-dd");
         
-        // Si le délai impose une date plus tardive, on l'utilise
         if (requiredStartStr > currentDate) {
           currentDate = requiredStartStr;
         }
@@ -249,10 +339,7 @@ export async function generateProjectSchedule(
         status: "scheduled",
       });
 
-      // Stocker la date de fin pour les vérifications de délais
       previousStepEndDates[step.id] = endDate;
-      
-      // Prochaine étape commence après la fin de celle-ci
       currentDate = calculateEndDate(endDate, 1);
     }
 
@@ -322,15 +409,13 @@ async function generateScheduleAlerts(projectId: string, schedules: any[]): Prom
   }
 
   if (alertsToInsert.length > 0) {
-    // Note: Les alertes nécessitent l'ID du schedule, on les insère après
-    // Pour l'instant on skip les alertes car on n'a pas encore les IDs
-    // Les alertes seront générées via le hook useProjectSchedule
+    // Note: Les alertes seront générées via le hook useProjectSchedule
   }
 }
 
 /**
  * Calcule la durée totale estimée du projet en jours ouvrables
- * Retourne aussi les jours de préparation requis AVANT le début des travaux
+ * Utilise les durées par défaut (sans ajustement au prorata)
  */
 export function calculateTotalProjectDuration(currentStage?: string): {
   preparationDays: number;
@@ -351,12 +436,10 @@ export function calculateTotalProjectDuration(currentStage?: string): {
     ? constructionSteps.slice(startIndex) 
     : constructionSteps;
 
-  // Calculer les jours de préparation (avant date visée)
   const preparationDays = stepsToCount
     .filter(s => preparationSteps.includes(s.id))
     .reduce((total, step) => total + (defaultDurations[step.id] || 5), 0);
 
-  // Calculer les jours de construction (après date visée)
   const constructionDays = stepsToCount
     .filter(s => !preparationSteps.includes(s.id))
     .reduce((total, step) => total + (defaultDurations[step.id] || 5), 0);
@@ -365,6 +448,55 @@ export function calculateTotalProjectDuration(currentStage?: string): {
     preparationDays,
     constructionDays,
     totalDays: preparationDays + constructionDays,
+  };
+}
+
+/**
+ * Calcule la durée totale estimée au prorata de la superficie
+ */
+export async function calculateTotalProjectDurationWithProrata(
+  projectId: string,
+  currentStage?: string
+): Promise<{
+  preparationDays: number;
+  constructionDays: number;
+  totalDays: number;
+  squareFootage: number | null;
+  isProrated: boolean;
+}> {
+  const [referenceDurations, projectSquareFootage] = await Promise.all([
+    getReferenceDurations(),
+    getProjectSquareFootage(projectId),
+  ]);
+
+  const stageToStepMapping: Record<string, string> = {
+    planification: "planification",
+    permis: "plans-permis",
+    fondation: "excavation-fondation",
+    structure: "structure",
+    finition: "gypse",
+  };
+
+  const startFromStep = currentStage ? stageToStepMapping[currentStage] : "planification";
+  const startIndex = constructionSteps.findIndex(s => s.id === startFromStep);
+  const stepsToCount = startIndex >= 0 
+    ? constructionSteps.slice(startIndex) 
+    : constructionSteps;
+
+  const preparationDays = stepsToCount
+    .filter(s => preparationSteps.includes(s.id))
+    .reduce((total, step) => total + calculateAdjustedDuration(step.id, projectSquareFootage, referenceDurations), 0);
+
+  const constructionDays = stepsToCount
+    .filter(s => !preparationSteps.includes(s.id))
+    .reduce((total, step) => total + calculateAdjustedDuration(step.id, projectSquareFootage, referenceDurations), 0);
+
+  return {
+    preparationDays,
+    constructionDays,
+    totalDays: preparationDays + constructionDays,
+    squareFootage: projectSquareFootage,
+    isProrated: projectSquareFootage !== null && referenceDurations.size > 0,
   };
 }
 

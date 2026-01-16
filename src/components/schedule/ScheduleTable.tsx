@@ -49,6 +49,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  CheckCircle,
+  FastForward,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
@@ -59,6 +61,7 @@ interface ScheduleTableProps {
   schedules: ScheduleItem[];
   onUpdate: (schedule: Partial<ScheduleItem> & { id: string }) => void;
   onDelete: (id: string) => void;
+  onComplete?: (scheduleId: string, actualDays?: number) => Promise<{ daysAhead: number; alertsCreated: number } | undefined>;
   conflicts: { date: string; trades: string[] }[];
   calculateEndDate: (startDate: string, days: number) => string;
 }
@@ -74,12 +77,16 @@ export const ScheduleTable = ({
   schedules,
   onUpdate,
   onDelete,
+  onComplete,
   conflicts,
   calculateEndDate,
 }: ScheduleTableProps) => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ScheduleItem>>({});
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completeDays, setCompleteDays] = useState<number | undefined>(undefined);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const hasConflict = (scheduleId: string) => {
     const schedule = schedules.find((s) => s.id === scheduleId);
@@ -109,6 +116,24 @@ export const ScheduleTable = ({
     });
     setEditingId(null);
     setEditData({});
+  };
+
+  const handleStartComplete = (schedule: ScheduleItem) => {
+    setCompletingId(schedule.id);
+    setCompleteDays(schedule.actual_days || schedule.estimated_days);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!completingId || !onComplete) return;
+    
+    setIsCompleting(true);
+    try {
+      await onComplete(completingId, completeDays);
+      setCompletingId(null);
+      setCompleteDays(undefined);
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -223,6 +248,21 @@ export const ScheduleTable = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    {schedule.status !== "completed" && onComplete && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleStartComplete(schedule)}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Marquer terminé et ajuster l'échéancier</TooltipContent>
+                      </Tooltip>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -614,6 +654,49 @@ export const ScheduleTable = ({
               Annuler
             </Button>
             <Button onClick={handleSave}>Enregistrer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmation pour compléter une étape */}
+      <Dialog open={!!completingId} onOpenChange={(open) => !open && setCompletingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FastForward className="h-5 w-5 text-green-600" />
+              Marquer l'étape comme terminée
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              En marquant cette étape comme terminée, l'échéancier sera automatiquement ajusté et vous recevrez des alertes si des sous-traitants doivent être contactés plus tôt.
+            </p>
+            
+            <div className="space-y-2">
+              <Label>Nombre de jours réels pour cette étape</Label>
+              <Input
+                type="number"
+                min={1}
+                value={completeDays || ""}
+                onChange={(e) => setCompleteDays(parseInt(e.target.value) || undefined)}
+                placeholder="Laissez vide pour utiliser aujourd'hui comme date de fin"
+              />
+              <p className="text-xs text-muted-foreground">
+                Si l'étape a pris moins de jours que prévu, les étapes suivantes seront devancées.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCompletingId(null)} disabled={isCompleting}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleConfirmComplete} 
+              disabled={isCompleting}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isCompleting ? "Ajustement..." : "Terminer et ajuster l'échéancier"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

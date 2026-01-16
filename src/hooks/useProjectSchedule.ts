@@ -275,6 +275,147 @@ export const useProjectSchedule = (projectId: string | null) => {
     return conflicts;
   };
 
+  /**
+   * Recalcule l'échéancier à partir d'une étape terminée
+   * Devance toutes les étapes suivantes et génère des alertes
+   */
+  const recalculateScheduleFromCompleted = async (
+    completedScheduleId: string,
+    actualEndDate: string,
+    actualDays?: number
+  ) => {
+    if (!projectId) return;
+
+    const sortedSchedules = [...(schedulesQuery.data || [])].sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      return a.start_date.localeCompare(b.start_date);
+    });
+
+    const completedIndex = sortedSchedules.findIndex(s => s.id === completedScheduleId);
+    if (completedIndex === -1) return;
+
+    const completedSchedule = sortedSchedules[completedIndex];
+    const originalEndDate = completedSchedule.end_date;
+    
+    // Calculer le nombre de jours d'avance
+    let daysAhead = 0;
+    if (originalEndDate) {
+      daysAhead = differenceInBusinessDays(parseISO(originalEndDate), parseISO(actualEndDate));
+    }
+
+    // Si on est en avance (daysAhead > 0), on décale les étapes suivantes
+    if (daysAhead <= 0) {
+      // Pas en avance, juste mettre à jour l'étape courante
+      await updateScheduleMutation.mutateAsync({
+        id: completedScheduleId,
+        status: "completed",
+        end_date: actualEndDate,
+        actual_days: actualDays || completedSchedule.estimated_days,
+      });
+      return { daysAhead: 0, alertsCreated: 0 };
+    }
+
+    // Mettre à jour l'étape complétée
+    await updateScheduleMutation.mutateAsync({
+      id: completedScheduleId,
+      status: "completed",
+      end_date: actualEndDate,
+      actual_days: actualDays || completedSchedule.estimated_days,
+    });
+
+    // Décaler toutes les étapes suivantes
+    const subsequentSchedules = sortedSchedules.slice(completedIndex + 1);
+    let newStartDate = addBusinessDays(parseISO(actualEndDate), 1);
+    const alertsToCreate: Omit<ScheduleAlert, 'id' | 'created_at'>[] = [];
+
+    for (const schedule of subsequentSchedules) {
+      if (!schedule.start_date || schedule.status === "completed") continue;
+
+      const originalStart = parseISO(schedule.start_date);
+      const newStart = format(newStartDate, "yyyy-MM-dd");
+      const duration = schedule.actual_days || schedule.estimated_days;
+      const newEnd = format(addBusinessDays(newStartDate, duration - 1), "yyyy-MM-dd");
+
+      // Vérifier si le fournisseur doit être appelé plus tôt
+      if (schedule.supplier_schedule_lead_days > 0) {
+        const originalCallDate = subBusinessDays(originalStart, schedule.supplier_schedule_lead_days);
+        const newCallDate = subBusinessDays(newStartDate, schedule.supplier_schedule_lead_days);
+        const today = new Date();
+        
+        // Si la nouvelle date d'appel est proche ou dépassée, créer une alerte urgente
+        const daysUntilCall = differenceInBusinessDays(newCallDate, today);
+        
+        if (daysUntilCall <= 5 && daysUntilCall >= -2) {
+          alertsToCreate.push({
+            project_id: projectId,
+            schedule_id: schedule.id,
+            alert_type: "urgent_supplier_call",
+            alert_date: format(today, "yyyy-MM-dd"),
+            message: `⚠️ URGENT: Appeler ${schedule.supplier_name || "le fournisseur"} pour ${schedule.step_name} - Le projet avance plus vite! Nouvelle date prévue: ${format(newStartDate, "d MMM yyyy", { locale: undefined })}`,
+            is_dismissed: false,
+          });
+        }
+      }
+
+      // Mettre à jour l'étape
+      await updateScheduleMutation.mutateAsync({
+        id: schedule.id,
+        start_date: newStart,
+        end_date: newEnd,
+      });
+
+      // La prochaine étape commence après celle-ci
+      newStartDate = addBusinessDays(parseISO(newEnd), 1);
+    }
+
+    // Créer les alertes urgentes
+    for (const alert of alertsToCreate) {
+      await createAlertMutation.mutateAsync(alert);
+    }
+
+    // Régénérer les alertes normales pour les étapes décalées
+    for (const schedule of subsequentSchedules) {
+      const updatedSchedule = {
+        ...schedule,
+        start_date: format(addBusinessDays(parseISO(actualEndDate), 1), "yyyy-MM-dd"),
+      };
+      // Les alertes seront regénérées par generateAlerts
+    }
+
+    toast({
+      title: "Échéancier ajusté",
+      description: `${daysAhead} jour(s) d'avance! ${subsequentSchedules.length} étape(s) devancée(s). ${alertsToCreate.length} alerte(s) urgente(s) créée(s).`,
+    });
+
+    return { daysAhead, alertsCreated: alertsToCreate.length };
+  };
+
+  /**
+   * Marquer une étape comme complétée et ajuster l'échéancier
+   */
+  const completeStep = async (
+    scheduleId: string,
+    actualDays?: number
+  ) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const schedule = schedulesQuery.data?.find(s => s.id === scheduleId);
+    
+    if (!schedule?.start_date) return;
+
+    // Calculer la date de fin réelle basée sur les jours réels ou à partir d'aujourd'hui
+    let actualEndDate: string;
+    if (actualDays) {
+      actualEndDate = format(
+        addBusinessDays(parseISO(schedule.start_date), actualDays - 1),
+        "yyyy-MM-dd"
+      );
+    } else {
+      actualEndDate = today;
+    }
+
+    return recalculateScheduleFromCompleted(scheduleId, actualEndDate, actualDays);
+  };
+
   return {
     schedules: schedulesQuery.data || [],
     alerts: alertsQuery.data || [],
@@ -283,11 +424,14 @@ export const useProjectSchedule = (projectId: string | null) => {
     createSchedule: createScheduleMutation.mutate,
     createScheduleAsync: createScheduleMutation.mutateAsync,
     updateSchedule: updateScheduleMutation.mutate,
+    updateScheduleAsync: updateScheduleMutation.mutateAsync,
     deleteSchedule: deleteScheduleMutation.mutate,
     dismissAlert: dismissAlertMutation.mutate,
     generateAlerts,
     calculateEndDate,
     checkConflicts,
+    recalculateScheduleFromCompleted,
+    completeStep,
     isCreating: createScheduleMutation.isPending,
     isUpdating: updateScheduleMutation.isPending,
   };

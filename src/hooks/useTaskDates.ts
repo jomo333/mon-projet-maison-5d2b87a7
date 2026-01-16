@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { constructionSteps } from "@/data/constructionSteps";
+import { format, parseISO, min, max } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 interface TaskDate {
   id: string;
@@ -30,6 +33,79 @@ export function useTaskDates(projectId: string | null) {
     },
     enabled: !!projectId,
   });
+
+  // Function to update project_schedules based on task dates
+  const syncScheduleWithTaskDates = async (stepId: string) => {
+    if (!projectId) return;
+
+    // Get all task dates for this step
+    const { data: taskDates, error: fetchError } = await supabase
+      .from("task_dates")
+      .select("*")
+      .eq("project_id", projectId)
+      .eq("step_id", stepId);
+
+    if (fetchError) {
+      console.error("Error fetching task dates:", fetchError);
+      return;
+    }
+
+    // Get the step definition to know total tasks
+    const step = constructionSteps.find(s => s.id === stepId);
+    if (!step) return;
+
+    // Filter task dates that have both start and end dates
+    const completeDates = (taskDates || []).filter(td => td.start_date && td.end_date);
+    
+    if (completeDates.length === 0) return;
+
+    // Calculate the earliest start date and latest end date from task dates
+    const startDates = completeDates
+      .filter(td => td.start_date)
+      .map(td => parseISO(td.start_date!));
+    
+    const endDates = completeDates
+      .filter(td => td.end_date)
+      .map(td => parseISO(td.end_date!));
+
+    if (startDates.length === 0 || endDates.length === 0) return;
+
+    const earliestStart = min(startDates);
+    const latestEnd = max(endDates);
+
+    const newStartDate = format(earliestStart, "yyyy-MM-dd");
+    const newEndDate = format(latestEnd, "yyyy-MM-dd");
+
+    // Check if a schedule exists for this step
+    const { data: existingSchedule } = await supabase
+      .from("project_schedules")
+      .select("id, start_date, end_date")
+      .eq("project_id", projectId)
+      .eq("step_id", stepId)
+      .maybeSingle();
+
+    if (existingSchedule) {
+      // Update existing schedule
+      const { error: updateError } = await supabase
+        .from("project_schedules")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("id", existingSchedule.id);
+
+      if (updateError) {
+        console.error("Error updating schedule:", updateError);
+      } else {
+        // Invalidate schedule queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+        toast({
+          title: "Échéancier mis à jour",
+          description: `Les dates de "${step.title}" ont été synchronisées avec les sous-tâches.`,
+        });
+      }
+    }
+  };
 
   const upsertTaskDateMutation = useMutation({
     mutationFn: async ({
@@ -84,9 +160,16 @@ export function useTaskDates(projectId: string | null) {
 
         if (error) throw error;
       }
+
+      return { stepId };
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["task-dates", projectId] });
+      
+      // Sync schedule with task dates
+      if (data?.stepId) {
+        await syncScheduleWithTaskDates(data.stepId);
+      }
     },
   });
 
@@ -96,11 +179,31 @@ export function useTaskDates(projectId: string | null) {
     );
   };
 
+  // Get aggregated dates for a step from its tasks
+  const getStepDatesFromTasks = (stepId: string): { startDate: string | null; endDate: string | null } => {
+    const stepTasks = taskDatesQuery.data?.filter(td => td.step_id === stepId) || [];
+    
+    const startDates = stepTasks
+      .filter(td => td.start_date)
+      .map(td => parseISO(td.start_date!));
+    
+    const endDates = stepTasks
+      .filter(td => td.end_date)
+      .map(td => parseISO(td.end_date!));
+
+    return {
+      startDate: startDates.length > 0 ? format(min(startDates), "yyyy-MM-dd") : null,
+      endDate: endDates.length > 0 ? format(max(endDates), "yyyy-MM-dd") : null,
+    };
+  };
+
   return {
     taskDates: taskDatesQuery.data || [],
     isLoading: taskDatesQuery.isLoading,
     getTaskDate,
+    getStepDatesFromTasks,
     upsertTaskDate: upsertTaskDateMutation.mutate,
     upsertTaskDateAsync: upsertTaskDateMutation.mutateAsync,
+    syncScheduleWithTaskDates,
   };
 }

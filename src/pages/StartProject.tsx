@@ -245,8 +245,86 @@ const StartProject = () => {
     }
   };
 
+  // État pour le chargement de l'analyse
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState("");
+
+  const generateScheduleAndBudget = async (projectId: string, hasPlans: boolean) => {
+    setIsAnalyzing(true);
+    
+    try {
+      // 1. Générer l'échéancier
+      if (projectData.targetStartDate) {
+        setAnalysisProgress("Génération de l'échéancier...");
+        const result = await generateProjectSchedule(
+          projectId,
+          projectData.targetStartDate,
+          projectData.currentStage
+        );
+        
+        if (result.success) {
+          if (result.warning) {
+            toast.warning(result.warning);
+          }
+        } else {
+          console.error("Schedule generation error:", result.error);
+        }
+      }
+
+      // 2. Générer un budget de base (catégories par défaut)
+      setAnalysisProgress("Préparation du budget...");
+      
+      // Vérifier si un budget existe déjà
+      const { data: existingBudget } = await supabase
+        .from("project_budgets")
+        .select("id")
+        .eq("project_id", projectId)
+        .limit(1);
+
+      if (!existingBudget || existingBudget.length === 0) {
+        // Créer les catégories de budget par défaut
+        const defaultCategories = [
+          { category_name: "Terrain et préparation", color: "#8B5CF6", budget: 0 },
+          { category_name: "Fondation", color: "#6366F1", budget: 0 },
+          { category_name: "Structure et charpente", color: "#3B82F6", budget: 0 },
+          { category_name: "Toiture", color: "#0EA5E9", budget: 0 },
+          { category_name: "Fenêtres et portes", color: "#14B8A6", budget: 0 },
+          { category_name: "Électricité", color: "#EAB308", budget: 0 },
+          { category_name: "Plomberie", color: "#06B6D4", budget: 0 },
+          { category_name: "HVAC", color: "#F97316", budget: 0 },
+          { category_name: "Isolation", color: "#84CC16", budget: 0 },
+          { category_name: "Gypse et peinture", color: "#A855F7", budget: 0 },
+          { category_name: "Revêtements de sol", color: "#EC4899", budget: 0 },
+          { category_name: "Cuisine et SDB", color: "#F43F5E", budget: 0 },
+          { category_name: "Finitions", color: "#10B981", budget: 0 },
+          { category_name: "Extérieur", color: "#22C55E", budget: 0 },
+        ];
+
+        const budgetInserts = defaultCategories.map(cat => ({
+          project_id: projectId,
+          category_name: cat.category_name,
+          color: cat.color,
+          budget: cat.budget,
+          spent: 0,
+        }));
+
+        await supabase.from("project_budgets").insert(budgetInserts);
+      }
+
+      setAnalysisProgress("Analyse terminée!");
+      toast.success("Projet analysé avec succès!");
+      
+    } catch (error) {
+      console.error("Error during analysis:", error);
+      toast.error("Erreur lors de l'analyse");
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisProgress("");
+    }
+  };
+
   const uploadPlansAndFinish = async () => {
-    if (!createdProjectId || uploadedPlans.length === 0) {
+    if (!createdProjectId) {
       setCurrentStep(7);
       return;
     }
@@ -254,31 +332,37 @@ const StartProject = () => {
     setIsSaving(true);
 
     try {
-      for (let i = 0; i < uploadedPlans.length; i++) {
-        const plan = uploadedPlans[i];
-        setUploadedPlans((prev) =>
-          prev.map((p, idx) => (idx === i ? { ...p, isUploading: true } : p))
-        );
-
-        const uploadedUrl = await uploadPlanToStorage(plan.file, createdProjectId);
-        if (uploadedUrl) {
-          await saveAttachmentToDb(
-            createdProjectId,
-            plan.file.name,
-            uploadedUrl,
-            plan.file.type,
-            plan.file.size
-          );
+      // Upload plans if any
+      if (uploadedPlans.length > 0) {
+        for (let i = 0; i < uploadedPlans.length; i++) {
+          const plan = uploadedPlans[i];
           setUploadedPlans((prev) =>
-            prev.map((p, idx) =>
-              idx === i ? { ...p, isUploading: false, uploadedUrl } : p
-            )
+            prev.map((p, idx) => (idx === i ? { ...p, isUploading: true } : p))
           );
+
+          const uploadedUrl = await uploadPlanToStorage(plan.file, createdProjectId);
+          if (uploadedUrl) {
+            await saveAttachmentToDb(
+              createdProjectId,
+              plan.file.name,
+              uploadedUrl,
+              plan.file.type,
+              plan.file.size
+            );
+            setUploadedPlans((prev) =>
+              prev.map((p, idx) =>
+                idx === i ? { ...p, isUploading: false, uploadedUrl } : p
+              )
+            );
+          }
         }
+        toast.success("Plans téléversés avec succès!");
       }
 
-      toast.success("Plans téléversés avec succès!");
-      // Go to next action choice
+      // Générer échéancier et budget automatiquement
+      await generateScheduleAndBudget(createdProjectId, uploadedPlans.length > 0);
+      
+      // Go to summary
       setCurrentStep(7);
     } catch (error: any) {
       console.error("Error uploading plans:", error);
@@ -289,23 +373,6 @@ const StartProject = () => {
   };
 
   const finalizeAndRedirect = async (projectId: string | null, action?: NextAction) => {
-    if (projectId && projectData.targetStartDate) {
-      // Générer l'échéancier automatiquement
-      toast.info("Génération de l'échéancier...");
-      const result = await generateProjectSchedule(
-        projectId,
-        projectData.targetStartDate,
-        projectData.currentStage
-      );
-      
-      if (result.success) {
-        toast.success("Échéancier généré automatiquement!");
-      } else {
-        console.error("Schedule generation error:", result.error);
-        // Ne pas bloquer la création du projet
-      }
-    }
-
     toast.success("Projet créé avec succès!");
     
     // Navigate based on selected action
@@ -342,23 +409,20 @@ const StartProject = () => {
           setCurrentStep(6);
         }
       } else {
-        // No plan upload needed, save and redirect
+        // No plan upload needed, save project and generate analysis
         setIsSaving(true);
         const projectId = await saveProject();
         
         if (projectId) {
-          await finalizeAndRedirect(projectId);
+          setCreatedProjectId(projectId);
+          await generateScheduleAndBudget(projectId, false);
+          setCurrentStep(7);
         }
         setIsSaving(false);
       }
     } else if (currentStep === 6) {
-      // Upload plans and go to next action choice
-      if (uploadedPlans.length > 0) {
-        await uploadPlansAndFinish();
-      } else {
-        // No plans, go directly to next action choice
-        setCurrentStep(7);
-      }
+      // Upload plans and generate analysis
+      await uploadPlansAndFinish();
     } else if (currentStep === 7) {
       // Finalize based on selected action
       await finalizeAndRedirect(createdProjectId);
@@ -373,8 +437,16 @@ const StartProject = () => {
     }
   };
 
-  const handleSkipPlans = () => {
-    // Go to next action choice instead of redirecting directly
+  const handleSkipPlans = async () => {
+    if (!createdProjectId) {
+      setCurrentStep(7);
+      return;
+    }
+    
+    setIsSaving(true);
+    // Générer échéancier et budget même sans plans
+    await generateScheduleAndBudget(createdProjectId, false);
+    setIsSaving(false);
     setCurrentStep(7);
   };
 
@@ -648,6 +720,13 @@ const StartProject = () => {
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">Conversion du PDF... {Math.round(pdfProgress)}%</span>
+                </div>
+              )}
+
+              {isAnalyzing && (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-primary font-medium">{analysisProgress || "Analyse en cours..."}</span>
                 </div>
               )}
 

@@ -904,47 +904,103 @@ export const useProjectSchedule = (projectId: string | null) => {
   ) => {
     if (!projectId) return;
 
-    // Sort by execution order
-    const sortedSchedules = sortSchedulesByExecutionOrder(schedulesQuery.data || []);
+    // Toujours relire depuis la DB pour éviter d'utiliser un cache incomplet/stale
+    const { data: allSchedules, error: fetchError } = await supabase
+      .from("project_schedules")
+      .select("*")
+      .eq("project_id", projectId);
+
+    if (fetchError) {
+      toast({
+        title: "Erreur",
+        description: fetchError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sortedSchedules = sortSchedulesByExecutionOrder((allSchedules || []) as ScheduleItem[]);
     const scheduleIndex = sortedSchedules.findIndex((s) => s.id === scheduleId);
     if (scheduleIndex === -1) return;
 
     const schedule = sortedSchedules[scheduleIndex];
 
-    // Calculer la nouvelle date de fin si nécessaire
-    let newEndDate = updates.end_date;
-    const newStartDate = updates.start_date ?? schedule.start_date;
-    const newDuration = updates.actual_days ?? updates.estimated_days ?? schedule.actual_days ?? schedule.estimated_days;
+    // Sécuriser les champs qu'on permet de mettre à jour (évite d'envoyer id/created_at/etc.)
+    const allowedKeys: Array<keyof ScheduleItem> = [
+      "step_name",
+      "trade_type",
+      "trade_color",
+      "estimated_days",
+      "actual_days",
+      "start_date",
+      "end_date",
+      "supplier_name",
+      "supplier_phone",
+      "supplier_schedule_lead_days",
+      "fabrication_lead_days",
+      "fabrication_start_date",
+      "measurement_required",
+      "measurement_after_step_id",
+      "measurement_notes",
+      "status",
+      "notes",
+    ];
+
+    const safeUpdates = allowedKeys.reduce((acc, key) => {
+      if (key in updates) {
+        // @ts-expect-error - reduce typing helper
+        acc[key] = updates[key] as any;
+      }
+      return acc;
+    }, {} as Partial<ScheduleItem>);
+
+    // Calculer la nouvelle date de fin (si on a une date de début + une durée)
+    let newEndDate = safeUpdates.end_date ?? schedule.end_date;
+    const newStartDate = safeUpdates.start_date ?? schedule.start_date;
+    const newDuration =
+      safeUpdates.actual_days ??
+      safeUpdates.estimated_days ??
+      schedule.actual_days ??
+      schedule.estimated_days;
 
     if (newStartDate && newDuration) {
-      newEndDate = format(addBusinessDays(parseISO(newStartDate), newDuration - 1), "yyyy-MM-dd");
+      newEndDate = format(
+        addBusinessDays(parseISO(newStartDate), newDuration - 1),
+        "yyyy-MM-dd"
+      );
     }
 
-    // Mettre à jour l'étape modifiée
-    await supabase
+    const { error: updateError } = await supabase
       .from("project_schedules")
       .update({
-        ...updates,
+        ...safeUpdates,
         end_date: newEndDate,
       })
       .eq("id", scheduleId);
 
-    // Si pas de date de fin, on ne peut pas recalculer
+    if (updateError) {
+      toast({
+        title: "Erreur",
+        description: updateError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newEndDate) {
       queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
       toast({ title: "Étape mise à jour" });
       return;
     }
 
-    // Recalculer toutes les étapes suivantes
+    // Recalculer toutes les étapes suivantes (ordre d'exécution)
     const subsequentSchedules = sortedSchedules.slice(scheduleIndex + 1);
     let nextStartDate = addBusinessDays(parseISO(newEndDate), 1);
 
     // Stocker les dates de fin pour les délais minimum
     const previousStepEndDates: Record<string, string> = {};
-    previousStepEndDates[schedule.step_id] = newEndDate;
 
-    // Collecter les dates de fin des étapes précédentes (y compris celle modifiée)
+    // Construire l'historique des fins jusqu'à l'étape modifiée
     for (let i = 0; i <= scheduleIndex; i++) {
       const s = sortedSchedules[i];
       if (s.id === scheduleId) {
@@ -966,10 +1022,13 @@ export const useProjectSchedule = (projectId: string | null) => {
         continue;
       }
 
-      // Vérifier s'il y a un délai minimum après une étape précédente
+      // Délais minimum (ex: cure béton)
       const delayConfig = minimumDelayAfterStep[subsequentSchedule.step_id];
       if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
-        const requiredStartDate = addDays(parseISO(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
+        const requiredStartDate = addDays(
+          parseISO(previousStepEndDates[delayConfig.afterStep]),
+          delayConfig.days
+        );
         if (requiredStartDate > nextStartDate) {
           nextStartDate = requiredStartDate;
         }
@@ -977,32 +1036,51 @@ export const useProjectSchedule = (projectId: string | null) => {
 
       const duration = subsequentSchedule.actual_days || subsequentSchedule.estimated_days;
       const startStr = format(nextStartDate, "yyyy-MM-dd");
-      const endStr = format(addBusinessDays(nextStartDate, duration - 1), "yyyy-MM-dd");
+      const endStr = format(
+        addBusinessDays(nextStartDate, (duration || 1) - 1),
+        "yyyy-MM-dd"
+      );
 
       previousStepEndDates[subsequentSchedule.step_id] = endStr;
-      updatesToApply.push({ id: subsequentSchedule.id, start_date: startStr, end_date: endStr });
+      updatesToApply.push({
+        id: subsequentSchedule.id,
+        start_date: startStr,
+        end_date: endStr,
+      });
 
       nextStartDate = addBusinessDays(parseISO(endStr), 1);
     }
 
-    // Appliquer les mises à jour
-    for (const update of updatesToApply) {
-      await supabase
-        .from("project_schedules")
-        .update({ start_date: update.start_date, end_date: update.end_date })
-        .eq("id", update.id);
+    if (updatesToApply.length > 0) {
+      const results = await Promise.all(
+        updatesToApply.map((u) =>
+          supabase
+            .from("project_schedules")
+            .update({ start_date: u.start_date, end_date: u.end_date })
+            .eq("id", u.id)
+        )
+      );
+
+      const anyError = results.find((r) => r.error)?.error;
+      if (anyError) {
+        toast({
+          title: "Erreur",
+          description: anyError.message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
 
-    if (updatesToApply.length > 0) {
-      toast({
-        title: "Échéancier recalculé",
-        description: `${updatesToApply.length} étape(s) suivante(s) ajustée(s).`,
-      });
-    } else {
-      toast({ title: "Étape mise à jour" });
-    }
+    toast({
+      title: "Échéancier recalculé",
+      description:
+        updatesToApply.length > 0
+          ? `${updatesToApply.length} étape(s) suivante(s) ajustée(s).`
+          : "Étape mise à jour.",
+    });
   };
 
   return {

@@ -28,25 +28,25 @@ const stepTradeMapping: Record<string, string> = {
   "inspections-finales": "inspecteur",
 };
 
-// Durées par défaut en jours ouvrables
+// Durées par défaut en jours ouvrables (basées sur projet réel - exclut weekends et fériés)
 const defaultDurations: Record<string, number> = {
-  planification: 15,
-  financement: 20,
-  "plans-permis": 30,
-  "excavation-fondation": 15,
-  structure: 15,
-  toiture: 7,
-  "fenetres-portes": 5,
-  electricite: 7,
-  plomberie: 7,
-  hvac: 7,
-  isolation: 5,
-  gypse: 15,
-  "revetements-sol": 7,
-  "cuisine-sdb": 10,
-  "finitions-int": 10,
-  exterieur: 15,
-  "inspections-finales": 5,
+  planification: 5,        // 4-5 jours
+  financement: 10,         // ok - 2 semaines
+  "plans-permis": 15,      // ok - 3 semaines
+  "excavation-fondation": 10, // 2 semaines
+  structure: 10,           // 2 semaines
+  toiture: 2,              // 2 jours
+  "fenetres-portes": 2,    // 2 jours
+  electricite: 6,          // 5-7 jours
+  plomberie: 6,            // 5-7 jours
+  hvac: 3,                 // 2-3 jours
+  isolation: 5,            // ok
+  gypse: 11,               // 10-12 jours
+  "revetements-sol": 6,    // 5-7 jours
+  "cuisine-sdb": 4,        // 3-5 jours
+  "finitions-int": 5,      // ok
+  exterieur: 7,            // ok
+  "inspections-finales": 2, // ok
 };
 
 // Délais fournisseurs par métier (jours avant la date de début)

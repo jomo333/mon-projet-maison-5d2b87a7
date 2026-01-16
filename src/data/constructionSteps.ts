@@ -26,7 +26,7 @@ export const constructionSteps: Step[] = [
     phase: "pre-construction",
     phaseLabel: "Pré-construction",
     icon: "ClipboardList",
-    duration: "2-4 semaines",
+    duration: "4-5 jours",
     tasks: [
       {
         id: "besoins",
@@ -65,7 +65,7 @@ export const constructionSteps: Step[] = [
     phase: "pre-construction",
     phaseLabel: "Pré-construction",
     icon: "DollarSign",
-    duration: "2-6 semaines",
+    duration: "2 semaines",
     tasks: [
       {
         id: "preapprobation",
@@ -95,7 +95,7 @@ export const constructionSteps: Step[] = [
     phase: "pre-construction",
     phaseLabel: "Pré-construction",
     icon: "FileText",
-    duration: "4-12 semaines",
+    duration: "3 semaines",
     tasks: [
       {
         id: "plans-architecture",
@@ -137,7 +137,7 @@ export const constructionSteps: Step[] = [
     phase: "gros-oeuvre",
     phaseLabel: "Gros œuvre",
     icon: "Shovel",
-    duration: "2-4 semaines",
+    duration: "2 semaines",
     tasks: [
       {
         id: "implantation",
@@ -182,7 +182,7 @@ export const constructionSteps: Step[] = [
     phase: "gros-oeuvre",
     phaseLabel: "Gros œuvre",
     icon: "Home",
-    duration: "2-4 semaines",
+    duration: "2 semaines",
     tasks: [
       {
         id: "plancher",
@@ -231,7 +231,7 @@ export const constructionSteps: Step[] = [
     phase: "gros-oeuvre",
     phaseLabel: "Gros œuvre",
     icon: "Umbrella",
-    duration: "1-2 semaines",
+    duration: "2 jours",
     tasks: [
       {
         id: "membrane",
@@ -256,7 +256,7 @@ export const constructionSteps: Step[] = [
     phase: "gros-oeuvre",
     phaseLabel: "Gros œuvre",
     icon: "DoorOpen",
-    duration: "1-2 semaines",
+    duration: "2 jours",
     tasks: [
       {
         id: "fenetres",
@@ -283,7 +283,7 @@ export const constructionSteps: Step[] = [
     phase: "second-oeuvre",
     phaseLabel: "Second œuvre",
     icon: "Zap",
-    duration: "1-2 semaines",
+    duration: "5-7 jours",
     tasks: [
       {
         id: "entree-electrique",
@@ -319,7 +319,7 @@ export const constructionSteps: Step[] = [
     phase: "second-oeuvre",
     phaseLabel: "Second œuvre",
     icon: "Droplets",
-    duration: "1-2 semaines",
+    duration: "5-7 jours",
     tasks: [
       {
         id: "plomberie-brute",
@@ -350,7 +350,7 @@ export const constructionSteps: Step[] = [
     phase: "second-oeuvre",
     phaseLabel: "Second œuvre",
     icon: "Wind",
-    duration: "1-2 semaines",
+    duration: "2-3 jours",
     tasks: [
       {
         id: "chauffage",
@@ -384,7 +384,7 @@ export const constructionSteps: Step[] = [
     phase: "second-oeuvre",
     phaseLabel: "Second œuvre",
     icon: "Thermometer",
-    duration: "1-2 semaines",
+    duration: "1 semaine",
     tasks: [
       {
         id: "isolation-murs",
@@ -425,7 +425,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "PaintBucket",
-    duration: "2-4 semaines",
+    duration: "10-12 jours",
     tasks: [
       {
         id: "pose-gypse",
@@ -463,7 +463,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "Square",
-    duration: "1-2 semaines",
+    duration: "5-7 jours",
     tasks: [
       {
         id: "plancher-bois",
@@ -492,7 +492,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "ChefHat",
-    duration: "1-2 semaines",
+    duration: "3-5 jours",
     tasks: [
       {
         id: "armoires",
@@ -527,7 +527,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "Sparkles",
-    duration: "1-2 semaines",
+    duration: "1 semaine",
     tasks: [
       {
         id: "portes-int",
@@ -558,7 +558,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "Building",
-    duration: "2-4 semaines",
+    duration: "1 semaine",
     tasks: [
       {
         id: "revetement",
@@ -588,7 +588,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "ClipboardCheck",
-    duration: "1-2 semaines",
+    duration: "2 jours",
     tasks: [
       {
         id: "inspection-municipale",

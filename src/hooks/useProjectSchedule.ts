@@ -894,6 +894,117 @@ export const useProjectSchedule = (projectId: string | null) => {
     });
   };
 
+  /**
+   * Met à jour une étape ET recalcule toutes les étapes suivantes
+   * Pour maintenir la coordination du calendrier
+   */
+  const updateScheduleAndRecalculate = async (
+    scheduleId: string,
+    updates: Partial<ScheduleItem>
+  ) => {
+    if (!projectId) return;
+
+    // Sort by execution order
+    const sortedSchedules = sortSchedulesByExecutionOrder(schedulesQuery.data || []);
+    const scheduleIndex = sortedSchedules.findIndex((s) => s.id === scheduleId);
+    if (scheduleIndex === -1) return;
+
+    const schedule = sortedSchedules[scheduleIndex];
+
+    // Calculer la nouvelle date de fin si nécessaire
+    let newEndDate = updates.end_date;
+    const newStartDate = updates.start_date ?? schedule.start_date;
+    const newDuration = updates.actual_days ?? updates.estimated_days ?? schedule.actual_days ?? schedule.estimated_days;
+
+    if (newStartDate && newDuration) {
+      newEndDate = format(addBusinessDays(parseISO(newStartDate), newDuration - 1), "yyyy-MM-dd");
+    }
+
+    // Mettre à jour l'étape modifiée
+    await supabase
+      .from("project_schedules")
+      .update({
+        ...updates,
+        end_date: newEndDate,
+      })
+      .eq("id", scheduleId);
+
+    // Si pas de date de fin, on ne peut pas recalculer
+    if (!newEndDate) {
+      queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+      toast({ title: "Étape mise à jour" });
+      return;
+    }
+
+    // Recalculer toutes les étapes suivantes
+    const subsequentSchedules = sortedSchedules.slice(scheduleIndex + 1);
+    let nextStartDate = addBusinessDays(parseISO(newEndDate), 1);
+
+    // Stocker les dates de fin pour les délais minimum
+    const previousStepEndDates: Record<string, string> = {};
+    previousStepEndDates[schedule.step_id] = newEndDate;
+
+    // Collecter les dates de fin des étapes précédentes (y compris celle modifiée)
+    for (let i = 0; i <= scheduleIndex; i++) {
+      const s = sortedSchedules[i];
+      if (s.id === scheduleId) {
+        previousStepEndDates[s.step_id] = newEndDate;
+      } else if (s.end_date) {
+        previousStepEndDates[s.step_id] = s.end_date;
+      }
+    }
+
+    const updatesToApply: { id: string; start_date: string; end_date: string }[] = [];
+
+    for (const subsequentSchedule of subsequentSchedules) {
+      // On ne touche pas aux étapes déjà terminées
+      if (subsequentSchedule.status === "completed") {
+        if (subsequentSchedule.end_date) {
+          previousStepEndDates[subsequentSchedule.step_id] = subsequentSchedule.end_date;
+          nextStartDate = addBusinessDays(parseISO(subsequentSchedule.end_date), 1);
+        }
+        continue;
+      }
+
+      // Vérifier s'il y a un délai minimum après une étape précédente
+      const delayConfig = minimumDelayAfterStep[subsequentSchedule.step_id];
+      if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
+        const requiredStartDate = addDays(parseISO(previousStepEndDates[delayConfig.afterStep]), delayConfig.days);
+        if (requiredStartDate > nextStartDate) {
+          nextStartDate = requiredStartDate;
+        }
+      }
+
+      const duration = subsequentSchedule.actual_days || subsequentSchedule.estimated_days;
+      const startStr = format(nextStartDate, "yyyy-MM-dd");
+      const endStr = format(addBusinessDays(nextStartDate, duration - 1), "yyyy-MM-dd");
+
+      previousStepEndDates[subsequentSchedule.step_id] = endStr;
+      updatesToApply.push({ id: subsequentSchedule.id, start_date: startStr, end_date: endStr });
+
+      nextStartDate = addBusinessDays(parseISO(endStr), 1);
+    }
+
+    // Appliquer les mises à jour
+    for (const update of updatesToApply) {
+      await supabase
+        .from("project_schedules")
+        .update({ start_date: update.start_date, end_date: update.end_date })
+        .eq("id", update.id);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+
+    if (updatesToApply.length > 0) {
+      toast({
+        title: "Échéancier recalculé",
+        description: `${updatesToApply.length} étape(s) suivante(s) ajustée(s).`,
+      });
+    } else {
+      toast({ title: "Étape mise à jour" });
+    }
+  };
+
   return {
     schedules: schedulesQuery.data || [],
     alerts: alertsQuery.data || [],
@@ -912,6 +1023,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     completeStep,
     completeStepByStepId,
     uncompleteStep,
+    updateScheduleAndRecalculate,
     isCreating: createScheduleMutation.isPending,
     isUpdating: updateScheduleMutation.isPending,
   };

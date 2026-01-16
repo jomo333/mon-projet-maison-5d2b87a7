@@ -59,7 +59,7 @@ import { constructionSteps } from "@/data/constructionSteps";
 
 interface ScheduleTableProps {
   schedules: ScheduleItem[];
-  onUpdate: (schedule: Partial<ScheduleItem> & { id: string }) => void;
+  onUpdate: (schedule: Partial<ScheduleItem> & { id: string }) => void | Promise<void>;
   onDelete: (id: string) => void;
   onComplete?: (scheduleId: string, actualDays?: number) => Promise<{ daysAhead: number; alertsCreated: number } | undefined>;
   conflicts: { date: string; trades: string[] }[];
@@ -87,6 +87,7 @@ export const ScheduleTable = ({
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [completeDays, setCompleteDays] = useState<number | undefined>(undefined);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const hasConflict = (scheduleId: string) => {
     const schedule = schedules.find((s) => s.id === scheduleId);
@@ -99,23 +100,28 @@ export const ScheduleTable = ({
     setEditData(schedule);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingId || !editData) return;
     
-    // Recalculer la date de fin si les jours ont changé
-    let endDate = editData.end_date;
-    if (editData.start_date && (editData.actual_days || editData.estimated_days)) {
-      const days = editData.actual_days || editData.estimated_days || 1;
-      endDate = calculateEndDate(editData.start_date, days);
-    }
+    setIsSaving(true);
+    try {
+      // Recalculer la date de fin si les jours ont changé
+      let endDate = editData.end_date;
+      if (editData.start_date && (editData.actual_days || editData.estimated_days)) {
+        const days = editData.actual_days || editData.estimated_days || 1;
+        endDate = calculateEndDate(editData.start_date, days);
+      }
 
-    onUpdate({
-      id: editingId,
-      ...editData,
-      end_date: endDate,
-    });
-    setEditingId(null);
-    setEditData({});
+      await onUpdate({
+        id: editingId,
+        ...editData,
+        end_date: endDate,
+      });
+    } finally {
+      setIsSaving(false);
+      setEditingId(null);
+      setEditData({});
+    }
   };
 
   const handleStartComplete = (schedule: ScheduleItem) => {

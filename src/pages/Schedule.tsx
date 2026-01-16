@@ -78,6 +78,7 @@ const Schedule = () => {
     calculateEndDate,
     checkConflicts,
     completeStep,
+    updateScheduleAndRecalculate,
   } = useProjectSchedule(selectedProjectId);
 
   const conflicts = checkConflicts(schedules);
@@ -303,8 +304,9 @@ const Schedule = () => {
                 {activeTab === "table" && (
                   <ScheduleTable
                     schedules={schedules}
-                    onUpdate={(schedule) => {
-                      updateSchedule(schedule);
+                    onUpdate={async (schedule) => {
+                      // Utiliser updateScheduleAndRecalculate pour propager les changements
+                      await updateScheduleAndRecalculate(schedule.id, schedule);
                       const fullSchedule = schedules.find(
                         (s) => s.id === schedule.id
                       );

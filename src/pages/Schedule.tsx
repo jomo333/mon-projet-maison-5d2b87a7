@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { format, parseISO, differenceInCalendarDays } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +23,8 @@ import {
   Clock,
   CheckCircle,
   Loader2,
+  Calendar,
+  Flag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +81,25 @@ const Schedule = () => {
   } = useProjectSchedule(selectedProjectId);
 
   const conflicts = checkConflicts(schedules);
+
+  // Calculer les dates de début et fin du projet basées sur l'échéancier
+  const projectDates = useMemo(() => {
+    const schedulesWithDates = schedules.filter((s) => s.start_date && s.end_date);
+    if (schedulesWithDates.length === 0) return null;
+
+    const startDates = schedulesWithDates.map((s) => parseISO(s.start_date!));
+    const endDates = schedulesWithDates.map((s) => parseISO(s.end_date!));
+
+    const projectStart = new Date(Math.min(...startDates.map((d) => d.getTime())));
+    const projectEnd = new Date(Math.max(...endDates.map((d) => d.getTime())));
+    const totalDays = differenceInCalendarDays(projectEnd, projectStart) + 1;
+
+    return {
+      start: projectStart,
+      end: projectEnd,
+      totalDays,
+    };
+  }, [schedules]);
 
   // Stats
   const stats = {
@@ -193,6 +216,35 @@ const Schedule = () => {
             </div>
           </div>
         </div>
+        
+        {/* Bannière dates du projet */}
+        {projectDates && (
+          <div className="container mx-auto px-4 py-2 border-t bg-muted/30">
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span className="text-muted-foreground">Début:</span>
+                <span className="font-semibold">
+                  {format(projectDates.start, "d MMMM yyyy", { locale: fr })}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <Flag className="h-4 w-4 text-green-500" />
+                <span className="text-muted-foreground">Fin:</span>
+                <span className="font-semibold">
+                  {format(projectDates.end, "d MMMM yyyy", { locale: fr })}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Durée totale:</span>
+                <span className="font-semibold">{projectDates.totalDays} jours</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <main className="container mx-auto px-4 py-6">

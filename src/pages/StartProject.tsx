@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2, Upload, FileImage, X, File as FileIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { stageToGuideStep, shouldOfferPlanUpload } from "@/lib/projectStageMapping";
+import { usePdfToImage } from "@/hooks/use-pdf-to-image";
 
 type ProjectStage = 
   | "planification" 
@@ -25,6 +27,13 @@ interface ProjectData {
   projectType: string;
   municipality: string;
   currentStage: ProjectStage | "";
+}
+
+interface UploadedPlan {
+  file: File;
+  previewUrl: string;
+  isUploading: boolean;
+  uploadedUrl?: string;
 }
 
 const projectTypes = [
@@ -47,20 +56,27 @@ const StartProject = () => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
-  const totalSteps = 4;
+  const [uploadedPlans, setUploadedPlans] = useState<UploadedPlan[]>([]);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
+  const { convertPdfToImages, isPdf, isConverting, progress: pdfProgress } = usePdfToImage();
 
-  // Scroll to top when step changes
-  useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [currentStep]);
-  
   const [projectData, setProjectData] = useState<ProjectData>({
     projectName: "",
     projectType: "",
     municipality: "",
     currentStage: "",
   });
+
+  // Calculate total steps based on whether plan upload is needed
+  const showPlanUploadStep = shouldOfferPlanUpload(projectData.currentStage);
+  const totalSteps = showPlanUploadStep ? 5 : 4;
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentStep]);
 
   const progress = (currentStep / totalSteps) * 100;
 
@@ -74,19 +90,119 @@ const StartProject = () => {
         return projectData.municipality.trim().length > 0;
       case 4:
         return projectData.currentStage !== "";
+      case 5:
+        // Plan upload step - can always proceed (plans are optional)
+        return true;
       default:
         return false;
     }
   };
 
-  const saveProject = async () => {
+  const uploadPlanToStorage = async (file: File, projectId: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const fileName = `${uniqueId}.${fileExt}`;
+      const filePath = `${user?.id}/${projectId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("plans")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("plans")
+        .getPublicUrl(filePath);
+
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error("Error uploading plan:", error);
+      return null;
+    }
+  };
+
+  const saveAttachmentToDb = async (
+    projectId: string,
+    fileName: string,
+    fileUrl: string,
+    fileType: string,
+    fileSize: number
+  ) => {
+    const { error } = await supabase.from("task_attachments").insert({
+      project_id: projectId,
+      step_id: "plans-permis",
+      task_id: "plans-architecture",
+      file_name: fileName,
+      file_url: fileUrl,
+      file_type: fileType,
+      file_size: fileSize,
+      category: "plan",
+    });
+
+    if (error) {
+      console.error("Error saving attachment:", error);
+      throw error;
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newPlans: UploadedPlan[] = [];
+
+    for (const file of Array.from(files)) {
+      const isValidType = file.type.startsWith("image/") || file.type === "application/pdf";
+      if (!isValidType) {
+        toast.error(`${file.name} n'est pas un fichier valide (images ou PDF seulement)`);
+        continue;
+      }
+
+      if (isPdf(file)) {
+        // Convert PDF to images
+        toast.info(`Conversion du PDF ${file.name}...`);
+        try {
+          const { images } = await convertPdfToImages(file, { scale: 2, maxPages: 10 });
+          for (let i = 0; i < images.length; i++) {
+            const imageBlob = images[i];
+            const imageName = `${file.name.replace('.pdf', '')}_page_${i + 1}.png`;
+            const imageFile = new File([imageBlob], imageName, { type: "image/png" });
+            const previewUrl = URL.createObjectURL(imageBlob);
+            newPlans.push({ file: imageFile, previewUrl, isUploading: false });
+          }
+          toast.success(`PDF converti en ${images.length} page(s)`);
+        } catch (error) {
+          toast.error(`Erreur lors de la conversion du PDF ${file.name}`);
+        }
+      } else {
+        const previewUrl = URL.createObjectURL(file);
+        newPlans.push({ file, previewUrl, isUploading: false });
+      }
+    }
+
+    setUploadedPlans((prev) => [...prev, ...newPlans]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePlan = (index: number) => {
+    setUploadedPlans((prev) => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].previewUrl);
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  const saveProject = async (): Promise<string | null> => {
     if (!user) {
       toast.error("Vous devez être connecté pour créer un projet");
       navigate("/auth");
-      return;
+      return null;
     }
 
-    setIsSaving(true);
     try {
       const { data, error } = await supabase
         .from("projects")
@@ -101,22 +217,92 @@ const StartProject = () => {
         .single();
 
       if (error) throw error;
-
-      toast.success("Projet créé avec succès!");
-      navigate("/dashboard");
+      return data.id;
     } catch (error: any) {
       console.error("Error saving project:", error);
       toast.error("Erreur lors de la création du projet: " + error.message);
+      return null;
+    }
+  };
+
+  const uploadPlansAndFinish = async () => {
+    if (!createdProjectId || uploadedPlans.length === 0) {
+      finalizeAndRedirect(createdProjectId);
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      for (let i = 0; i < uploadedPlans.length; i++) {
+        const plan = uploadedPlans[i];
+        setUploadedPlans((prev) =>
+          prev.map((p, idx) => (idx === i ? { ...p, isUploading: true } : p))
+        );
+
+        const uploadedUrl = await uploadPlanToStorage(plan.file, createdProjectId);
+        if (uploadedUrl) {
+          await saveAttachmentToDb(
+            createdProjectId,
+            plan.file.name,
+            uploadedUrl,
+            plan.file.type,
+            plan.file.size
+          );
+          setUploadedPlans((prev) =>
+            prev.map((p, idx) =>
+              idx === i ? { ...p, isUploading: false, uploadedUrl } : p
+            )
+          );
+        }
+      }
+
+      toast.success("Plans téléversés avec succès!");
+      finalizeAndRedirect(createdProjectId);
+    } catch (error: any) {
+      console.error("Error uploading plans:", error);
+      toast.error("Erreur lors du téléversement des plans");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+  const finalizeAndRedirect = (projectId: string | null) => {
+    const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
+    toast.success("Projet créé avec succès!");
+    
+    // Navigate to dashboard with the step pre-selected
+    navigate(`/dashboard?step=${guideStepId}&project=${projectId || ""}`);
+  };
+
+  const handleNext = async () => {
+    if (currentStep === 4) {
+      // After selecting stage, check if we need plan upload step
+      if (shouldOfferPlanUpload(projectData.currentStage)) {
+        // Save project first, then go to plan upload step
+        setIsSaving(true);
+        const projectId = await saveProject();
+        setIsSaving(false);
+        
+        if (projectId) {
+          setCreatedProjectId(projectId);
+          setCurrentStep(5);
+        }
+      } else {
+        // No plan upload needed, save and redirect
+        setIsSaving(true);
+        const projectId = await saveProject();
+        setIsSaving(false);
+        
+        if (projectId) {
+          finalizeAndRedirect(projectId);
+        }
+      }
+    } else if (currentStep === 5) {
+      // Upload plans and finish
+      await uploadPlansAndFinish();
     } else {
-      saveProject();
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -124,6 +310,10 @@ const StartProject = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleSkipPlans = () => {
+    finalizeAndRedirect(createdProjectId);
   };
 
   const renderStep = () => {
@@ -269,6 +459,102 @@ const StartProject = () => {
           </div>
         );
 
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-display font-bold">
+                Avez-vous déjà vos plans de construction?
+              </h2>
+              <p className="text-muted-foreground">
+                Téléversez-les maintenant pour les utiliser dans l'analyse budgétaire IA
+              </p>
+            </div>
+
+            {/* Upload area */}
+            <div className="max-w-xl mx-auto space-y-4">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">Cliquez pour téléverser vos plans</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Images ou PDF (max 10 pages par PDF)
+                </p>
+              </div>
+
+              {isConverting && (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Conversion du PDF... {Math.round(pdfProgress)}%</span>
+                </div>
+              )}
+
+              {/* Uploaded plans preview */}
+              {uploadedPlans.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">{uploadedPlans.length} plan(s) prêt(s)</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {uploadedPlans.map((plan, index) => (
+                      <div
+                        key={index}
+                        className="relative group rounded-lg border overflow-hidden aspect-square"
+                      >
+                        {plan.file.type.startsWith("image/") ? (
+                          <img
+                            src={plan.previewUrl}
+                            alt={plan.file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <FileIcon className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        {plan.isUploading && (
+                          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        )}
+                        {plan.uploadedUrl && (
+                          <div className="absolute top-1 left-1">
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removePlan(index)}
+                          className="absolute top-1 right-1 p-1 bg-destructive/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3 text-destructive-foreground" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 p-1 bg-background/80 truncate">
+                          <span className="text-xs">{plan.file.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Skip button */}
+              <div className="text-center pt-4">
+                <Button variant="ghost" onClick={handleSkipPlans} disabled={isSaving}>
+                  Je n'ai pas encore de plans, passer cette étape
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -300,7 +586,7 @@ const StartProject = () => {
             <Button
               variant="ghost"
               onClick={handleBack}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || isSaving}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -308,17 +594,22 @@ const StartProject = () => {
             </Button>
             <Button
               onClick={handleNext}
-              disabled={!canProceed() || isSaving}
+              disabled={!canProceed() || isSaving || isConverting}
               className="gap-2"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Enregistrement...
+                  {currentStep === 5 ? "Téléversement..." : "Enregistrement..."}
                 </>
               ) : (
                 <>
-                  {currentStep === totalSteps ? "Créer mon projet" : "Continuer"}
+                  {currentStep === 5 
+                    ? (uploadedPlans.length > 0 ? "Téléverser et continuer" : "Continuer")
+                    : currentStep === 4 
+                      ? (shouldOfferPlanUpload(projectData.currentStage) ? "Continuer" : "Créer mon projet")
+                      : "Continuer"
+                  }
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}

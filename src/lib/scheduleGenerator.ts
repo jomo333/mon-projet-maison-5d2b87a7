@@ -1,7 +1,10 @@
-import { format, addDays, isWeekend } from "date-fns";
+import { format, addDays, subDays, isWeekend } from "date-fns";
 import { constructionSteps } from "@/data/constructionSteps";
 import { getTradeColor } from "@/data/tradeTypes";
 import { supabase } from "@/integrations/supabase/client";
+
+// Étapes de préparation (à planifier AVANT la date visée de début des travaux)
+const preparationSteps = ["planification", "financement", "plans-permis"];
 
 // Mapping des étapes vers les métiers par défaut
 const stepTradeMapping: Record<string, string> = {
@@ -71,7 +74,7 @@ const measurementConfig: Record<string, { afterStep: string; notes: string }> = 
 };
 
 /**
- * Calcule la date de fin en ajoutant des jours ouvrables
+ * Calcule la date de fin en ajoutant des jours ouvrables (vers le futur)
  */
 export function calculateEndDate(startDate: string, businessDays: number): string {
   let date = new Date(startDate);
@@ -88,7 +91,26 @@ export function calculateEndDate(startDate: string, businessDays: number): strin
 }
 
 /**
+ * Calcule la date de début en soustrayant des jours ouvrables (vers le passé)
+ */
+function calculateStartDateBackward(endDate: string, businessDays: number): string {
+  let date = new Date(endDate);
+  let daysSubtracted = 0;
+  
+  while (daysSubtracted < businessDays) {
+    date = subDays(date, 1);
+    if (!isWeekend(date)) {
+      daysSubtracted++;
+    }
+  }
+  
+  return format(date, "yyyy-MM-dd");
+}
+
+/**
  * Génère automatiquement l'échéancier complet pour un projet
+ * La date visée correspond au JOUR 1 des travaux (excavation-fondation)
+ * Les étapes de préparation sont planifiées EN AMONT de cette date
  */
 export async function generateProjectSchedule(
   projectId: string,
@@ -96,15 +118,6 @@ export async function generateProjectSchedule(
   currentStage?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Déterminer à partir de quelle étape commencer
-    const stageOrder = [
-      "planification",
-      "permis", // maps to plans-permis
-      "fondation", // maps to excavation-fondation
-      "structure",
-      "finition",
-    ];
-
     // Mapping des stages utilisateur vers les étapes de construction
     const stageToStepMapping: Record<string, string> = {
       planification: "planification",
@@ -122,10 +135,51 @@ export async function generateProjectSchedule(
       ? constructionSteps.slice(startIndex) 
       : constructionSteps;
 
-    let currentDate = targetStartDate;
+    // Séparer les étapes de préparation et les étapes de construction
+    const prepSteps = stepsToSchedule.filter(s => preparationSteps.includes(s.id));
+    const constructionStepsFiltered = stepsToSchedule.filter(s => !preparationSteps.includes(s.id));
+
     const schedulesToInsert: any[] = [];
 
-    for (const step of stepsToSchedule) {
+    // 1. Planifier les étapes de PRÉPARATION en amont (backward from targetStartDate)
+    // On part de la date visée et on remonte dans le temps
+    let prepEndDate = calculateStartDateBackward(targetStartDate, 1); // La veille du jour 1
+
+    // Inverser pour planifier de la fin vers le début (plans-permis -> financement -> planification)
+    const prepStepsReversed = [...prepSteps].reverse();
+    
+    for (const step of prepStepsReversed) {
+      const tradeType = stepTradeMapping[step.id] || "autre";
+      const duration = defaultDurations[step.id] || 5;
+      
+      // Calculer la date de début en reculant de la durée
+      const startDate = calculateStartDateBackward(prepEndDate, duration);
+      
+      schedulesToInsert.unshift({
+        project_id: projectId,
+        step_id: step.id,
+        step_name: step.title,
+        trade_type: tradeType,
+        trade_color: getTradeColor(tradeType),
+        estimated_days: duration,
+        start_date: startDate,
+        end_date: prepEndDate,
+        supplier_schedule_lead_days: supplierLeadDays[step.id] || 21,
+        fabrication_lead_days: fabricationLeadDays[step.id] || 0,
+        measurement_required: false,
+        measurement_after_step_id: null,
+        measurement_notes: null,
+        status: "scheduled",
+      });
+
+      // L'étape précédente se termine avant le début de celle-ci
+      prepEndDate = calculateStartDateBackward(startDate, 1);
+    }
+
+    // 2. Planifier les étapes de CONSTRUCTION à partir de la date visée (forward)
+    let currentDate = targetStartDate;
+
+    for (const step of constructionStepsFiltered) {
       const tradeType = stepTradeMapping[step.id] || "autre";
       const duration = defaultDurations[step.id] || 5;
       const endDate = calculateEndDate(currentDate, duration);
@@ -223,8 +277,13 @@ async function generateScheduleAlerts(projectId: string, schedules: any[]): Prom
 
 /**
  * Calcule la durée totale estimée du projet en jours ouvrables
+ * Retourne aussi les jours de préparation requis AVANT le début des travaux
  */
-export function calculateTotalProjectDuration(currentStage?: string): number {
+export function calculateTotalProjectDuration(currentStage?: string): {
+  preparationDays: number;
+  constructionDays: number;
+  totalDays: number;
+} {
   const stageToStepMapping: Record<string, string> = {
     planification: "planification",
     permis: "plans-permis",
@@ -239,7 +298,27 @@ export function calculateTotalProjectDuration(currentStage?: string): number {
     ? constructionSteps.slice(startIndex) 
     : constructionSteps;
 
-  return stepsToCount.reduce((total, step) => {
-    return total + (defaultDurations[step.id] || 5);
-  }, 0);
+  // Calculer les jours de préparation (avant date visée)
+  const preparationDays = stepsToCount
+    .filter(s => preparationSteps.includes(s.id))
+    .reduce((total, step) => total + (defaultDurations[step.id] || 5), 0);
+
+  // Calculer les jours de construction (après date visée)
+  const constructionDays = stepsToCount
+    .filter(s => !preparationSteps.includes(s.id))
+    .reduce((total, step) => total + (defaultDurations[step.id] || 5), 0);
+
+  return {
+    preparationDays,
+    constructionDays,
+    totalDays: preparationDays + constructionDays,
+  };
+}
+
+/**
+ * Calcule la date de début de préparation en fonction de la date visée des travaux
+ */
+export function calculatePreparationStartDate(targetConstructionDate: string, currentStage?: string): string {
+  const { preparationDays } = calculateTotalProjectDuration(currentStage);
+  return calculateStartDateBackward(targetConstructionDate, preparationDays);
 }

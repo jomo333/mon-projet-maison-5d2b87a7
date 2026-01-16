@@ -569,6 +569,18 @@ const StartProject = () => {
                       <li>Alertes pour les demandes de permis</li>
                       <li>Délais fournisseurs et fabrication calculés</li>
                     </ul>
+
+                    {/* Bouton Valider l'échéancier */}
+                    <div className="pt-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => window.open(`/echeancier?preview=true&date=${projectData.targetStartDate}&stage=${projectData.currentStage}`, '_blank')}
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                        Voir l'aperçu du calendrier
+                      </Button>
+                    </div>
                   </div>
                 );
               })()}

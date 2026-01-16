@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2, Upload, FileImage, X, File as FileIcon, CalendarIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2, Upload, FileImage, X, File as FileIcon, CalendarIcon, DollarSign, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,8 @@ const projectStages = [
   { value: "finition", label: "Finition", description: "Finitions intérieures et extérieures" },
 ];
 
+type NextAction = "budget" | "schedule" | "steps" | "";
+
 const StartProject = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -65,6 +67,7 @@ const StartProject = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadedPlans, setUploadedPlans] = useState<UploadedPlan[]>([]);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [nextAction, setNextAction] = useState<NextAction>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const { convertPdfToImages, isPdf, isConverting, progress: pdfProgress } = usePdfToImage();
@@ -78,9 +81,9 @@ const StartProject = () => {
   });
 
   // Calculate total steps based on whether plan upload is needed
-  // Step 5 is now the date, step 6 is plan upload (if applicable)
+  // Step 5 is now the date, step 6 is plan upload (if applicable), step 7 is next action choice
   const showPlanUploadStep = shouldOfferPlanUpload(projectData.currentStage);
-  const totalSteps = showPlanUploadStep ? 6 : 5;
+  const totalSteps = showPlanUploadStep ? 7 : 5;
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -105,6 +108,9 @@ const StartProject = () => {
       case 6:
         // Plan upload step - can always proceed (plans are optional)
         return true;
+      case 7:
+        // Next action choice - must select something
+        return nextAction !== "";
       default:
         return false;
     }
@@ -240,7 +246,7 @@ const StartProject = () => {
 
   const uploadPlansAndFinish = async () => {
     if (!createdProjectId || uploadedPlans.length === 0) {
-      finalizeAndRedirect(createdProjectId);
+      setCurrentStep(7);
       return;
     }
 
@@ -271,7 +277,8 @@ const StartProject = () => {
       }
 
       toast.success("Plans téléversés avec succès!");
-      await finalizeAndRedirect(createdProjectId);
+      // Go to next action choice
+      setCurrentStep(7);
     } catch (error: any) {
       console.error("Error uploading plans:", error);
       toast.error("Erreur lors du téléversement des plans");
@@ -280,7 +287,7 @@ const StartProject = () => {
     }
   };
 
-  const finalizeAndRedirect = async (projectId: string | null) => {
+  const finalizeAndRedirect = async (projectId: string | null, action?: NextAction) => {
     if (projectId && projectData.targetStartDate) {
       // Générer l'échéancier automatiquement
       toast.info("Génération de l'échéancier...");
@@ -298,11 +305,23 @@ const StartProject = () => {
       }
     }
 
-    const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
     toast.success("Projet créé avec succès!");
     
-    // Navigate to construction steps page with the selected step
-    navigate(`/etapes?step=${guideStepId}&project=${projectId || ""}`);
+    // Navigate based on selected action
+    const selectedAction = action || nextAction;
+    switch (selectedAction) {
+      case "budget":
+        navigate(`/budget?project=${projectId || ""}`);
+        break;
+      case "schedule":
+        navigate(`/echeancier?project=${projectId || ""}`);
+        break;
+      case "steps":
+      default:
+        const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
+        navigate(`/etapes?step=${guideStepId}&project=${projectId || ""}`);
+        break;
+    }
   };
 
   const handleNext = async () => {
@@ -332,8 +351,16 @@ const StartProject = () => {
         setIsSaving(false);
       }
     } else if (currentStep === 6) {
-      // Upload plans and finish
-      await uploadPlansAndFinish();
+      // Upload plans and go to next action choice
+      if (uploadedPlans.length > 0) {
+        await uploadPlansAndFinish();
+      } else {
+        // No plans, go directly to next action choice
+        setCurrentStep(7);
+      }
+    } else if (currentStep === 7) {
+      // Finalize based on selected action
+      await finalizeAndRedirect(createdProjectId);
     } else {
       setCurrentStep(currentStep + 1);
     }
@@ -346,7 +373,8 @@ const StartProject = () => {
   };
 
   const handleSkipPlans = () => {
-    finalizeAndRedirect(createdProjectId);
+    // Go to next action choice instead of redirecting directly
+    setCurrentStep(7);
   };
 
   const renderStep = () => {
@@ -678,6 +706,114 @@ const StartProject = () => {
           </div>
         );
 
+      case 7:
+        const hasPlans = uploadedPlans.length > 0;
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-display font-bold">
+                Votre projet est prêt!
+              </h2>
+              <p className="text-muted-foreground">
+                {hasPlans 
+                  ? "Vos plans ont été téléversés. Que souhaitez-vous faire maintenant?"
+                  : "Que souhaitez-vous faire maintenant?"
+                }
+              </p>
+            </div>
+
+            <RadioGroup
+              value={nextAction}
+              onValueChange={(value) => setNextAction(value as NextAction)}
+              className="space-y-3 max-w-xl mx-auto"
+            >
+              {hasPlans && (
+                <Label
+                  htmlFor="budget"
+                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    nextAction === "budget"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <RadioGroupItem value="budget" id="budget" className="sr-only" />
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                    nextAction === "budget" 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    <DollarSign className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">Analyser le budget avec l'IA</div>
+                    <div className="text-sm text-muted-foreground">
+                      L'IA analysera vos plans pour estimer les coûts et créer un budget
+                    </div>
+                  </div>
+                  {nextAction === "budget" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </Label>
+              )}
+
+              <Label
+                htmlFor="schedule"
+                className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  nextAction === "schedule"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <RadioGroupItem value="schedule" id="schedule" className="sr-only" />
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  nextAction === "schedule" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  <CalendarIcon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Voir l'échéancier</div>
+                  <div className="text-sm text-muted-foreground">
+                    Consulter le calendrier des travaux et coordonner les corps de métier
+                  </div>
+                </div>
+                {nextAction === "schedule" && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </Label>
+
+              <Label
+                htmlFor="steps"
+                className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  nextAction === "steps"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <RadioGroupItem value="steps" id="steps" className="sr-only" />
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  nextAction === "steps" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  <Footprints className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Voir les prochaines étapes</div>
+                  <div className="text-sm text-muted-foreground">
+                    Consulter le guide de construction et les tâches à accomplir
+                  </div>
+                </div>
+                {nextAction === "steps" && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </Label>
+            </RadioGroup>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -727,11 +863,13 @@ const StartProject = () => {
                 </>
               ) : (
                 <>
-                  {currentStep === 6 
-                    ? (uploadedPlans.length > 0 ? "Téléverser et continuer" : "Continuer")
-                    : currentStep === 5 
-                      ? (shouldOfferPlanUpload(projectData.currentStage) ? "Continuer" : "Créer mon projet")
-                      : "Continuer"
+                  {currentStep === 7
+                    ? "Commencer"
+                    : currentStep === 6 
+                      ? (uploadedPlans.length > 0 ? "Téléverser et continuer" : "Continuer")
+                      : currentStep === 5 
+                        ? (shouldOfferPlanUpload(projectData.currentStage) ? "Continuer" : "Créer mon projet")
+                        : "Continuer"
                   }
                   <ArrowRight className="h-4 w-4" />
                 </>

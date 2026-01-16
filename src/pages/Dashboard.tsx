@@ -23,21 +23,39 @@ const Dashboard = () => {
   const [showPreviousStepsAlert, setShowPreviousStepsAlert] = useState(!!stepFromUrl);
 
   // Fetch project schedules
-  const { schedules, isLoading: isLoadingSchedules } = useProjectSchedule(projectFromUrl);
+  const { schedules, isLoading: isLoadingSchedules, updateSchedule } = useProjectSchedule(projectFromUrl);
 
-  // Create a map of step_id to schedule dates
+  // Create a map of step_id to schedule data
   const scheduleByStepId = useMemo(() => {
-    const map: Record<string, { start_date: string | null; end_date: string | null }> = {};
+    const map: Record<string, { 
+      id: string;
+      start_date: string | null; 
+      end_date: string | null;
+      status: string | null;
+    }> = {};
     if (schedules) {
       schedules.forEach(schedule => {
         map[schedule.step_id] = {
+          id: schedule.id,
           start_date: schedule.start_date,
           end_date: schedule.end_date,
+          status: schedule.status,
         };
       });
     }
     return map;
   }, [schedules]);
+
+  // Handle toggle complete for a step
+  const handleToggleComplete = async (stepId: string, completed: boolean) => {
+    const schedule = scheduleByStepId[stepId];
+    if (schedule?.id) {
+      await updateSchedule({
+        id: schedule.id,
+        status: completed ? 'completed' : 'pending',
+      });
+    }
+  };
 
   // Update selected step when URL changes
   useEffect(() => {
@@ -68,9 +86,28 @@ const Dashboard = () => {
     ? constructionSteps.findIndex(s => s.id === selectedStepId) + 1
     : 0;
 
-  // Find the current stage index based on project data
-  const projectStageIndex = constructionSteps.findIndex(s => s.id === projectData.currentStage);
-  const overallProgress = ((projectStageIndex + 1) / totalSteps) * 100;
+  // Calculate progress based on completed steps
+  const completedStepsCount = useMemo(() => {
+    return Object.values(scheduleByStepId).filter(s => s.status === 'completed').length;
+  }, [scheduleByStepId]);
+
+  const scheduledStepsCount = Object.keys(scheduleByStepId).length;
+  const overallProgress = scheduledStepsCount > 0 
+    ? (completedStepsCount / scheduledStepsCount) * 100 
+    : 0;
+
+  // Find the next step to work on (first non-completed step)
+  const nextStepId = useMemo(() => {
+    for (const step of constructionSteps) {
+      const schedule = scheduleByStepId[step.id];
+      if (schedule && schedule.status !== 'completed') {
+        return step.id;
+      }
+    }
+    return constructionSteps[0]?.id || 'planification';
+  }, [scheduleByStepId]);
+
+  const nextStep = constructionSteps.find(s => s.id === nextStepId);
 
   if (selectedStep) {
     return (
@@ -206,33 +243,38 @@ const Dashboard = () => {
                 <span className="text-lg font-semibold">{Math.round(overallProgress)}%</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Vous êtes à l'étape: <span className="font-medium text-foreground">{constructionSteps[projectStageIndex]?.title || "Planification"}</span>
+                {completedStepsCount} étape{completedStepsCount > 1 ? 's' : ''} terminée{completedStepsCount > 1 ? 's' : ''} sur {scheduledStepsCount}
+                {nextStep && (
+                  <> • Prochaine: <span className="font-medium text-foreground">{nextStep.title}</span></>
+                )}
               </p>
             </CardContent>
           </Card>
 
           {/* Current step highlight */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Votre prochaine étape</h2>
-            <Card 
-              className="cursor-pointer border-primary/50 bg-primary/5 hover:shadow-lg transition-all"
-              onClick={() => setSelectedStepId(constructionSteps[projectStageIndex]?.id || "planification")}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge className="mb-2">{phases.find(p => p.id === constructionSteps[projectStageIndex]?.phase)?.label}</Badge>
-                    <h3 className="text-xl font-semibold">{constructionSteps[projectStageIndex]?.title}</h3>
-                    <p className="text-muted-foreground mt-1">{constructionSteps[projectStageIndex]?.description}</p>
+          {nextStep && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold mb-4">Votre prochaine étape</h2>
+              <Card 
+                className="cursor-pointer border-primary/50 bg-primary/5 hover:shadow-lg transition-all"
+                onClick={() => setSelectedStepId(nextStep.id)}
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Badge className="mb-2">{phases.find(p => p.id === nextStep.phase)?.label}</Badge>
+                      <h3 className="text-xl font-semibold">{nextStep.title}</h3>
+                      <p className="text-muted-foreground mt-1">{nextStep.description}</p>
+                    </div>
+                    <Button className="gap-2">
+                      Continuer
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button className="gap-2">
-                    Continuer
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Section title */}
           <div className="mb-6">
@@ -275,6 +317,8 @@ const Dashboard = () => {
                   onClick={() => setSelectedStepId(step.id)}
                   scheduleStartDate={stepSchedule?.start_date}
                   scheduleEndDate={stepSchedule?.end_date}
+                  isCompleted={stepSchedule?.status === 'completed'}
+                  onToggleComplete={projectFromUrl ? handleToggleComplete : undefined}
                 />
               );
             })}

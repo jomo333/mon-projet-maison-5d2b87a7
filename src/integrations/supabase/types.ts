@@ -340,6 +340,48 @@ export type Database = {
           },
         ]
       }
+      schedule_reference_durations: {
+        Row: {
+          base_duration_days: number
+          base_square_footage: number
+          created_at: string
+          id: string
+          max_duration_days: number | null
+          min_duration_days: number | null
+          notes: string | null
+          scaling_factor: number | null
+          step_id: string
+          step_name: string
+          updated_at: string
+        }
+        Insert: {
+          base_duration_days: number
+          base_square_footage?: number
+          created_at?: string
+          id?: string
+          max_duration_days?: number | null
+          min_duration_days?: number | null
+          notes?: string | null
+          scaling_factor?: number | null
+          step_id: string
+          step_name: string
+          updated_at?: string
+        }
+        Update: {
+          base_duration_days?: number
+          base_square_footage?: number
+          created_at?: string
+          id?: string
+          max_duration_days?: number | null
+          min_duration_days?: number | null
+          notes?: string | null
+          scaling_factor?: number | null
+          step_id?: string
+          step_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_attachments: {
         Row: {
           category: string

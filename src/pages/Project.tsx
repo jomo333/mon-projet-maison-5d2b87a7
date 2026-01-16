@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
@@ -14,6 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useProjectSchedule } from "@/hooks/useProjectSchedule";
+import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { 
   ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, 
   Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2
@@ -91,6 +93,49 @@ const Project = () => {
     },
     enabled: !!projectId && !!user,
   });
+
+  // Fetch project schedules
+  const { schedules, updateSchedule } = useProjectSchedule(projectId || null);
+
+  // Fetch completed tasks
+  const { isTaskCompleted, toggleTask } = useCompletedTasks(projectId || null);
+
+  // Create a map of step_id to schedule data
+  const scheduleByStepId = useMemo(() => {
+    const map: Record<string, { 
+      id: string;
+      start_date: string | null; 
+      end_date: string | null;
+      status: string | null;
+    }> = {};
+    if (schedules) {
+      schedules.forEach(schedule => {
+        map[schedule.step_id] = {
+          id: schedule.id,
+          start_date: schedule.start_date,
+          end_date: schedule.end_date,
+          status: schedule.status,
+        };
+      });
+    }
+    return map;
+  }, [schedules]);
+
+  // Handle toggle complete for a step
+  const handleToggleComplete = async (stepId: string, completed: boolean) => {
+    const schedule = scheduleByStepId[stepId];
+    if (schedule?.id) {
+      await updateSchedule({
+        id: schedule.id,
+        status: completed ? 'completed' : 'pending',
+      });
+    }
+  };
+
+  // Handle toggle task for individual tasks
+  const handleToggleTask = (stepId: string, taskId: string, isCompleted: boolean) => {
+    toggleTask({ stepId, taskId, isCompleted });
+  };
 
   // Update selected step when URL changes
   useEffect(() => {
@@ -231,6 +276,8 @@ const Project = () => {
               }}
               hasNext={currentStepIndex < totalSteps}
               hasPrevious={currentStepIndex > 1}
+              isTaskCompleted={isTaskCompleted}
+              onToggleTask={handleToggleTask}
             />
           </div>
         </main>
@@ -321,14 +368,21 @@ const Project = () => {
 
               {/* Steps grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredSteps.map((step) => (
-                  <StepCard
-                    key={step.id}
-                    step={step}
-                    stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
-                    onClick={() => setSelectedStepId(step.id)}
-                  />
-                ))}
+                {filteredSteps.map((step) => {
+                  const stepSchedule = scheduleByStepId[step.id];
+                  return (
+                    <StepCard
+                      key={step.id}
+                      step={step}
+                      stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
+                      onClick={() => setSelectedStepId(step.id)}
+                      scheduleStartDate={stepSchedule?.start_date}
+                      scheduleEndDate={stepSchedule?.end_date}
+                      isCompleted={stepSchedule?.status === 'completed'}
+                      onToggleComplete={handleToggleComplete}
+                    />
+                  );
+                })}
               </div>
             </TabsContent>
 

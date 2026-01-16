@@ -95,7 +95,7 @@ const Project = () => {
   });
 
   // Fetch project schedules
-  const { schedules, updateSchedule, completeStep } = useProjectSchedule(projectId || null);
+  const { schedules, completeStep, uncompleteStep } = useProjectSchedule(projectId || null);
 
   // Fetch completed tasks
   const { isTaskCompleted, toggleTask } = useCompletedTasks(projectId || null);
@@ -138,10 +138,8 @@ const Project = () => {
     if (completed) {
       await completeStep(schedule.id);
     } else {
-      await updateSchedule({
-        id: schedule.id,
-        status: "pending",
-      });
+      // Restaurer l'échéancier original en utilisant les durées estimées
+      await uncompleteStep(schedule.id);
     }
   };
 

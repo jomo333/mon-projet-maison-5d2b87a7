@@ -418,6 +418,84 @@ export const useProjectSchedule = (projectId: string | null) => {
     );
   };
 
+  /**
+   * Annuler la complétion d'une étape et restaurer l'échéancier original
+   * Recalcule toutes les dates suivantes en utilisant les durées estimées
+   */
+  const uncompleteStep = async (scheduleId: string) => {
+    if (!projectId) return;
+
+    const sortedSchedules = [...(schedulesQuery.data || [])].sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      return a.start_date.localeCompare(b.start_date);
+    });
+
+    const uncompleteIndex = sortedSchedules.findIndex((s) => s.id === scheduleId);
+    if (uncompleteIndex === -1) return;
+
+    const uncompleteSchedule = sortedSchedules[uncompleteIndex];
+
+    // Trouver la dernière étape complétée AVANT celle-ci
+    let previousEndDate: string | null = null;
+    for (let i = uncompleteIndex - 1; i >= 0; i--) {
+      const prev = sortedSchedules[i];
+      if (prev.status === "completed" && prev.end_date) {
+        previousEndDate = prev.end_date;
+        break;
+      }
+    }
+
+    // Si aucune étape précédente n'est complétée, on prend la date de début de la première étape
+    let newStartDate: Date;
+    if (previousEndDate) {
+      newStartDate = addBusinessDays(parseISO(previousEndDate), 1);
+    } else {
+      // Chercher la première date de début dans l'échéancier
+      const firstScheduleWithDate = sortedSchedules.find((s) => s.start_date);
+      if (firstScheduleWithDate?.start_date) {
+        // Recalculer depuis le début en utilisant les durées estimées
+        newStartDate = parseISO(firstScheduleWithDate.start_date);
+        // Si on annule une étape au milieu, on doit recalculer depuis le début
+        for (let i = 0; i < uncompleteIndex; i++) {
+          const s = sortedSchedules[i];
+          const duration = s.estimated_days;
+          newStartDate = addBusinessDays(newStartDate, duration);
+        }
+      } else {
+        // Fallback: utiliser la date actuelle de l'étape
+        newStartDate = uncompleteSchedule.start_date 
+          ? parseISO(uncompleteSchedule.start_date) 
+          : new Date();
+      }
+    }
+
+    // Mettre à jour l'étape décochée et toutes les suivantes
+    for (let i = uncompleteIndex; i < sortedSchedules.length; i++) {
+      const schedule = sortedSchedules[i];
+      
+      // Utiliser toujours la durée estimée (pas actual_days) pour restaurer le plan original
+      const duration = schedule.estimated_days;
+      const newStart = format(newStartDate, "yyyy-MM-dd");
+      const newEnd = format(addBusinessDays(newStartDate, duration - 1), "yyyy-MM-dd");
+
+      await updateScheduleMutation.mutateAsync({
+        id: schedule.id,
+        start_date: newStart,
+        end_date: newEnd,
+        status: i === uncompleteIndex ? "pending" : schedule.status,
+        actual_days: i === uncompleteIndex ? null : schedule.actual_days,
+      });
+
+      // La prochaine étape commence après celle-ci
+      newStartDate = addBusinessDays(parseISO(newEnd), 1);
+    }
+
+    toast({
+      title: "Échéancier restauré",
+      description: `Les dates ont été recalculées selon le plan original.`,
+    });
+  };
+
   return {
     schedules: schedulesQuery.data || [],
     alerts: alertsQuery.data || [],
@@ -434,6 +512,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     checkConflicts,
     recalculateScheduleFromCompleted,
     completeStep,
+    uncompleteStep,
     isCreating: createScheduleMutation.isPending,
     isUpdating: updateScheduleMutation.isPending,
   };

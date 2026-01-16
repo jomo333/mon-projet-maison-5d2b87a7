@@ -26,8 +26,8 @@ const Dashboard = () => {
   const {
     schedules,
     isLoading: isLoadingSchedules,
-    updateSchedule,
     completeStep,
+    uncompleteStep,
   } = useProjectSchedule(projectFromUrl);
 
   // Fetch completed tasks
@@ -72,10 +72,8 @@ const Dashboard = () => {
     if (completed) {
       await completeStep(schedule.id);
     } else {
-      await updateSchedule({
-        id: schedule.id,
-        status: "pending",
-      });
+      // Restaurer l'échéancier original en utilisant les durées estimées
+      await uncompleteStep(schedule.id);
     }
   };
 

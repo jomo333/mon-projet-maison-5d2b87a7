@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
-import { getTradeName } from "@/data/tradeTypes";
+import { getTradeName, getTradeColor } from "@/data/tradeTypes";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
 
 interface ScheduleGanttProps {
@@ -217,7 +217,7 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
                   >
                     <div
                       className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: schedule.trade_color }}
+                      style={{ backgroundColor: getTradeColor(schedule.trade_type) }}
                     />
                     <span className="truncate text-sm">
                       {schedule.step_name}
@@ -261,7 +261,7 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
                           style={{
                             left: position.left,
                             width: Math.max(position.width, dayWidth),
-                            backgroundColor: schedule.trade_color,
+                            backgroundColor: getTradeColor(schedule.trade_type),
                           }}
                         >
                           <span className="text-xs text-white px-1 truncate block leading-6">
@@ -323,7 +323,7 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
               >
                 <div
                   className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: schedule.trade_color }}
+                  style={{ backgroundColor: getTradeColor(schedule.trade_type) }}
                 />
                 {getTradeName(schedule.trade_type)}
               </Badge>

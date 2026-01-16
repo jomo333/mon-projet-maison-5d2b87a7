@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { constructionSteps } from "@/data/constructionSteps";
+import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
 import {
   addBusinessDays,
   differenceInBusinessDays,
@@ -111,18 +112,18 @@ export function useTaskDates(projectId: string | null) {
     }
 
     // 4) Recalculer les étapes suivantes pour suivre l'avancement (plus rapide / plus lent)
+    // IMPORTANT: on doit utiliser l'ordre d'exécution (constructionSteps), pas l'ordre des dates
     const { data: allSchedules, error: allSchedulesError } = await supabase
       .from("project_schedules")
       .select("*")
-      .eq("project_id", projectId)
-      .order("start_date", { ascending: true, nullsFirst: false });
+      .eq("project_id", projectId);
 
     if (allSchedulesError) {
       console.error("Error fetching all schedules:", allSchedulesError);
       return;
     }
 
-    const sorted = (allSchedules || []) as any[];
+    const sorted = sortSchedulesByExecutionOrder((allSchedules || []) as any[]);
     const currentIndex = sorted.findIndex((s) => s.id === currentSchedule.id);
     if (currentIndex === -1) return;
 
@@ -136,7 +137,11 @@ export function useTaskDates(projectId: string | null) {
       // On ne touche pas aux étapes déjà terminées
       if (s.status === "completed") {
         if (s.end_date) {
-          nextStart = addBusinessDays(parseISO(s.end_date), 1);
+          const completedNext = addBusinessDays(parseISO(s.end_date), 1);
+          // Ne jamais faire reculer la timeline
+          if (completedNext > nextStart) {
+            nextStart = completedNext;
+          }
         }
         continue;
       }

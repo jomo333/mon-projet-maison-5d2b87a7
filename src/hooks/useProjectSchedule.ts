@@ -1017,7 +1017,11 @@ export const useProjectSchedule = (projectId: string | null) => {
       if (subsequentSchedule.status === "completed") {
         if (subsequentSchedule.end_date) {
           previousStepEndDates[subsequentSchedule.step_id] = subsequentSchedule.end_date;
-          nextStartDate = addBusinessDays(parseISO(subsequentSchedule.end_date), 1);
+          const completedNext = addBusinessDays(parseISO(subsequentSchedule.end_date), 1);
+          // Ne jamais faire reculer la timeline
+          if (completedNext > nextStartDate) {
+            nextStartDate = completedNext;
+          }
         }
         continue;
       }

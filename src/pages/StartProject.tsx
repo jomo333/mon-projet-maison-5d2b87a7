@@ -271,8 +271,8 @@ const StartProject = () => {
         }
       }
 
-      // 2. Générer un budget de base (catégories par défaut)
-      setAnalysisProgress("Préparation du budget...");
+      // 2. Générer un budget estimé basé sur le type de projet
+      setAnalysisProgress("Estimation du budget...");
       
       // Vérifier si un budget existe déjà
       const { data: existingBudget } = await supabase
@@ -282,31 +282,99 @@ const StartProject = () => {
         .limit(1);
 
       if (!existingBudget || existingBudget.length === 0) {
-        // Créer les catégories de budget par défaut
-        const defaultCategories = [
-          { category_name: "Terrain et préparation", color: "#8B5CF6", budget: 0 },
-          { category_name: "Fondation", color: "#6366F1", budget: 0 },
-          { category_name: "Structure et charpente", color: "#3B82F6", budget: 0 },
-          { category_name: "Toiture", color: "#0EA5E9", budget: 0 },
-          { category_name: "Fenêtres et portes", color: "#14B8A6", budget: 0 },
-          { category_name: "Électricité", color: "#EAB308", budget: 0 },
-          { category_name: "Plomberie", color: "#06B6D4", budget: 0 },
-          { category_name: "HVAC", color: "#F97316", budget: 0 },
-          { category_name: "Isolation", color: "#84CC16", budget: 0 },
-          { category_name: "Gypse et peinture", color: "#A855F7", budget: 0 },
-          { category_name: "Revêtements de sol", color: "#EC4899", budget: 0 },
-          { category_name: "Cuisine et SDB", color: "#F43F5E", budget: 0 },
-          { category_name: "Finitions", color: "#10B981", budget: 0 },
-          { category_name: "Extérieur", color: "#22C55E", budget: 0 },
-        ];
+        // Estimations de base par type de projet (fourchette basse/haute)
+        const budgetEstimates: Record<string, { min: number; max: number; categories: Record<string, { min: number; max: number }> }> = {
+          "maison-neuve": {
+            min: 250000,
+            max: 450000,
+            categories: {
+              "Terrain et préparation": { min: 15000, max: 35000 },
+              "Fondation": { min: 25000, max: 45000 },
+              "Structure et charpente": { min: 45000, max: 80000 },
+              "Toiture": { min: 12000, max: 25000 },
+              "Fenêtres et portes": { min: 15000, max: 35000 },
+              "Électricité": { min: 12000, max: 22000 },
+              "Plomberie": { min: 15000, max: 28000 },
+              "HVAC": { min: 12000, max: 25000 },
+              "Isolation": { min: 8000, max: 18000 },
+              "Gypse et peinture": { min: 18000, max: 32000 },
+              "Revêtements de sol": { min: 12000, max: 28000 },
+              "Cuisine et SDB": { min: 25000, max: 55000 },
+              "Finitions": { min: 15000, max: 30000 },
+              "Extérieur": { min: 12000, max: 25000 },
+            }
+          },
+          "agrandissement": {
+            min: 80000,
+            max: 180000,
+            categories: {
+              "Fondation": { min: 8000, max: 20000 },
+              "Structure et charpente": { min: 15000, max: 35000 },
+              "Toiture": { min: 5000, max: 15000 },
+              "Fenêtres et portes": { min: 5000, max: 15000 },
+              "Électricité": { min: 5000, max: 12000 },
+              "Plomberie": { min: 5000, max: 15000 },
+              "HVAC": { min: 5000, max: 12000 },
+              "Isolation": { min: 3000, max: 8000 },
+              "Gypse et peinture": { min: 6000, max: 15000 },
+              "Revêtements de sol": { min: 5000, max: 15000 },
+              "Finitions": { min: 8000, max: 18000 },
+              "Extérieur": { min: 5000, max: 12000 },
+            }
+          },
+          "renovation-majeure": {
+            min: 100000,
+            max: 250000,
+            categories: {
+              "Démolition et préparation": { min: 8000, max: 20000 },
+              "Structure et charpente": { min: 15000, max: 40000 },
+              "Fenêtres et portes": { min: 10000, max: 30000 },
+              "Électricité": { min: 10000, max: 25000 },
+              "Plomberie": { min: 12000, max: 30000 },
+              "HVAC": { min: 10000, max: 25000 },
+              "Isolation": { min: 8000, max: 20000 },
+              "Gypse et peinture": { min: 12000, max: 28000 },
+              "Revêtements de sol": { min: 10000, max: 25000 },
+              "Cuisine et SDB": { min: 25000, max: 60000 },
+              "Finitions": { min: 10000, max: 25000 },
+            }
+          },
+          "chalet": {
+            min: 150000,
+            max: 350000,
+            categories: {
+              "Terrain et préparation": { min: 12000, max: 30000 },
+              "Fondation": { min: 18000, max: 40000 },
+              "Structure et charpente": { min: 35000, max: 70000 },
+              "Toiture": { min: 10000, max: 22000 },
+              "Fenêtres et portes": { min: 12000, max: 28000 },
+              "Électricité": { min: 10000, max: 20000 },
+              "Plomberie": { min: 12000, max: 25000 },
+              "HVAC": { min: 10000, max: 22000 },
+              "Isolation": { min: 8000, max: 18000 },
+              "Gypse et peinture": { min: 12000, max: 25000 },
+              "Revêtements de sol": { min: 10000, max: 22000 },
+              "Cuisine et SDB": { min: 18000, max: 40000 },
+              "Finitions": { min: 10000, max: 22000 },
+              "Extérieur": { min: 10000, max: 20000 },
+            }
+          },
+        };
 
-        const budgetInserts = defaultCategories.map(cat => ({
-          project_id: projectId,
-          category_name: cat.category_name,
-          color: cat.color,
-          budget: cat.budget,
-          spent: 0,
-        }));
+        const estimate = budgetEstimates[projectData.projectType] || budgetEstimates["maison-neuve"];
+        
+        const budgetInserts = Object.entries(estimate.categories).map(([name, range], index) => {
+          const colors = ["#8B5CF6", "#6366F1", "#3B82F6", "#0EA5E9", "#14B8A6", "#EAB308", "#06B6D4", "#F97316", "#84CC16", "#A855F7", "#EC4899", "#F43F5E", "#10B981", "#22C55E"];
+          // Stocker min et max dans la description pour affichage
+          return {
+            project_id: projectId,
+            category_name: name,
+            color: colors[index % colors.length],
+            budget: Math.round((range.min + range.max) / 2), // Moyenne comme valeur par défaut
+            spent: 0,
+            description: JSON.stringify({ min: range.min, max: range.max }),
+          };
+        });
 
         await supabase.from("project_budgets").insert(budgetInserts);
       }

@@ -42,6 +42,8 @@ interface BudgetSummary {
   totalBudget: number;
   totalSpent: number;
   categories: number;
+  minBudget: number;
+  maxBudget: number;
 }
 
 export const ProjectSummary = ({
@@ -103,10 +105,37 @@ export const ProjectSummary = ({
         if (budgets) {
           const totalBudget = budgets.reduce((sum, b) => sum + (Number(b.budget) || 0), 0);
           const totalSpent = budgets.reduce((sum, b) => sum + (Number(b.spent) || 0), 0);
+          
+          // Calculer min et max à partir des descriptions (si disponibles)
+          let minBudget = 0;
+          let maxBudget = 0;
+          
+          budgets.forEach(b => {
+            if (b.description) {
+              try {
+                const range = JSON.parse(b.description);
+                if (range.min && range.max) {
+                  minBudget += range.min;
+                  maxBudget += range.max;
+                }
+              } catch {
+                // Description n'est pas un JSON, ignorer
+              }
+            }
+          });
+          
+          // Si pas de fourchette trouvée, utiliser le budget total
+          if (minBudget === 0 && maxBudget === 0 && totalBudget > 0) {
+            minBudget = totalBudget;
+            maxBudget = totalBudget;
+          }
+          
           setBudgetSummary({
             totalBudget,
             totalSpent,
             categories: budgets.length,
+            minBudget,
+            maxBudget,
           });
         }
       } catch (error) {
@@ -247,17 +276,48 @@ export const ProjectSummary = ({
               </div>
             ) : budgetSummary ? (
               <div className="space-y-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-green-600">
-                    {budgetSummary.totalBudget > 0 ? formatCurrency(budgetSummary.totalBudget) : "À définir"}
-                  </span>
-                </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  {budgetSummary.totalBudget > 0 
-                    ? "Budget global estimé" 
-                    : "Définissez votre budget dans la page dédiée"}
-                </p>
+                {budgetSummary.minBudget > 0 && budgetSummary.maxBudget > 0 ? (
+                  <>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-2xl font-bold text-green-600">
+                        {formatCurrency(budgetSummary.minBudget)}
+                      </span>
+                      <span className="text-muted-foreground">à</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        {formatCurrency(budgetSummary.maxBudget)}
+                      </span>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                      Estimation préliminaire basée sur le type de projet
+                    </p>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full mt-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/budget?project=${projectId}`);
+                      }}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Perfectionner l'analyse
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-green-600">
+                        À définir
+                      </span>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                      Définissez votre budget dans la page dédiée
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

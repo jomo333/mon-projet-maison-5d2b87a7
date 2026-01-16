@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, Camera, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +21,23 @@ const Dashboard = () => {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(stepFromUrl);
   const [activePhase, setActivePhase] = useState<string | null>(null);
   const [showPreviousStepsAlert, setShowPreviousStepsAlert] = useState(!!stepFromUrl);
+
+  // Fetch project schedules
+  const { schedules, isLoading: isLoadingSchedules } = useProjectSchedule(projectFromUrl);
+
+  // Create a map of step_id to schedule dates
+  const scheduleByStepId = useMemo(() => {
+    const map: Record<string, { start_date: string | null; end_date: string | null }> = {};
+    if (schedules) {
+      schedules.forEach(schedule => {
+        map[schedule.step_id] = {
+          start_date: schedule.start_date,
+          end_date: schedule.end_date,
+        };
+      });
+    }
+    return map;
+  }, [schedules]);
 
   // Update selected step when URL changes
   useEffect(() => {
@@ -247,14 +265,19 @@ const Dashboard = () => {
 
           {/* Steps grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredSteps.map((step) => (
-              <StepCard
-                key={step.id}
-                step={step}
-                stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
-                onClick={() => setSelectedStepId(step.id)}
-              />
-            ))}
+            {filteredSteps.map((step) => {
+              const stepSchedule = scheduleByStepId[step.id];
+              return (
+                <StepCard
+                  key={step.id}
+                  step={step}
+                  stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
+                  onClick={() => setSelectedStepId(step.id)}
+                  scheduleStartDate={stepSchedule?.start_date}
+                  scheduleEndDate={stepSchedule?.end_date}
+                />
+              );
+            })}
           </div>
         </div>
       </main>

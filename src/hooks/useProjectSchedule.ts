@@ -335,6 +335,7 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     const sorted = sortSchedulesByExecutionOrder(allSchedules);
     const warnings: string[] = [];
+    const directConflictWarning: string[] = []; // Conflit direct causé par le changement actuel
     const updatesToApply: Array<{ id: string; patch: Partial<ScheduleItem> }> = [];
 
     // Trouver l'index de l'étape focus
@@ -419,11 +420,10 @@ export const useProjectSchedule = (projectId: string | null) => {
           // Vérifier conflit de cure
           if (requiredStartDate && parseISO(newStartStr) < requiredStartDate) {
             const daysShort = Math.ceil((requiredStartDate.getTime() - parseISO(newStartStr).getTime()) / (1000 * 60 * 60 * 24));
-            warnings.push(
-              `🚨 CONFLIT pour "${s.step_name}": La date choisie (${format(parseISO(newStartStr), "d MMM yyyy", { locale: fr })}) ` +
+            directConflictWarning.push(
+              `La date choisie (${format(parseISO(newStartStr), "d MMM yyyy", { locale: fr })}) ` +
               `ne respecte pas le délai de cure du béton de ${delayConfig!.days} jours (manque ${daysShort} jour(s)). ` +
-              `Date recommandée: ${format(requiredStartDate, "d MMM yyyy", { locale: fr })}. ` +
-              `La date a été conservée car elle représente un engagement.`
+              `Date recommandée: ${format(requiredStartDate, "d MMM yyyy", { locale: fr })}.`
             );
           }
         } else if (focusUpdates.end_date) {
@@ -433,10 +433,9 @@ export const useProjectSchedule = (projectId: string | null) => {
           // Vérifier conflit de cure
           if (requiredStartDate && parseISO(newStartStr) < requiredStartDate) {
             const daysShort = Math.ceil((requiredStartDate.getTime() - parseISO(newStartStr).getTime()) / (1000 * 60 * 60 * 24));
-            warnings.push(
-              `🚨 CONFLIT pour "${s.step_name}": La date de fin choisie implique un début trop tôt. ` +
-              `Le délai de cure de ${delayConfig!.days} jours n'est pas respecté (manque ${daysShort} jour(s)). ` +
-              `La date a été conservée car elle représente un engagement.`
+            directConflictWarning.push(
+              `La date de fin choisie implique un début trop tôt. ` +
+              `Le délai de cure de ${delayConfig!.days} jours n'est pas respecté (manque ${daysShort} jour(s)).`
             );
           }
         } else {
@@ -474,19 +473,20 @@ export const useProjectSchedule = (projectId: string | null) => {
           
           if (cursor && manualStart < cursor) {
             const daysConflict = Math.ceil((cursor.getTime() - manualStart.getTime()) / (1000 * 60 * 60 * 24));
-            warnings.push(
-              `🚨 CONFLIT: "${s.step_name}" a une date manuelle (${format(manualStart, "d MMM yyyy", { locale: fr })}) ` +
-              `qui chevauche l'étape précédente (${daysConflict} jour(s) de conflit). ` +
-              `Cette date a été conservée car elle représente un engagement avec un sous-traitant.`
-            );
+            // Seulement ajouter le premier conflit avec une date verrouillée
+            if (directConflictWarning.length === 0) {
+              directConflictWarning.push(
+                `"${s.step_name}" a une date verrouillée (${format(manualStart, "d MMM yyyy", { locale: fr })}) ` +
+                `qui chevauche l'étape précédente (${daysConflict} jour(s) de conflit).`
+              );
+            }
           }
           
-          // Vérifier conflit de cure
-          if (requiredStartDate && manualStart < requiredStartDate) {
+          // Vérifier conflit de cure - seulement si pas déjà un conflit direct
+          if (requiredStartDate && manualStart < requiredStartDate && directConflictWarning.length === 0) {
             const daysShort = Math.ceil((requiredStartDate.getTime() - manualStart.getTime()) / (1000 * 60 * 60 * 24));
-            warnings.push(
-              `🚨 CONFLIT: "${s.step_name}" a une date manuelle qui ne respecte pas le délai de cure (${daysShort} jour(s) manquants). ` +
-              `Date conservée car elle représente un engagement.`
+            directConflictWarning.push(
+              `"${s.step_name}" a une date verrouillée qui ne respecte pas le délai de cure (${daysShort} jour(s) manquants).`
             );
           }
           
@@ -555,16 +555,24 @@ export const useProjectSchedule = (projectId: string | null) => {
       return s;
     });
     
-    const tradeConflicts = checkConflicts(recalculatedSchedules);
-    if (tradeConflicts.length > 0) {
-      const conflictDates = tradeConflicts.slice(0, 3).map(c => 
-        `${format(parseISO(c.date), "d MMM", { locale: fr })}: ${c.trades.join(" + ")}`
-      ).join("; ");
-      warnings.push(`⚠️ Conflits de métiers détectés: ${conflictDates}${tradeConflicts.length > 3 ? ` (+${tradeConflicts.length - 3} autres)` : ""}`);
+    // Ne pas ajouter les conflits de métiers si on a déjà un conflit direct
+    // pour éviter de surcharger l'utilisateur avec trop d'informations
+    if (directConflictWarning.length === 0) {
+      const tradeConflicts = checkConflicts(recalculatedSchedules);
+      if (tradeConflicts.length > 0) {
+        const conflictDates = tradeConflicts.slice(0, 1).map(c => 
+          `${format(parseISO(c.date), "d MMM", { locale: fr })}: ${c.trades.join(" + ")}`
+        ).join("; ");
+        warnings.push(`Conflit de métiers: ${conflictDates}`);
+      }
     }
 
-    // Retourner les warnings pour que le composant appelant puisse les afficher
-    return { warnings };
+    // Retourner seulement le conflit direct s'il y en a un, sinon les autres warnings
+    const finalWarnings = directConflictWarning.length > 0 
+      ? directConflictWarning 
+      : warnings;
+    
+    return { warnings: finalWarnings };
   };
 
   const fetchAndRegenerateSchedule = async (

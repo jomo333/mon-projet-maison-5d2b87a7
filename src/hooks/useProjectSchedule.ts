@@ -446,17 +446,9 @@ export const useProjectSchedule = (projectId: string | null) => {
             );
           }
         } else if (focusUpdates.end_date) {
+          // Garder la date de début existante, ne changer que la date de fin
           newEndStr = focusUpdates.end_date;
-          newStartStr = format(subBusinessDays(parseISO(newEndStr), duration - 1), "yyyy-MM-dd");
-          
-          // Vérifier conflit de cure
-          if (requiredStartDate && parseISO(newStartStr) < requiredStartDate) {
-            const daysShort = Math.ceil((requiredStartDate.getTime() - parseISO(newStartStr).getTime()) / (1000 * 60 * 60 * 24));
-            directConflictWarning.push(
-              `La date de fin choisie implique un début trop tôt. ` +
-              `Le délai de cure de ${delayConfig!.days} jours n'est pas respecté (manque ${daysShort} jour(s)).`
-            );
-          }
+          newStartStr = s.start_date || format(new Date(), "yyyy-MM-dd");
         } else {
           // Pas de changement de date, juste d'autres champs
           newStartStr = s.start_date || format(new Date(), "yyyy-MM-dd");
@@ -491,7 +483,6 @@ export const useProjectSchedule = (projectId: string | null) => {
         if (isManualDate && s.start_date) {
           // Cette étape a une date manuelle verrouillée - NE PAS la modifier
           // NE PAS propager les changements aux étapes suivantes non plus
-          // Car les étapes après une étape verrouillée doivent rester stables
           
           const manualStart = parseISO(s.start_date);
           
@@ -515,16 +506,11 @@ export const useProjectSchedule = (projectId: string | null) => {
           }
           
           // Mettre à jour stepEndDates mais ARRÊTER la propagation du cursor modifié
-          // Les étapes après cette étape verrouillée gardent leurs dates actuelles
           const manualEnd = s.end_date ? parseISO(s.end_date) : addBusinessDays(manualStart, duration - 1);
           stepEndDates[s.step_id] = format(manualEnd, "yyyy-MM-dd");
           
-          // IMPORTANT: Réinitialiser le cursor à la date de fin de l'étape verrouillée
-          // Cela empêche la propagation des changements aux étapes suivantes
+          // Réinitialiser le cursor à la date de fin de l'étape verrouillée
           cursor = addBusinessDays(manualEnd, 1);
-          
-          // Marquer qu'on a rencontré une étape verrouillée - les étapes suivantes ne seront pas modifiées
-          // sauf si elles sont aussi après une autre modification
           continue;
         } else {
           // Cette étape N'A PAS de date manuelle - la décaler automatiquement

@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
 import { TaskDatePicker } from "./TaskDatePicker";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
+import { toast } from "@/hooks/use-toast";
 
 const iconMap: Record<string, LucideIcon> = {
   ClipboardList,
@@ -77,9 +78,23 @@ export function StepDetail({
   const handleStepDateChange = async (field: 'start_date' | 'end_date', value: string | null) => {
     if (!currentSchedule) return;
     
-    await updateScheduleAndRecalculate(currentSchedule.id, {
-      [field]: value,
-    });
+    try {
+      await updateScheduleAndRecalculate(currentSchedule.id, {
+        [field]: value,
+      });
+      
+      toast({
+        title: "Date mise à jour",
+        description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et l'échéancier recalculé.`,
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la date",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

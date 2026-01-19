@@ -8,8 +8,9 @@ import { StepDetail } from "@/components/guide/StepDetail";
 import { ScheduleDatesBanner } from "@/components/guide/ScheduleDatesBanner";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 const ConstructionGuide = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,9 @@ const ConstructionGuide = () => {
   
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<string | null>(null);
+
+  // Hook pour recalculer l'échéancier
+  const { regenerateSchedule, isUpdating } = useProjectSchedule(projectId);
 
   // Set initial step from URL if provided
   useEffect(() => {
@@ -97,13 +101,28 @@ const ConstructionGuide = () => {
       <Header />
       <main className="flex-1 py-8">
         <div className="container">
-          <div className="mb-8">
-            <h1 className="font-display text-3xl font-bold tracking-tight">
-              Guide de construction
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Suivez ces étapes pour mener à bien votre projet d'autoconstruction.
-            </p>
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-bold tracking-tight">
+                Guide de construction
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Suivez ces étapes pour mener à bien votre projet d'autoconstruction.
+              </p>
+            </div>
+            {projectId && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await regenerateSchedule();
+                }}
+                disabled={isUpdating}
+                className="gap-2"
+              >
+                <RotateCcw className={`h-4 w-4 ${isUpdating ? "animate-spin" : ""}`} />
+                Recalculer
+              </Button>
+            )}
           </div>
 
           {/* Schedule dates banner */}

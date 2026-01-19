@@ -409,11 +409,18 @@ export const useProjectSchedule = (projectId: string | null) => {
         if (requiredStart > cursor) cursor = requiredStart;
       }
 
-      // Si l'utilisateur a explicitement mis une date de début sur l'étape focus,
-      // on la respecte si elle est PLUS TARD que le curseur (retard), sinon on la clamp.
-      if (s.id === focusScheduleId && focusUpdates?.start_date) {
-        const desired = parseISO(focusUpdates.start_date);
-        if (desired > cursor) cursor = desired;
+      // Si l'utilisateur modifie l'étape focus:
+      // - start_date: on la respecte si elle est PLUS TARD que le curseur (retard)
+      // - end_date (sans start_date): on translate l'étape pour que la fin corresponde (si possible)
+      if (s.id === focusScheduleId) {
+        if (focusUpdates?.start_date) {
+          const desired = parseISO(focusUpdates.start_date);
+          if (desired > cursor) cursor = desired;
+        } else if (focusUpdates?.end_date) {
+          const desiredEnd = parseISO(focusUpdates.end_date);
+          const desiredStart = subBusinessDays(desiredEnd, duration - 1);
+          if (desiredStart > cursor) cursor = desiredStart;
+        }
       }
 
       const startStr = format(cursor, "yyyy-MM-dd");

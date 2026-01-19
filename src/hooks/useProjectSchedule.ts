@@ -700,15 +700,37 @@ export const useProjectSchedule = (projectId: string | null) => {
 
   /**
    * Marquer une étape comme complétée et ajuster l'échéancier
+   * Utilise la date du jour comme date de fin sauf si l'utilisateur a déjà défini une date de fin
    */
   const completeStep = async (scheduleId: string, actualDays?: number) => {
     const todayDate = new Date();
     const today = format(todayDate, "yyyy-MM-dd");
 
-    // Durée minimale 1 jour
-    const usedDays = actualDays && actualDays > 0 ? actualDays : 1;
-    const actualEndDate = today;
-    const actualStartDate = format(subBusinessDays(todayDate, usedDays - 1), "yyyy-MM-dd");
+    // Récupérer le schedule actuel pour voir s'il a une date de fin définie
+    const currentSchedule = schedulesQuery.data?.find(s => s.id === scheduleId);
+    
+    // Utiliser la date de fin existante si définie par l'utilisateur, sinon utiliser aujourd'hui
+    const hasUserDefinedEndDate = currentSchedule?.end_date && currentSchedule.end_date !== null;
+    const actualEndDate = hasUserDefinedEndDate ? currentSchedule.end_date! : today;
+    
+    // Durée: utiliser actualDays si fourni, sinon calculer depuis les dates ou utiliser 1
+    let usedDays: number;
+    if (actualDays && actualDays > 0) {
+      usedDays = actualDays;
+    } else if (currentSchedule?.actual_days && currentSchedule.actual_days > 0) {
+      usedDays = currentSchedule.actual_days;
+    } else if (currentSchedule?.start_date && actualEndDate) {
+      // Calculer la durée depuis start_date jusqu'à end_date
+      const diffDays = differenceInBusinessDays(parseISO(actualEndDate), parseISO(currentSchedule.start_date)) + 1;
+      usedDays = Math.max(1, diffDays);
+    } else {
+      usedDays = currentSchedule?.estimated_days || 1;
+    }
+
+    // Calculer la date de début basée sur la date de fin et la durée
+    const actualStartDate = currentSchedule?.start_date 
+      ? currentSchedule.start_date 
+      : format(subBusinessDays(parseISO(actualEndDate), usedDays - 1), "yyyy-MM-dd");
 
     // Régénérer l'échéancier complet en prenant cette étape comme point fixe "completed"
     await fetchAndRegenerateSchedule(scheduleId, {

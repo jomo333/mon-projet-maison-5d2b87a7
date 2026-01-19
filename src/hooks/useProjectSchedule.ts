@@ -411,26 +411,40 @@ export const useProjectSchedule = (projectId: string | null) => {
 
       // Si l'utilisateur modifie l'étape focus:
       // - start_date: on la respecte si elle est PLUS TARD que le curseur (retard)
-      // - end_date (sans start_date): on translate l'étape pour que la fin corresponde (si possible)
+      // - end_date (sans start_date): on translate l'étape pour que la fin corresponde
+      let userSetEndDate: string | null = null;
+      
       if (s.id === focusScheduleId) {
         if (focusUpdates?.start_date) {
           const desired = parseISO(focusUpdates.start_date);
           if (desired > cursor) cursor = desired;
         } else if (focusUpdates?.end_date) {
+          // L'utilisateur a changé la date de fin: calculer le début en conséquence
           const desiredEnd = parseISO(focusUpdates.end_date);
           const desiredStart = subBusinessDays(desiredEnd, duration - 1);
-          if (desiredStart > cursor) cursor = desiredStart;
+          // On déplace le curseur à la date de début calculée (si elle est plus tard que le curseur actuel)
+          if (desiredStart > cursor) {
+            cursor = desiredStart;
+          }
+          // On garde la date de fin exacte choisie par l'utilisateur
+          userSetEndDate = focusUpdates.end_date;
         }
       }
 
       const startStr = format(cursor, "yyyy-MM-dd");
-      const endStr = format(addBusinessDays(cursor, duration - 1), "yyyy-MM-dd");
+      // Si l'utilisateur a fixé une date de fin, on l'utilise, sinon on calcule
+      const endStr = userSetEndDate || format(addBusinessDays(cursor, duration - 1), "yyyy-MM-dd");
 
       previousStepEndDates[s.step_id] = endStr;
 
       const patch: Partial<ScheduleItem> = {};
-      if (s.start_date !== startStr) patch.start_date = startStr;
-      if (s.end_date !== endStr) patch.end_date = endStr;
+      // Toujours comparer avec les valeurs ORIGINALES (avant fusion focusUpdates)
+      const originalSchedule = sortSchedulesByExecutionOrder(allSchedules).find(orig => orig.id === s.id);
+      const originalStart = originalSchedule?.start_date;
+      const originalEnd = originalSchedule?.end_date;
+      
+      if (originalStart !== startStr) patch.start_date = startStr;
+      if (originalEnd !== endStr) patch.end_date = endStr;
 
       if (s.id === focusScheduleId && focusUpdates) {
         const { start_date, end_date, ...rest } = focusUpdates;

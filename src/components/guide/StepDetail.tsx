@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Step, phases } from "@/data/constructionSteps";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2, AlertTriangle, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
@@ -59,6 +61,9 @@ export function StepDetail({
   // Utiliser directement useProjectSchedule pour synchroniser avec l'échéancier
   const { schedules, updateScheduleAndRecalculate, isUpdating } = useProjectSchedule(projectId || null);
   
+  // State pour afficher les avertissements de manière très visible
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
+  
   // Trouver l'étape correspondante dans l'échéancier
   const currentSchedule = schedules.find(s => s.step_id === step.id);
 
@@ -78,15 +83,31 @@ export function StepDetail({
   const handleStepDateChange = async (field: 'start_date' | 'end_date', value: string | null) => {
     if (!currentSchedule) return;
     
+    // Effacer les warnings précédents
+    setScheduleWarnings([]);
+    
     try {
-      await updateScheduleAndRecalculate(currentSchedule.id, {
+      const result = await updateScheduleAndRecalculate(currentSchedule.id, {
         [field]: value,
       });
       
-      toast({
-        title: "Date mise à jour",
-        description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et l'échéancier recalculé.`,
-      });
+      // Si des warnings ont été retournés, les afficher de manière très visible
+      if (result?.warnings && result.warnings.length > 0) {
+        setScheduleWarnings(result.warnings);
+        
+        // Aussi afficher un toast destructif pour attirer l'attention
+        toast({
+          title: "⚠️ ATTENTION - Conflit détecté",
+          description: result.warnings[0],
+          variant: "destructive",
+          duration: 10000,
+        });
+      } else {
+        toast({
+          title: "Date mise à jour",
+          description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et l'échéancier recalculé.`,
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       toast({
@@ -157,6 +178,31 @@ export function StepDetail({
                 <p className="text-sm text-muted-foreground">
                   Cette étape n'est pas encore dans l'échéancier. Générez l'échéancier depuis la page Échéancier.
                 </p>
+              )}
+              
+              {/* Avertissements de conflit très visibles */}
+              {scheduleWarnings.length > 0 && (
+                <Alert variant="destructive" className="mt-4 border-2 border-destructive animate-pulse">
+                  <AlertTriangle className="h-5 w-5" />
+                  <AlertTitle className="flex items-center justify-between">
+                    <span className="text-lg font-bold">⚠️ CONFLIT D'ÉCHÉANCIER DÉTECTÉ</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setScheduleWarnings([])}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </AlertTitle>
+                  <AlertDescription className="mt-2 space-y-2">
+                    {scheduleWarnings.map((warning, index) => (
+                      <p key={index} className="text-sm font-medium">
+                        {warning}
+                      </p>
+                    ))}
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           </CardContent>

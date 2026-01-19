@@ -329,8 +329,8 @@ export const useProjectSchedule = (projectId: string | null) => {
     allSchedules: ScheduleItem[],
     focusScheduleId?: string,
     focusUpdates?: Partial<ScheduleItem>
-  ) => {
-    if (!projectId) return;
+  ): Promise<{ warnings: string[] }> => {
+    if (!projectId) return { warnings: [] };
 
     const sorted = sortSchedulesByExecutionOrder(allSchedules);
 
@@ -501,7 +501,7 @@ export const useProjectSchedule = (projectId: string | null) => {
           description: errors[0]!.message,
           variant: "destructive",
         });
-        return;
+        return { warnings: [] };
       }
     }
 
@@ -525,23 +525,8 @@ export const useProjectSchedule = (projectId: string | null) => {
       warnings.push(`⚠️ Conflits de métiers détectés: ${conflictDates}${tradeConflicts.length > 3 ? ` (+${tradeConflicts.length - 3} autres)` : ""}`);
     }
 
-    // Afficher les avertissements s'il y en a
-    if (warnings.length > 0) {
-      toast({
-        title: "⚠️ Attention - Échéancier ajusté",
-        description: warnings.join("\n"),
-        variant: "destructive",
-        duration: 8000,
-      });
-    } else {
-      toast({
-        title: "Échéancier régénéré",
-        description:
-          updatesToApply.length > 0
-            ? `${updatesToApply.length} ligne(s) recalculée(s) sans chevauchement.`
-            : "Aucun changement nécessaire.",
-      });
-    }
+    // Retourner les warnings pour que le composant appelant puisse les afficher
+    return { warnings };
   };
 
   const fetchAndRegenerateSchedule = async (
@@ -1138,8 +1123,8 @@ export const useProjectSchedule = (projectId: string | null) => {
   const updateScheduleAndRecalculate = async (
     scheduleId: string,
     updates: Partial<ScheduleItem>
-  ) => {
-    if (!projectId) return;
+  ): Promise<{ warnings: string[] }> => {
+    if (!projectId) return { warnings: [] };
 
     // Toujours relire depuis la DB pour éviter d'utiliser un cache incomplet/stale
     const { data: allSchedules, error: fetchError } = await supabase
@@ -1149,12 +1134,12 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     if (fetchError) {
       toast({ title: "Erreur", description: fetchError.message, variant: "destructive" });
-      return;
+      return { warnings: [] };
     }
 
     const sortedSchedules = sortSchedulesByExecutionOrder((allSchedules || []) as ScheduleItem[]);
     const schedule = sortedSchedules.find((s) => s.id === scheduleId);
-    if (!schedule) return;
+    if (!schedule) return { warnings: [] };
 
     // Sécuriser les champs qu'on permet de mettre à jour (évite d'envoyer id/created_at/etc.)
     const allowedKeys: Array<keyof ScheduleItem> = [
@@ -1215,11 +1200,12 @@ export const useProjectSchedule = (projectId: string | null) => {
     }
 
     // Régénération complète (anti-chevauchement) en appliquant la modif comme “source de vérité”
-    await regenerateScheduleFromSchedules(
+    const result = await regenerateScheduleFromSchedules(
       sortSchedulesByExecutionOrder((allSchedules || []) as ScheduleItem[]),
       scheduleId,
       safeUpdates
     );
+    return result;
   };
 
   return {

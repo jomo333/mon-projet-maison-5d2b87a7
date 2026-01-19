@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { addBusinessDays, differenceInBusinessDays, format, parseISO, subBusinessDays } from "date-fns";
+import { fr } from "date-fns/locale";
 import { sortSchedulesByExecutionOrder, getStepExecutionOrder } from "@/lib/scheduleOrder";
 import { constructionSteps } from "@/data/constructionSteps";
 import { addDays } from "date-fns";
@@ -338,6 +339,9 @@ export const useProjectSchedule = (projectId: string | null) => {
       s.id === focusScheduleId ? ({ ...s, ...focusUpdates } as ScheduleItem) : s
     );
 
+    // Collecter les alertes de validation
+    const warnings: string[] = [];
+
     // Point de départ: la plus petite start_date connue (sinon aujourd'hui)
     const startCandidatesMs: number[] = [];
     for (const s of schedules) {
@@ -401,11 +405,29 @@ export const useProjectSchedule = (projectId: string | null) => {
 
       // 2) Étapes non terminées = recalcul en chaîne
       const delayConfig = minimumDelayAfterStep[s.step_id];
+      let delayWasApplied = false;
+      let originalUserDesiredStart: Date | null = null;
+      
       if (delayConfig && previousStepEndDates[delayConfig.afterStep]) {
         const requiredStart = addDays(
           parseISO(previousStepEndDates[delayConfig.afterStep]),
           delayConfig.days
         );
+        
+        // Vérifier si l'utilisateur essaie de mettre une date trop tôt (violation de cure)
+        if (s.id === focusScheduleId && focusUpdates?.start_date) {
+          const userDesired = parseISO(focusUpdates.start_date);
+          if (userDesired < requiredStart) {
+            const daysDiff = differenceInBusinessDays(requiredStart, userDesired);
+            warnings.push(
+              `⚠️ La date choisie pour "${s.step_name}" viole le délai de cure du béton (${delayConfig.days} jours). ` +
+              `Date ajustée au ${format(requiredStart, "d MMM yyyy", { locale: fr })}.`
+            );
+            delayWasApplied = true;
+            originalUserDesiredStart = userDesired;
+          }
+        }
+        
         if (requiredStart > cursor) cursor = requiredStart;
       }
 
@@ -480,13 +502,40 @@ export const useProjectSchedule = (projectId: string | null) => {
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
     queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
 
-    toast({
-      title: "Échéancier régénéré",
-      description:
-        updatesToApply.length > 0
-          ? `${updatesToApply.length} ligne(s) recalculée(s) sans chevauchement.`
-          : "Aucun changement nécessaire.",
+    // Vérifier les conflits de métiers après recalcul
+    const recalculatedSchedules = schedules.map((s, i) => {
+      const update = updatesToApply.find(u => u.id === s.id);
+      if (update?.patch) {
+        return { ...s, ...update.patch };
+      }
+      return s;
     });
+    
+    const tradeConflicts = checkConflicts(recalculatedSchedules);
+    if (tradeConflicts.length > 0) {
+      const conflictDates = tradeConflicts.slice(0, 3).map(c => 
+        `${format(parseISO(c.date), "d MMM", { locale: fr })}: ${c.trades.join(" + ")}`
+      ).join("; ");
+      warnings.push(`⚠️ Conflits de métiers détectés: ${conflictDates}${tradeConflicts.length > 3 ? ` (+${tradeConflicts.length - 3} autres)` : ""}`);
+    }
+
+    // Afficher les avertissements s'il y en a
+    if (warnings.length > 0) {
+      toast({
+        title: "⚠️ Attention - Échéancier ajusté",
+        description: warnings.join("\n"),
+        variant: "destructive",
+        duration: 8000,
+      });
+    } else {
+      toast({
+        title: "Échéancier régénéré",
+        description:
+          updatesToApply.length > 0
+            ? `${updatesToApply.length} ligne(s) recalculée(s) sans chevauchement.`
+            : "Aucun changement nécessaire.",
+      });
+    }
   };
 
   const fetchAndRegenerateSchedule = async (

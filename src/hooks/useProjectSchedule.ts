@@ -374,9 +374,15 @@ export const useProjectSchedule = (projectId: string | null) => {
           if (s.end_date !== norm.end) patch.end_date = norm.end;
 
           // Si c'est l'étape focus, on persiste aussi ses champs (status/actual_days/etc.)
+          // IMPORTANT: si l'étape focus est complétée, il faut aussi persister ses dates réelles,
+          // sinon elles restent "planifiées" en DB et reviennent après un refresh.
           if (s.id === focusScheduleId && focusUpdates) {
             const { start_date, end_date, ...rest } = focusUpdates;
             Object.assign(patch, rest);
+
+            if (typeof start_date === "string") patch.start_date = start_date;
+            if (typeof end_date === "string") patch.end_date = end_date;
+
             if (focusUpdates.actual_days === null) patch.actual_days = null;
           }
 

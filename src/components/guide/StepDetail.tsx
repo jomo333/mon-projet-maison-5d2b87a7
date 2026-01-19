@@ -182,25 +182,30 @@ export function StepDetail({
               
               {/* Avertissements de conflit très visibles */}
               {scheduleWarnings.length > 0 && (
-                <Alert variant="destructive" className="mt-4 border-2 border-destructive animate-pulse">
+                <Alert variant="destructive" className="mt-4 border-2 border-destructive bg-destructive/10">
                   <AlertTriangle className="h-5 w-5" />
                   <AlertTitle className="flex items-center justify-between">
-                    <span className="text-lg font-bold">⚠️ CONFLIT D'ÉCHÉANCIER DÉTECTÉ</span>
+                    <span className="text-lg font-bold">🚨 CONFLIT DE PLANIFICATION</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={() => setScheduleWarnings([])}
-                      className="h-6 w-6 p-0"
+                      className="h-6 w-6 p-0 hover:bg-destructive/20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </AlertTitle>
-                  <AlertDescription className="mt-2 space-y-2">
+                  <AlertDescription className="mt-3 space-y-3">
                     {scheduleWarnings.map((warning, index) => (
-                      <p key={index} className="text-sm font-medium">
-                        {warning}
-                      </p>
+                      <div key={index} className="p-3 bg-background/50 rounded-md border border-destructive/30">
+                        <p className="text-sm font-medium leading-relaxed">
+                          {warning}
+                        </p>
+                      </div>
                     ))}
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      💡 La date entrée manuellement a été conservée. Si ce conflit est intentionnel, vous pouvez fermer cet avertissement.
+                    </p>
                   </AlertDescription>
                 </Alert>
               )}

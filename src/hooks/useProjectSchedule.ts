@@ -427,41 +427,48 @@ export const useProjectSchedule = (projectId: string | null) => {
           const desired = parseISO(focusUpdates.start_date);
           userDesiredStart = desired;
           
-          // Vérifier si cette date viole le délai de cure
+          // IMPORTANT: Toujours respecter la date manuelle du client/sous-traitant
+          // Mais générer un avertissement si elle viole les contraintes
           if (requiredStartDate && desired < requiredStartDate) {
+            const daysShort = Math.ceil((requiredStartDate.getTime() - desired.getTime()) / (1000 * 60 * 60 * 24));
             warnings.push(
-              `⚠️ Date de début trop tôt pour "${s.step_name}": le délai de cure du béton (${delayConfig!.days} jours) n'est pas respecté. ` +
-              `Date minimum: ${format(requiredStartDate, "d MMM yyyy", { locale: fr })}.`
+              `🚨 CONFLIT DE DATE pour "${s.step_name}": La date choisie (${format(desired, "d MMM yyyy", { locale: fr })}) ` +
+              `ne respecte pas le délai de cure du béton de ${delayConfig!.days} jours. ` +
+              `Il manque ${daysShort} jour(s). Date minimum recommandée: ${format(requiredStartDate, "d MMM yyyy", { locale: fr })}. ` +
+              `⚠️ La date a été conservée car elle représente un engagement avec le sous-traitant.`
             );
-          } else if (desired > cursor) {
-            cursor = desired;
           }
+          // Toujours utiliser la date choisie par l'utilisateur
+          cursor = desired;
         } else if (focusUpdates?.end_date) {
           // L'utilisateur a changé la date de fin: calculer le début en conséquence
           const desiredEnd = parseISO(focusUpdates.end_date);
           const desiredStart = subBusinessDays(desiredEnd, duration - 1);
           userDesiredStart = desiredStart;
           
-          // Vérifier si cette date de début calculée viole le délai de cure
+          // Générer un avertissement si la date viole les contraintes, mais la respecter
           if (requiredStartDate && desiredStart < requiredStartDate) {
+            const daysShort = Math.ceil((requiredStartDate.getTime() - desiredStart.getTime()) / (1000 * 60 * 60 * 24));
             warnings.push(
-              `⚠️ Date de fin trop tôt pour "${s.step_name}": le délai de cure du béton (${delayConfig!.days} jours) n'est pas respecté. ` +
-              `Date de fin minimum: ${format(addBusinessDays(requiredStartDate, duration - 1), "d MMM yyyy", { locale: fr })}.`
+              `🚨 CONFLIT DE DATE pour "${s.step_name}": La date de fin choisie (${format(desiredEnd, "d MMM yyyy", { locale: fr })}) ` +
+              `implique un début le ${format(desiredStart, "d MMM yyyy", { locale: fr })}, ` +
+              `ce qui ne respecte pas le délai de cure du béton de ${delayConfig!.days} jours. ` +
+              `Il manque ${daysShort} jour(s). ` +
+              `⚠️ La date a été conservée car elle représente un engagement avec le sous-traitant.`
             );
-          } else if (desiredStart > cursor) {
-            cursor = desiredStart;
           }
-          
-          // On garde la date de fin exacte choisie par l'utilisateur seulement si elle respecte les contraintes
-          if (!requiredStartDate || desiredStart >= requiredStartDate) {
-            userSetEndDate = focusUpdates.end_date;
-          }
+          // Toujours utiliser la date choisie par l'utilisateur
+          cursor = desiredStart;
+          userSetEndDate = focusUpdates.end_date;
         }
       }
 
-      const startStr = format(cursor, "yyyy-MM-dd");
-      // Si l'utilisateur a fixé une date de fin valide, on l'utilise, sinon on calcule
-      const endStr = userSetEndDate || format(addBusinessDays(cursor, duration - 1), "yyyy-MM-dd");
+      // Utiliser la date choisie par l'utilisateur si c'est l'étape focus
+      const startStr = s.id === focusScheduleId && focusUpdates?.start_date 
+        ? focusUpdates.start_date 
+        : format(cursor, "yyyy-MM-dd");
+      // Si l'utilisateur a fixé une date de fin, on l'utilise, sinon on calcule
+      const endStr = userSetEndDate || format(addBusinessDays(parseISO(startStr), duration - 1), "yyyy-MM-dd");
 
       previousStepEndDates[s.step_id] = endStr;
 

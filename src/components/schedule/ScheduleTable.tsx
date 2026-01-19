@@ -107,22 +107,33 @@ export const ScheduleTable = ({
   };
 
   const handleSave = async () => {
-    if (!editingId || !editData) return;
-    
+    if (!editingId) return;
+
     setIsSaving(true);
     try {
-      // Recalculer la date de fin si les jours ont changé
-      let endDate = editData.end_date;
-      if (editData.start_date && (editData.actual_days || editData.estimated_days)) {
-        const days = editData.actual_days || editData.estimated_days || 1;
-        endDate = calculateEndDate(editData.start_date, days);
-      }
+      const original = schedules.find((s) => s.id === editingId);
 
-      await onUpdate({
+      // IMPORTANT:
+      // - end_date est une valeur DÉRIVÉE (calculée) et ne doit pas être envoyée à onUpdate,
+      //   sinon on persiste une date "planifiée" et la complétion ne décale pas les étapes suivantes.
+      // - on laisse le hook recalculer et persister les nouvelles dates.
+      const update: Partial<ScheduleItem> & { id: string } = {
         id: editingId,
         ...editData,
-        end_date: endDate,
-      });
+      };
+
+      // Ne jamais envoyer end_date depuis ce formulaire (champ calculé/readonly)
+      delete (update as any).end_date;
+
+      // Si l'utilisateur repasse une étape de "Terminé" à un autre statut via le Select,
+      // on imite le comportement de "Annuler Terminé" (on revient aux durées estimées).
+      if (original?.status === "completed" && update.status && update.status !== "completed") {
+        if (update.actual_days === original.actual_days) {
+          update.actual_days = null;
+        }
+      }
+
+      await onUpdate(update);
     } finally {
       setIsSaving(false);
       setEditingId(null);

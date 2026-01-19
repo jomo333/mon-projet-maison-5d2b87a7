@@ -582,8 +582,15 @@ export const useProjectSchedule = (projectId: string | null) => {
     const conflicts: { date: string; trades: string[] }[] = [];
     const dateTradeMap: Record<string, Set<string>> = {};
 
+    // Trades à ignorer pour les conflits (administratifs/préparation)
+    const ignoredTrades = ["autre", "inspecteur"];
+
     for (const schedule of schedules) {
+      // Ignorer les étapes terminées - elles ne créent plus de conflits
+      if (schedule.status === "completed") continue;
       if (!schedule.start_date || !schedule.end_date) continue;
+      // Ignorer les trades administratifs
+      if (ignoredTrades.includes(schedule.trade_type)) continue;
 
       const start = parseISO(schedule.start_date);
       const end = parseISO(schedule.end_date);

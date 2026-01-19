@@ -489,13 +489,15 @@ export const useProjectSchedule = (projectId: string | null) => {
         const isManualDate = manualDateStepIds.has(s.id);
         
         if (isManualDate && s.start_date) {
-          // Cette étape a une date manuelle - NE PAS la modifier
-          // Vérifier s'il y a conflit avec le cursor
+          // Cette étape a une date manuelle verrouillée - NE PAS la modifier
+          // NE PAS propager les changements aux étapes suivantes non plus
+          // Car les étapes après une étape verrouillée doivent rester stables
+          
           const manualStart = parseISO(s.start_date);
           
+          // Vérifier s'il y a conflit avec le cursor (juste pour avertir)
           if (cursor && manualStart < cursor) {
             const daysConflict = Math.ceil((cursor.getTime() - manualStart.getTime()) / (1000 * 60 * 60 * 24));
-            // Seulement ajouter le premier conflit avec une date verrouillée
             if (directConflictWarning.length === 0) {
               directConflictWarning.push(
                 `"${s.step_name}" a une date verrouillée (${format(manualStart, "d MMM yyyy", { locale: fr })}) ` +
@@ -504,7 +506,7 @@ export const useProjectSchedule = (projectId: string | null) => {
             }
           }
           
-          // Vérifier conflit de cure - seulement si pas déjà un conflit direct
+          // Vérifier conflit de cure
           if (requiredStartDate && manualStart < requiredStartDate && directConflictWarning.length === 0) {
             const daysShort = Math.ceil((requiredStartDate.getTime() - manualStart.getTime()) / (1000 * 60 * 60 * 24));
             directConflictWarning.push(
@@ -512,10 +514,18 @@ export const useProjectSchedule = (projectId: string | null) => {
             );
           }
           
-          // Mettre à jour cursor et stepEndDates pour continuer la chaîne
+          // Mettre à jour stepEndDates mais ARRÊTER la propagation du cursor modifié
+          // Les étapes après cette étape verrouillée gardent leurs dates actuelles
           const manualEnd = s.end_date ? parseISO(s.end_date) : addBusinessDays(manualStart, duration - 1);
           stepEndDates[s.step_id] = format(manualEnd, "yyyy-MM-dd");
+          
+          // IMPORTANT: Réinitialiser le cursor à la date de fin de l'étape verrouillée
+          // Cela empêche la propagation des changements aux étapes suivantes
           cursor = addBusinessDays(manualEnd, 1);
+          
+          // Marquer qu'on a rencontré une étape verrouillée - les étapes suivantes ne seront pas modifiées
+          // sauf si elles sont aussi après une autre modification
+          continue;
         } else {
           // Cette étape N'A PAS de date manuelle - la décaler automatiquement
           let newStart = cursor || new Date();

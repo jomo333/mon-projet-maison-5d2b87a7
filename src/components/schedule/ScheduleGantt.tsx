@@ -17,11 +17,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeName, getTradeColor } from "@/data/tradeTypes";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
+
+// Délais obligatoires (cure du béton, etc.)
+const minimumDelayConfig: Record<string, { afterStep: string; days: number; reason: string }> = {
+  structure: {
+    afterStep: "excavation-fondation",
+    days: 21,
+    reason: "Cure du béton des fondations (minimum 3 semaines)",
+  },
+};
 
 interface ScheduleGanttProps {
   schedules: ScheduleItem[];
@@ -142,6 +151,31 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
     return conflicts.some((c) => c.trades.includes(schedule.trade_type));
   };
 
+  // Calcule la période de cure du béton entre excavation et structure
+  const getCuringPeriod = useMemo(() => {
+    const excavation = schedulesWithDates.find(s => s.step_id === "excavation-fondation");
+    const structure = schedulesWithDates.find(s => s.step_id === "structure");
+    
+    if (!excavation?.end_date || !structure?.start_date) return null;
+    
+    const excavationEnd = parseISO(excavation.end_date);
+    const structureStart = parseISO(structure.start_date);
+    const gapDays = differenceInDays(structureStart, excavationEnd);
+    
+    // S'il y a un écart >= 1 jour, on montre la période de cure
+    if (gapDays >= 1) {
+      const left = differenceInDays(addDays(excavationEnd, 1), minDate) * dayWidth;
+      const width = (gapDays - 1) * dayWidth;
+      return { left, width, days: gapDays - 1 };
+    }
+    return null;
+  }, [schedulesWithDates, minDate, dayWidth]);
+
+  // Vérifie si une étape a un délai obligatoire
+  const getDelayInfo = (schedule: ScheduleItem) => {
+    return minimumDelayConfig[schedule.step_id];
+  };
+
   if (schedulesWithDates.length === 0) {
     return (
       <div className="bg-card rounded-lg border p-8 text-center text-muted-foreground">
@@ -213,6 +247,9 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
             {schedulesWithDates.map((schedule, index) => {
               const position = getBarPosition(schedule);
               if (!position) return null;
+              
+              const delayInfo = getDelayInfo(schedule);
+              const isStructure = schedule.step_id === "structure";
 
               return (
                 <div
@@ -232,6 +269,16 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
                     <span className="truncate text-sm">
                       {schedule.step_name}
                     </span>
+                    {delayInfo && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">{delayInfo.reason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     {hasConflict(schedule) && (
                       <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                     )}
@@ -259,6 +306,40 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
                         );
                       })}
                     </div>
+
+                    {/* Barre de cure du béton (affichée sur la ligne Structure) */}
+                    {isStructure && getCuringPeriod && getCuringPeriod.width > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="absolute top-2 h-6 rounded cursor-pointer opacity-60"
+                            style={{
+                              left: getCuringPeriod.left,
+                              width: getCuringPeriod.width,
+                              background: "repeating-linear-gradient(45deg, #fbbf24, #fbbf24 4px, #f59e0b 4px, #f59e0b 8px)",
+                            }}
+                          >
+                            <span className="text-xs text-white px-1 truncate block leading-6 font-medium drop-shadow-sm">
+                              ⏳ Cure {getCuringPeriod.days}j
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-1">
+                            <p className="font-medium flex items-center gap-1">
+                              <Clock className="h-4 w-4" /> Cure du béton
+                            </p>
+                            <p className="text-sm">
+                              Période obligatoire de {getCuringPeriod.days} jours pour la cure du béton
+                              avant de mettre une charge sur les murs de fondation.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Minimum recommandé: 21 jours (3 semaines)
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
                     {/* Barre de la tâche */}
                     <Tooltip>
@@ -298,6 +379,11 @@ export const ScheduleGantt = ({ schedules, conflicts }: ScheduleGanttProps) => {
                             Durée: {schedule.actual_days || schedule.estimated_days}{" "}
                             jours
                           </p>
+                          {delayInfo && (
+                            <p className="text-sm text-amber-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> {delayInfo.reason}
+                            </p>
+                          )}
                           {schedule.supplier_name && (
                             <p className="text-sm">
                               Fournisseur: {schedule.supplier_name}

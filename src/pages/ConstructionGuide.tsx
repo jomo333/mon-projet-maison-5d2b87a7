@@ -10,7 +10,8 @@ import { StepDetail } from "@/components/guide/StepDetail";
 import { ScheduleDatesBanner } from "@/components/guide/ScheduleDatesBanner";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, RotateCcw, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
@@ -21,6 +22,27 @@ const ConstructionGuide = () => {
   
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<string | null>(null);
+  const [showPlanificationAlert, setShowPlanificationAlert] = useState(false);
+  const [dateWarning, setDateWarning] = useState<string | null>(null);
+
+  // Check for planification alerts from localStorage
+  useEffect(() => {
+    if (projectId) {
+      const planificationAlert = localStorage.getItem(`project_${projectId}_planification_alert`);
+      const storedWarning = localStorage.getItem(`project_${projectId}_date_warning`);
+      
+      if (planificationAlert === "true") {
+        setShowPlanificationAlert(true);
+        // Clear the flag after showing
+        localStorage.removeItem(`project_${projectId}_planification_alert`);
+      }
+      
+      if (storedWarning) {
+        setDateWarning(storedWarning);
+        localStorage.removeItem(`project_${projectId}_date_warning`);
+      }
+    }
+  }, [projectId]);
 
   // Fetch project data for type filtering
   const { data: project } = useQuery({
@@ -144,6 +166,38 @@ const ConstructionGuide = () => {
               </Button>
             )}
           </div>
+
+          {/* Planification uncertainty alert */}
+          {(showPlanificationAlert || dateWarning) && (
+            <Alert className="mb-6 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 dark:text-amber-400">
+                Échéancier préliminaire
+              </AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                {dateWarning ? (
+                  <span>{dateWarning}</span>
+                ) : (
+                  <span>
+                    Votre date de début de travaux est basée sur une estimation préliminaire. 
+                    Elle pourrait varier selon l'avancement de votre planification, l'obtention des permis 
+                    et la disponibilité des entrepreneurs. Complétez les étapes de préparation pour affiner cette date.
+                  </span>
+                )}
+              </AlertDescription>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2 h-6 w-6 text-amber-600 hover:text-amber-800"
+                onClick={() => {
+                  setShowPlanificationAlert(false);
+                  setDateWarning(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </Alert>
+          )}
 
           {/* Schedule dates banner */}
           <ScheduleDatesBanner currentStepId={null} />

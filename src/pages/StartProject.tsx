@@ -465,17 +465,39 @@ const StartProject = () => {
       // After selecting stage, go to date selection
       setCurrentStep(5);
     } else if (currentStep === 5) {
-      // If planification stage, save project and redirect directly to steps page
+      // If planification stage, save project, generate schedule only, and redirect to steps page
       if (projectData.currentStage === "planification") {
         setIsSaving(true);
+        setIsAnalyzing(true);
+        setAnalysisProgress("Préparation de l'échéancier préliminaire...");
+        
         const projectId = await saveProject();
-        setIsSaving(false);
         
         if (projectId) {
+          // Generate schedule only (no budget) to evaluate date feasibility
+          if (projectData.targetStartDate) {
+            const result = await generateProjectSchedule(
+              projectId,
+              projectData.targetStartDate,
+              projectData.currentStage
+            );
+            
+            if (result.warning) {
+              // Store warning in localStorage to display on steps page
+              localStorage.setItem(`project_${projectId}_date_warning`, result.warning);
+            }
+          }
+          
+          // Mark that this is a new planification project with uncertain dates
+          localStorage.setItem(`project_${projectId}_planification_alert`, "true");
+          
           toast.success("Projet créé avec succès!");
           const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
           navigate(`/etapes?step=${guideStepId}&project=${projectId}`);
         }
+        
+        setIsAnalyzing(false);
+        setIsSaving(false);
         return;
       }
       

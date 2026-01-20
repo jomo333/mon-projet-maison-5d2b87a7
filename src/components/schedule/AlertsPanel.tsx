@@ -11,6 +11,7 @@ import {
   X,
   Bell,
   AlertTriangle,
+  PhoneCall,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
@@ -22,7 +23,7 @@ interface AlertsPanelProps {
 
 const alertTypeConfig: Record<
   string,
-  { icon: React.ElementType; label: string; color: string }
+  { icon: React.ElementType; label: string; color: string; urgent?: boolean }
 > = {
   supplier_call: {
     icon: Phone,
@@ -38,6 +39,12 @@ const alertTypeConfig: Record<
     icon: Ruler,
     label: "Prise de mesures",
     color: "text-purple-500 bg-purple-500/10",
+  },
+  contact_subcontractor: {
+    icon: PhoneCall,
+    label: "Contacter sous-traitant",
+    color: "text-amber-500 bg-amber-500/20",
+    urgent: true,
   },
 };
 
@@ -110,20 +117,23 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
               const config = alertTypeConfig[alert.alert_type];
               const urgency = getAlertUrgency(alert.alert_date);
               const Icon = config?.icon || Bell;
+              const isUrgentSubcontractor = config?.urgent === true;
 
               return (
                 <div
                   key={alert.id}
                   className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border",
+                    "flex items-start gap-3 p-3 rounded-lg border transition-all",
                     urgency.level === "overdue" && "border-destructive bg-destructive/5",
-                    urgency.level === "today" && "border-orange-500 bg-orange-500/5"
+                    urgency.level === "today" && "border-amber-500 bg-amber-500/5",
+                    isUrgentSubcontractor && "border-amber-500 bg-amber-100 dark:bg-amber-950/50 animate-pulse"
                   )}
                 >
                   <div
                     className={cn(
                       "p-2 rounded-full",
-                      config?.color || "text-gray-500 bg-gray-500/10"
+                      config?.color || "text-muted-foreground bg-muted",
+                      isUrgentSubcontractor && "animate-bounce"
                     )}
                   >
                     <Icon className="h-4 w-4" />

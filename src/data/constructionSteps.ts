@@ -204,8 +204,8 @@ export const constructionSteps: Step[] = [
         title: "Coulage des fondations",
         description: "Installation des coffrages et coulage du béton pour les semelles et murs.",
         tips: [
-          "Cure du béton: attendez au moins 7 jours avant de charger",
-          "Imperméabilisez les murs de fondation"
+          "Cure du béton: attendez au moins 21 jours avant de charger",
+          "Imperméabilisez les murs de fondation avec une membrane goudronnée ou membrane Delta-MS pour une imperméabilisation optimale"
         ]
       },
       {

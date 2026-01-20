@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { tradeTypes } from "@/data/tradeTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -629,11 +631,18 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                             <Sparkles className="h-4 w-4 text-primary" />
                             <span className="text-sm font-medium">Analyse IA - Rapport qualité-prix</span>
                           </div>
-                          <ScrollArea className="h-[300px]">
-                            <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
-                              <div className="whitespace-pre-wrap text-sm">
+                          <ScrollArea className="h-[400px]">
+                            <div className="prose prose-sm dark:prose-invert max-w-none pr-4 
+                              prose-table:w-full prose-table:border-collapse prose-table:border prose-table:border-border
+                              prose-th:border prose-th:border-border prose-th:bg-muted prose-th:p-2 prose-th:text-left prose-th:font-semibold
+                              prose-td:border prose-td:border-border prose-td:p-2
+                              prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2
+                              prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1
+                              prose-ul:my-2 prose-li:my-0.5
+                              prose-p:my-2">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {analysisStates[trade.id].result}
-                              </div>
+                              </ReactMarkdown>
                             </div>
                           </ScrollArea>
                         </div>

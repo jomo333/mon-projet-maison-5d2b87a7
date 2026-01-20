@@ -282,7 +282,46 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
     // Analyse chaque page séparément (1 image à la fois) puis fusionne.
     // Cela évite le dépassement mémoire (546) et gère toutes les pages.
 
-    const MAX_IMAGE_SIZE = 1_800_000; // ~1.8MB limite par image
+    const MAX_IMAGE_SIZE = 6_000_000; // ~6MB (traité 1 à la fois => OK mémoire)
+
+    function safeParseJsonFromModel(text: string): any | null {
+      try {
+        let cleanContent = String(text || '')
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+
+        const jsonStart = cleanContent.indexOf('{');
+        if (jsonStart > 0) cleanContent = cleanContent.substring(jsonStart);
+
+        try {
+          return JSON.parse(cleanContent);
+        } catch {
+          // Attempt basic repair (same strategy as final parse)
+          let braceCount = 0;
+          let bracketCount = 0;
+          for (const char of cleanContent) {
+            if (char === '{') braceCount++;
+            if (char === '}') braceCount--;
+            if (char === '[') bracketCount++;
+            if (char === ']') bracketCount--;
+          }
+
+          let repaired = cleanContent;
+          while (bracketCount > 0) {
+            repaired += ']';
+            bracketCount--;
+          }
+          while (braceCount > 0) {
+            repaired += '}';
+            braceCount--;
+          }
+          return JSON.parse(repaired);
+        }
+      } catch {
+        return null;
+      }
+    }
 
     // Helper to fetch an image and convert to base64 (one at a time to save memory)
     async function fetchImageAsBase64(url: string): Promise<{ base64: string; mediaType: string } | null> {
@@ -326,18 +365,43 @@ ${additionalContext}
 QUALITÉ DE FINITION: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
 
 INSTRUCTIONS:
-1. Extrait TOUTES les quantités et détails visibles sur CETTE PAGE uniquement.
-2. Identifie le type de vue (plan fondation, élévation, coupe, etc.).
-3. Liste les matériaux, dimensions, notes techniques.
-4. Retourne un JSON partiel avec les données de CETTE PAGE:
+- Concentre-toi sur les quantités/dimensions utiles pour estimer un budget.
+- Ignore les cartouches, logos, répétitions.
+- IMPORTANT: retourne un JSON STRICT (sans texte autour) au format global, mais seulement avec les infos de cette page.
+
+FORMAT (JSON STRICT):
 {
-  "page": ${pageNumber},
-  "vue_type": "...",
-  "elements_extraits": [
-    { "description": "...", "quantite": number, "unite": "...", "dimension": "...", "prix_unitaire": number, "total": number }
-  ],
-  "notes_techniques": ["..."],
-  "dimensions_cles": { ... }
+  "extraction": {
+    "type_projet": "CONSTRUCTION_NEUVE | AGRANDISSEMENT | RENOVATION | SURELEVATION | GARAGE",
+    "superficie_nouvelle_pi2": number,
+    "nombre_etages": number,
+    "plans_analyses": 1,
+    "categories": [
+      {
+        "nom": "Structure" | "Fondation" | "Enveloppe" | "Finition intérieure" | "Finition extérieure" | "Électricité" | "Plomberie" | "CVC",
+        "items": [
+          {
+            "description": string,
+            "quantite": number,
+            "unite": string,
+            "dimension": string,
+            "prix_unitaire": number,
+            "total": number,
+            "source": "Page ${pageNumber}",
+            "confiance": "haute" | "moyenne" | "basse"
+          }
+        ],
+        "sous_total_materiaux": number,
+        "heures_main_oeuvre": number,
+        "taux_horaire_CCQ": number,
+        "sous_total_main_oeuvre": number,
+        "sous_total_categorie": number
+      }
+    ],
+    "elements_manquants": string[],
+    "ambiguites": string[],
+    "incoherences": string[]
+  }
 }`;
 
       const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -349,7 +413,7 @@ INSTRUCTIONS:
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: 2800,
           system: SYSTEM_PROMPT_EXTRACTION,
           messages: [
             {
@@ -381,7 +445,7 @@ INSTRUCTIONS:
     if (mode === 'plan' && imageUrls.length > 0) {
       // Multi-pass: analyze each page separately
       console.log(`Starting Claude multi-pass analysis for ${imageUrls.length} pages...`);
-      const pageResults: string[] = [];
+      const pageExtractions: any[] = [];
       const additionalContext = body.additionalNotes ? `NOTES CLIENT: ${body.additionalNotes}` : '';
 
       for (let i = 0; i < imageUrls.length; i++) {
@@ -404,14 +468,20 @@ INSTRUCTIONS:
         );
 
         if (pageResult) {
-          pageResults.push(pageResult);
-          console.log(`Page ${i + 1} analyzed successfully`);
+          const parsed = safeParseJsonFromModel(pageResult);
+          const extraction = parsed?.extraction;
+          if (extraction && Array.isArray(extraction.categories)) {
+            pageExtractions.push(extraction);
+            console.log(`Page ${i + 1} analyzed successfully (categories: ${extraction.categories.length})`);
+          } else {
+            console.log(`Page ${i + 1} returned non-parseable JSON`);
+          }
         } else {
           console.log(`Page ${i + 1} analysis returned empty`);
         }
       }
 
-      if (pageResults.length === 0) {
+      if (pageExtractions.length === 0) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -421,50 +491,141 @@ INSTRUCTIONS:
         );
       }
 
-      // Merge all page results into a unified budget with Claude
-      console.log(`Merging ${pageResults.length} page analyses into unified budget...`);
-      const mergePrompt = `Tu as reçu ${pageResults.length} analyses partielles de pages de plans de construction pour un projet au Québec.
+      // Merge in code (more reliable, avoids timeouts / huge prompts)
+      console.log(`Merging ${pageExtractions.length} page extractions in code...`);
 
-NOTES CLIENT: ${body.additionalNotes || 'Aucune'}
-QUALITÉ: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
+      const catMap = new Map<string, { nom: string; items: any[]; heures_main_oeuvre: number; sous_total_main_oeuvre: number; sous_total_materiaux: number; taux_horaire_CCQ: number }>();
+      const missing = new Set<string>();
+      const ambiguites = new Set<string>();
+      const incoherences = new Set<string>();
 
-VOICI LES ANALYSES PAR PAGE:
-${pageResults.map((r, i) => `\n--- PAGE ${i + 1} ---\n${r}`).join('\n')}
+      let typeProjet: string | undefined;
+      let superficie: number | undefined;
+      let etages: number | undefined;
 
-MISSION: Fusionne toutes ces données en UN SEUL JSON d'estimation budgétaire complet.
-- Déduplique les éléments identiques (même matériau = additionner quantités)
-- Calcule tous les sous-totaux par catégorie
-- Applique les prix Québec 2025
-- Calcule TPS 5% + TVQ 9.975%
-- Retourne le JSON au format demandé (extraction, totaux, validation, recommandations, resume_projet)`;
+      const normalizeKey = (s: unknown) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
-      const mergeResp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 8192,
-          system: SYSTEM_PROMPT_EXTRACTION,
-          messages: [{ role: 'user', content: mergePrompt }],
-        }),
-      });
+      for (const ex of pageExtractions) {
+        typeProjet = typeProjet || ex.type_projet;
+        if (!superficie && Number(ex.superficie_nouvelle_pi2)) superficie = Number(ex.superficie_nouvelle_pi2);
+        if (!etages && Number(ex.nombre_etages)) etages = Number(ex.nombre_etages);
 
-      if (!mergeResp.ok) {
-        const txt = await mergeResp.text();
-        console.error('Claude merge error:', mergeResp.status, txt);
-        return new Response(
-          JSON.stringify({ success: false, error: `Claude merge failed: ${mergeResp.status}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        for (const e of ex.elements_manquants || []) missing.add(String(e));
+        for (const e of ex.ambiguites || []) ambiguites.add(String(e));
+        for (const e of ex.incoherences || []) incoherences.add(String(e));
+
+        for (const cat of ex.categories || []) {
+          const nom = cat.nom || cat.name || 'Autre';
+          const key = normalizeKey(nom);
+          const existing = catMap.get(key) || {
+            nom,
+            items: [],
+            heures_main_oeuvre: 0,
+            sous_total_main_oeuvre: 0,
+            sous_total_materiaux: 0,
+            taux_horaire_CCQ: Number(cat.taux_horaire_CCQ) || 0,
+          };
+
+          existing.heures_main_oeuvre += Number(cat.heures_main_oeuvre) || 0;
+          existing.sous_total_main_oeuvre += Number(cat.sous_total_main_oeuvre) || 0;
+          existing.sous_total_materiaux += Number(cat.sous_total_materiaux) || 0;
+          existing.taux_horaire_CCQ = existing.taux_horaire_CCQ || Number(cat.taux_horaire_CCQ) || 0;
+
+          // Merge items by description+unit+dimension
+          const itemMap = new Map<string, any>();
+          for (const it of existing.items) {
+            const k = `${normalizeKey(it.description)}|${normalizeKey(it.unite)}|${normalizeKey(it.dimension)}`;
+            itemMap.set(k, it);
+          }
+          for (const it of cat.items || []) {
+            const desc = it.description;
+            const unite = it.unite || it.unit;
+            const dimension = it.dimension || '';
+            const k = `${normalizeKey(desc)}|${normalizeKey(unite)}|${normalizeKey(dimension)}`;
+
+            const quantite = Number(it.quantite) || 0;
+            const prix = Number(it.prix_unitaire) || 0;
+            const total = Number(it.total) || (quantite && prix ? quantite * prix : 0);
+
+            const prev = itemMap.get(k);
+            if (prev) {
+              prev.quantite = (Number(prev.quantite) || 0) + quantite;
+              prev.total = (Number(prev.total) || 0) + total;
+              // Keep max unit price if differs
+              prev.prix_unitaire = Math.max(Number(prev.prix_unitaire) || 0, prix);
+              // Keep any source
+              prev.source = prev.source || it.source;
+              itemMap.set(k, prev);
+            } else {
+              itemMap.set(k, {
+                description: desc,
+                quantite,
+                unite,
+                dimension,
+                prix_unitaire: prix,
+                total,
+                source: it.source,
+                confiance: it.confiance || 'moyenne',
+              });
+            }
+          }
+          existing.items = Array.from(itemMap.values());
+
+          catMap.set(key, existing);
+        }
       }
 
-      const mergeData = await mergeResp.json();
-      finalContent = mergeData.content?.[0]?.text || '';
-      console.log('Multi-pass merge complete');
+      const mergedCategories = Array.from(catMap.values()).map((c) => {
+        const itemsTotal = c.items.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
+        return {
+          nom: c.nom,
+          items: c.items,
+          sous_total_materiaux: c.sous_total_materiaux || itemsTotal,
+          heures_main_oeuvre: c.heures_main_oeuvre || 0,
+          taux_horaire_CCQ: c.taux_horaire_CCQ || 0,
+          sous_total_main_oeuvre: c.sous_total_main_oeuvre || 0,
+          sous_total_categorie: itemsTotal,
+        };
+      });
+
+      const sousTotalAvantTaxes = mergedCategories.reduce((sum, c) => sum + (Number(c.sous_total_categorie) || 0), 0);
+      const contingence = sousTotalAvantTaxes * 0.05;
+      const sousTotalAvecContingence = sousTotalAvantTaxes + contingence;
+      const tps = sousTotalAvecContingence * 0.05;
+      const tvq = sousTotalAvecContingence * 0.09975;
+      const totalTtc = sousTotalAvecContingence + tps + tvq;
+
+      const mergedBudget = {
+        extraction: {
+          type_projet: typeProjet || 'GARAGE',
+          superficie_nouvelle_pi2: superficie || 0,
+          nombre_etages: etages || 1,
+          plans_analyses: imageUrls.length,
+          categories: mergedCategories,
+          elements_manquants: Array.from(missing),
+          ambiguites: Array.from(ambiguites),
+          incoherences: Array.from(incoherences),
+        },
+        totaux: {
+          sous_total_avant_taxes: sousTotalAvantTaxes,
+          contingence_5_pourcent: contingence,
+          sous_total_avec_contingence: sousTotalAvecContingence,
+          tps_5_pourcent: tps,
+          tvq_9_975_pourcent: tvq,
+          total_ttc: totalTtc,
+        },
+        validation: {
+          surfaces_completes: false,
+          ratio_main_oeuvre_materiaux: null,
+          ratio_acceptable: null,
+          alertes: [],
+        },
+        recommandations: ["Estimation fusionnée automatiquement à partir de toutes les pages analysées."],
+        resume_projet: body.additionalNotes || 'Analyse de plans',
+      };
+
+      finalContent = JSON.stringify(mergedBudget);
+      console.log('Multi-pass merge complete (code)');
     } else {
       // Manual mode or no images: single call to Claude (text only)
       console.log('Analyzing with Claude (text mode)...');

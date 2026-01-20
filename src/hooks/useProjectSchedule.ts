@@ -337,6 +337,13 @@ export const useProjectSchedule = (projectId: string | null) => {
     const warnings: string[] = [];
     const directConflictWarning: string[] = []; // Conflit direct causé par le changement actuel
     const updatesToApply: Array<{ id: string; patch: Partial<ScheduleItem> }> = [];
+    
+    // Collecter les sous-traitants avec dates verrouillées à contacter
+    const subcontractorsToContact: Array<{
+      schedule: ScheduleItem;
+      reason: "delay" | "advance";
+      daysDiff: number;
+    }> = [];
 
     // Trouver l'index de l'étape focus
     const focusIndex = focusScheduleId 
@@ -495,6 +502,22 @@ export const useProjectSchedule = (projectId: string | null) => {
                 `qui chevauche l'étape précédente (${daysConflict} jour(s) de conflit).`
               );
             }
+            // Collecter pour créer une alerte de contact sous-traitant (retard)
+            subcontractorsToContact.push({
+              schedule: s,
+              reason: "delay",
+              daysDiff: daysConflict,
+            });
+          } else if (cursor && manualStart > cursor) {
+            // L'échéancier est en avance - le sous-traitant pourrait commencer plus tôt
+            const daysAdvance = Math.ceil((manualStart.getTime() - cursor.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysAdvance >= 2) { // Seulement si l'avance est significative (2+ jours)
+              subcontractorsToContact.push({
+                schedule: s,
+                reason: "advance",
+                daysDiff: daysAdvance,
+              });
+            }
           }
           
           // Vérifier conflit de cure
@@ -563,6 +586,61 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
     queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
+
+    // Créer des alertes pour contacter les sous-traitants avec dates verrouillées
+    if (subcontractorsToContact.length > 0) {
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      
+      for (const { schedule, reason, daysDiff } of subcontractorsToContact) {
+        const supplierName = schedule.supplier_name || "le sous-traitant";
+        const supplierPhone = schedule.supplier_phone ? ` (${schedule.supplier_phone})` : "";
+        
+        let message: string;
+        if (reason === "delay") {
+          message = `⚠️ URGENT: Contacter ${supplierName}${supplierPhone} pour "${schedule.step_name}" - L'échéancier a pris du retard (${daysDiff} jour(s)). Date prévue: ${format(parseISO(schedule.start_date!), "d MMM yyyy", { locale: fr })}`;
+        } else {
+          message = `📅 Contacter ${supplierName}${supplierPhone} pour "${schedule.step_name}" - L'échéancier est en avance de ${daysDiff} jour(s). Possibilité d'avancer les travaux ?`;
+        }
+
+        // Vérifier si une alerte similaire existe déjà
+        const { data: existingAlerts } = await supabase
+          .from("schedule_alerts")
+          .select("id")
+          .eq("schedule_id", schedule.id)
+          .eq("alert_type", "contact_subcontractor")
+          .eq("is_dismissed", false);
+
+        // Ne créer l'alerte que si elle n'existe pas déjà
+        if (!existingAlerts || existingAlerts.length === 0) {
+          await supabase.from("schedule_alerts").insert({
+            project_id: projectId,
+            schedule_id: schedule.id,
+            alert_type: "contact_subcontractor",
+            alert_date: todayStr,
+            message,
+            is_dismissed: false,
+          });
+        }
+      }
+
+      // Notifier l'utilisateur
+      const urgentCount = subcontractorsToContact.filter(s => s.reason === "delay").length;
+      const advanceCount = subcontractorsToContact.filter(s => s.reason === "advance").length;
+      
+      if (urgentCount > 0 || advanceCount > 0) {
+        const parts: string[] = [];
+        if (urgentCount > 0) parts.push(`${urgentCount} sous-traitant(s) à contacter (retard)`);
+        if (advanceCount > 0) parts.push(`${advanceCount} sous-traitant(s) à contacter (avance)`);
+        
+        toast({
+          title: "📞 Sous-traitants à contacter",
+          description: parts.join(", ") + ". Consultez vos alertes.",
+          duration: 10000,
+        });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
+    }
 
     // Vérifier les conflits de métiers après recalcul
     const recalculatedSchedules = sorted.map((s) => {

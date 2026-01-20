@@ -117,7 +117,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         .from('task_dates')
         .select('*')
         .eq('project_id', projectId)
-        .eq('step_id', 'plans-permis')
+        .eq('step_id', 'soumissions')
         .like('task_id', 'soumission-%');
       
       if (error) throw error;
@@ -134,7 +134,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         .from('task_attachments')
         .select('*')
         .eq('project_id', projectId)
-        .eq('step_id', 'plans-permis')
+        .eq('step_id', 'soumissions')
         .like('task_id', 'soumission-%');
       
       if (error) throw error;
@@ -172,7 +172,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         .from('task_dates')
         .select('id')
         .eq('project_id', projectId)
-        .eq('step_id', 'plans-permis')
+        .eq('step_id', 'soumissions')
         .eq('task_id', `soumission-${tradeId}`)
         .maybeSingle();
 
@@ -187,7 +187,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
           .from('task_dates')
           .insert({
             project_id: projectId,
-            step_id: 'plans-permis',
+            step_id: 'soumissions',
             task_id: `soumission-${tradeId}`,
             notes,
           });
@@ -222,7 +222,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         .from('task_attachments')
         .insert({
           project_id: projectId,
-          step_id: 'plans-permis',
+          step_id: 'soumissions',
           task_id: `soumission-${tradeId}`,
           file_name: file.name,
           file_url: urlData.publicUrl,

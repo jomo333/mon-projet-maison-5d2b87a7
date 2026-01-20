@@ -150,7 +150,7 @@ Voici les documents:`
       }
     }
 
-    // Ajouter l'instruction finale avec section contacts
+    // Ajouter l'instruction finale avec section contacts et options
     messageParts.push({
       type: "text",
       text: `
@@ -163,7 +163,7 @@ Maintenant, analyse tous ces documents et fournis:
 **IMPORTANT: Pour chaque soumission, extrait les informations de contact trouvées dans le document.**
 Utilise ce format exact pour chaque fournisseur (une ligne par fournisseur):
 \`\`\`contacts
-NOM_DOCUMENT|NOM_ENTREPRISE|TELEPHONE|MONTANT
+NOM_DOCUMENT|NOM_ENTREPRISE|TELEPHONE|MONTANT_PRINCIPAL
 \`\`\`
 
 Exemple:
@@ -172,11 +172,25 @@ soumission_abc.pdf|Construction ABC Inc.|514-555-1234|15000
 devis_xyz.pdf|Entreprise XYZ|450-123-4567|18500
 \`\`\`
 
+## 📦 Options des Soumissions
+**Si une soumission contient plusieurs options ou forfaits (ex: Option A, Option B, Forfait Bronze/Argent/Or, avec/sans X), liste-les ici.**
+Utilise ce format exact (une ligne par option):
+\`\`\`options
+NOM_DOCUMENT|NOM_OPTION|MONTANT|DESCRIPTION_COURTE
+\`\`\`
+
+Exemple:
+\`\`\`options
+devis_climatisation.pdf|Option Standard|12500|Thermopompe murale simple
+devis_climatisation.pdf|Option Premium|18500|Thermopompe centrale avec humidificateur
+devis_climatisation.pdf|Option Deluxe|24000|Système complet avec échangeur d'air
+\`\`\`
+
 ## 📋 Résumé des Soumissions
 Pour chaque soumission, indique:
 - Fournisseur
 - Téléphone de contact
-- Montant total
+- Montant total (ou montants par option)
 - Principaux travaux inclus
 - Exclusions importantes
 
@@ -186,14 +200,15 @@ Pour chaque soumission, indique:
 | Entreprise | | | |
 | Téléphone | | | |
 | Montant | | | |
+| Options disponibles | | | |
 | Délai | | | |
 | Garantie | | | |
 
 ## 💰 Analyse Qualité-Prix
-Évalue le rapport qualité-prix de chaque soumission.
+Évalue le rapport qualité-prix de chaque soumission et de chaque option.
 
 ## ✅ Recommandation
-Quelle soumission recommandes-tu et pourquoi?
+Quelle soumission et quelle option recommandes-tu et pourquoi?
 
 ## 🤝 Points de Négociation
 Suggestions pour négocier de meilleures conditions.`
@@ -204,11 +219,12 @@ Suggestions pour négocier de meilleures conditions.`
 IMPORTANT:
 - Lis attentivement CHAQUE document fourni
 - **EXTRAIT OBLIGATOIREMENT le numéro de téléphone** de chaque fournisseur (cherche dans l'en-tête, le pied de page, la signature, les coordonnées, le logo, partout dans le document)
-- Extrait les montants exacts en dollars
+- **DÉTECTE LES OPTIONS**: Si une soumission propose plusieurs options, forfaits ou configurations (ex: "Option 1", "Forfait A", "Avec/Sans climatisation"), liste-les dans le bloc \`\`\`options\`\`\`
+- Extrait les montants exacts en dollars pour chaque option
 - Compare objectivement les offres
 - Sois précis dans tes recommandations
 - Réponds en français
-- Inclus TOUJOURS la section \`\`\`contacts\`\`\` avec le format demandé`;
+- Inclus TOUJOURS les sections \`\`\`contacts\`\`\` et \`\`\`options\`\`\` (même vide si pas d'options)`;
 
     console.log("Sending request to AI with", messageParts.length, "parts");
 

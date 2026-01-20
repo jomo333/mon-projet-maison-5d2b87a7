@@ -79,6 +79,13 @@ interface ExtractedContact {
   amount: string;
 }
 
+interface ExtractedOption {
+  docName: string;
+  optionName: string;
+  amount: string;
+  description: string;
+}
+
 interface SupplierSelection {
   tradeId: string;
   tradeName: string;
@@ -89,6 +96,7 @@ interface SupplierFormData {
   phone: string;
   amount: string;
   selectedDocId: string | null;
+  selectedOption: string | null;
 }
 
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
@@ -146,16 +154,17 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
           phone: notes.supplierPhone || '',
           amount: notes.amount || '',
           selectedDocId: notes.selectedDocId || null,
+          selectedOption: notes.selectedOption || null,
         };
       });
       setSupplierInputs(inputs);
     }
   }, [soumissionStatuses]);
 
-  // Mutation pour sauvegarder le statut avec montant
+  // Mutation pour sauvegarder le statut avec montant et option
   const saveStatusMutation = useMutation({
-    mutationFn: async ({ tradeId, isCompleted, supplierName, supplierPhone, amount, selectedDocId }: SoumissionStatus & { amount?: string; selectedDocId?: string }) => {
-      const notes = JSON.stringify({ supplierName, supplierPhone, isCompleted, amount, selectedDocId });
+    mutationFn: async ({ tradeId, isCompleted, supplierName, supplierPhone, amount, selectedDocId, selectedOption }: SoumissionStatus & { amount?: string; selectedDocId?: string; selectedOption?: string }) => {
+      const notes = JSON.stringify({ supplierName, supplierPhone, isCompleted, amount, selectedDocId, selectedOption });
       
       const { data: existing } = await supabase
         .from('task_dates')
@@ -484,6 +493,32 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     return contacts;
   };
 
+  // Parser les options extraites de l'analyse IA
+  const parseExtractedOptions = (analysisResult: string | null): ExtractedOption[] => {
+    if (!analysisResult) return [];
+    
+    const options: ExtractedOption[] = [];
+    
+    // Chercher le bloc ```options
+    const optionsMatch = analysisResult.match(/```options\n([\s\S]*?)```/);
+    if (optionsMatch) {
+      const lines = optionsMatch[1].split('\n').filter(line => line.trim() && line.includes('|'));
+      for (const line of lines) {
+        const parts = line.split('|').map(p => p.trim());
+        if (parts.length >= 4) {
+          options.push({
+            docName: parts[0],
+            optionName: parts[1],
+            amount: parts[2].replace(/[^\d]/g, ''),
+            description: parts[3],
+          });
+        }
+      }
+    }
+    
+    return options;
+  };
+
   // Ouvrir le dialog de sélection du fournisseur
   const openSupplierSelection = (tradeId: string, tradeName: string) => {
     setSelectingSupplier({ tradeId, tradeName });
@@ -494,7 +529,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     if (!selectingSupplier) return;
     
     const { tradeId, tradeName } = selectingSupplier;
-    const inputs = supplierInputs[tradeId] || { name: '', phone: '', amount: '', selectedDocId: null };
+    const inputs = supplierInputs[tradeId] || { name: '', phone: '', amount: '', selectedDocId: null, selectedOption: null };
     
     if (!inputs.name.trim()) {
       toast({
@@ -508,7 +543,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     setIsSavingBudget(true);
     
     try {
-      // Sauvegarder le fournisseur
+      // Sauvegarder le fournisseur avec l'option sélectionnée
       saveStatusMutation.mutate({
         tradeId,
         isCompleted: true,
@@ -516,6 +551,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         supplierPhone: inputs.phone,
         amount: inputs.amount,
         selectedDocId: inputs.selectedDocId || undefined,
+        selectedOption: inputs.selectedOption || undefined,
       });
       
       // Si un montant est fourni, l'enregistrer dans le budget
@@ -936,18 +972,42 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
               analysisStates[selectingSupplier.tradeId]?.result || null,
               tradeDocs
             );
+            const extractedOptions = parseExtractedOptions(
+              analysisStates[selectingSupplier.tradeId]?.result || null
+            );
+            
+            // Grouper les options par document
+            const selectedDocName = tradeDocs.find(d => d.id === supplierInputs[selectingSupplier.tradeId]?.selectedDocId)?.file_name || '';
+            const docOptions = extractedOptions.filter(opt => {
+              const optDocNormalized = opt.docName.toLowerCase().replace(/[_\-\s]/g, '');
+              const selectedNormalized = selectedDocName.toLowerCase().replace(/[_\-\s]/g, '');
+              return optDocNormalized.includes(selectedNormalized) || selectedNormalized.includes(optDocNormalized);
+            });
+            
+            // Sélectionner une option
+            const selectOption = (optionName: string, amount: string) => {
+              setSupplierInputs(prev => ({
+                ...prev,
+                [selectingSupplier.tradeId]: {
+                  ...prev[selectingSupplier.tradeId],
+                  selectedOption: optionName,
+                  amount: amount,
+                }
+              }));
+            };
             
             return (
             <div className="space-y-4 py-4">
               {/* Afficher les contacts extraits si disponibles */}
-              {extractedContacts.length > 0 && (
+              {(extractedContacts.length > 0 || extractedOptions.length > 0) && (
                 <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Contacts extraits par l'IA</span>
+                    <span className="text-sm font-medium">Informations extraites par l'IA</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Cliquez sur une soumission pour pré-remplir automatiquement les informations.
+                  <p className="text-xs text-muted-foreground">
+                    Cliquez sur une soumission pour pré-remplir automatiquement. 
+                    {extractedOptions.length > 0 && " Des options sont disponibles pour certaines soumissions."}
                   </p>
                 </div>
               )}
@@ -997,6 +1057,49 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                               )}
                             </div>
                           )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Options de la soumission sélectionnée */}
+              {supplierInputs[selectingSupplier.tradeId]?.selectedDocId && docOptions.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    Options disponibles
+                    <Badge variant="secondary" className="text-xs">{docOptions.length} options</Badge>
+                  </label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {docOptions.map((option, idx) => {
+                      const isOptionSelected = supplierInputs[selectingSupplier.tradeId]?.selectedOption === option.optionName;
+                      
+                      return (
+                        <div 
+                          key={idx}
+                          className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                            isOptionSelected 
+                              ? 'border-primary bg-primary/5' 
+                              : 'hover:bg-muted/50'
+                          }`}
+                          onClick={() => selectOption(option.optionName, option.amount)}
+                        >
+                          <Checkbox 
+                            checked={isOptionSelected}
+                            className="pointer-events-none mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium">{option.optionName}</span>
+                              <span className="text-sm font-semibold text-primary shrink-0">
+                                {parseFloat(option.amount).toLocaleString('fr-CA')} $
+                              </span>
+                            </div>
+                            {option.description && (
+                              <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

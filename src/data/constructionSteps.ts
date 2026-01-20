@@ -193,7 +193,7 @@ export const constructionSteps: Step[] = [
       {
         id: "excavation",
         title: "Excavation",
-        description: "Creusage pour le sous-sol et installation du drain français.",
+        description: "Creusage pour le sous-sol et préparation du terrain.",
         tips: [
           "Prévoyez l'entreposage de la terre excavée",
           "Protégez l'excavation de la pluie"

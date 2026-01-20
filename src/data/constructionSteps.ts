@@ -120,15 +120,38 @@ export const constructionSteps: Step[] = [
           "Certaines municipalités exigent un engagement d'un professionnel"
         ],
         documents: ["Formulaire de demande", "Plans certifiés", "Certificat de localisation"]
-      },
+      }
+    ]
+  },
+  {
+    id: "soumissions",
+    title: "Soumissions",
+    description: "Obtenez et comparez les soumissions des différents corps de métier.",
+    phase: "pre-construction",
+    phaseLabel: "Pré-construction",
+    icon: "FileCheck",
+    duration: "2-3 semaines",
+    tasks: [
       {
-        id: "soumissions",
+        id: "obtenir-soumissions",
         title: "Obtenir les soumissions",
         description: "Demandez des soumissions détaillées aux différents corps de métier.",
         tips: [
           "Obtenez au moins 3 soumissions par spécialité",
-          "Vérifiez les licences RBQ des entrepreneurs"
+          "Vérifiez les licences RBQ des entrepreneurs",
+          "Comparez les garanties et délais proposés"
         ]
+      },
+      {
+        id: "comparer-soumissions",
+        title: "Comparer et sélectionner",
+        description: "Analysez les soumissions reçues et choisissez les meilleurs fournisseurs pour chaque corps de métier.",
+        tips: [
+          "Ne choisissez pas uniquement sur le prix le plus bas",
+          "Vérifiez les références des entrepreneurs",
+          "Demandez des preuves d'assurance responsabilité"
+        ],
+        documents: ["Soumissions signées", "Preuves d'assurance", "Licences RBQ"]
       }
     ]
   },

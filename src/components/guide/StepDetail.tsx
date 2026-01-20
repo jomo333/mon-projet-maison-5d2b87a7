@@ -37,6 +37,7 @@ const iconMap: Record<string, LucideIcon> = {
   Building,
   ClipboardCheck,
   Circle,
+  FileCheck: ClipboardCheck, // Pour l'étape Soumissions
 };
 
 interface StepDetailProps {
@@ -609,7 +610,7 @@ export function StepDetail({
                       )}
                       
                       {/* Gestionnaire de soumissions par corps de métier */}
-                      {task.id === 'soumissions' && projectId && (
+                      {task.id === 'obtenir-soumissions' && projectId && (
                         <SoumissionsManager projectId={projectId} />
                       )}
                       
@@ -648,7 +649,7 @@ export function StepDetail({
                       )}
 
                       {/* Task Attachments - sauf pour soumissions qui a son propre gestionnaire */}
-                      {task.id !== 'soumissions' && (
+                      {task.id !== 'obtenir-soumissions' && (
                         <TaskAttachments stepId={step.id} taskId={task.id} projectId={projectId} />
                       )}
                     </div>

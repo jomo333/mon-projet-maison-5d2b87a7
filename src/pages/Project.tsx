@@ -111,6 +111,7 @@ const Project = () => {
         status: string | null;
         estimated_days?: number;
         actual_days?: number | null;
+        is_manual_date: boolean;
       }
     > = {};
     if (schedules) {
@@ -122,6 +123,7 @@ const Project = () => {
           status: schedule.status,
           estimated_days: schedule.estimated_days,
           actual_days: schedule.actual_days,
+          is_manual_date: schedule.is_manual_date,
         };
       });
     }
@@ -390,6 +392,7 @@ const Project = () => {
                       scheduleStartDate={stepSchedule?.start_date}
                       scheduleEndDate={stepSchedule?.end_date}
                       isCompleted={stepSchedule?.status === 'completed'}
+                      isManualDate={stepSchedule?.is_manual_date}
                       onToggleComplete={handleToggleComplete}
                     />
                   );

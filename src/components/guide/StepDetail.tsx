@@ -79,7 +79,7 @@ export function StepDetail({
     }
   };
 
-  // Mettre à jour directement l'échéancier quand les dates changent (sans marquer comme manuel)
+  // Mettre à jour directement l'échéancier quand les dates changent (verrouille automatiquement)
   const handleStepDateChange = async (field: 'start_date' | 'end_date', value: string | null) => {
     if (!currentSchedule) return;
     
@@ -89,7 +89,8 @@ export function StepDetail({
     try {
       const result = await updateScheduleAndRecalculate(currentSchedule.id, {
         [field]: value,
-        // Ne pas marquer automatiquement comme manuel - l'utilisateur doit confirmer
+        // Verrouiller automatiquement la date quand l'utilisateur la modifie manuellement
+        is_manual_date: true,
       });
       
       // Si des warnings ont été retournés, les afficher de manière très visible
@@ -105,8 +106,8 @@ export function StepDetail({
         });
       } else {
         toast({
-          title: "Date mise à jour",
-          description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et l'échéancier recalculé.`,
+          title: "🔒 Date verrouillée",
+          description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et verrouillée.`,
         });
       }
     } catch (error) {

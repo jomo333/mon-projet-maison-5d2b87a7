@@ -37,6 +37,7 @@ const iconMap: Record<string, LucideIcon> = {
 interface StepDetailProps {
   step: Step;
   projectId?: string;
+  projectType?: string | null;
   onNext: () => void;
   onPrevious: () => void;
   hasNext: boolean;
@@ -47,7 +48,8 @@ interface StepDetailProps {
 
 export function StepDetail({ 
   step, 
-  projectId, 
+  projectId,
+  projectType,
   onNext, 
   onPrevious, 
   hasNext, 
@@ -58,6 +60,21 @@ export function StepDetail({
   const phase = phases.find(p => p.id === step.phase);
   const IconComponent = iconMap[step.icon] || Circle;
   
+  // Filtrer les tâches selon le type de projet
+  // Pour les projets de type garage ou agrandissement, on enlève la tâche "terrain"
+  const filteredTasks = step.tasks.filter(task => {
+    const projectTypeLower = projectType?.toLowerCase() || '';
+    const isGarageOrExtension = projectTypeLower.includes('garage') || 
+                                 projectTypeLower.includes('agrandissement') ||
+                                 projectTypeLower.includes('extension');
+    
+    // Exclure la tâche "terrain" pour les garages et agrandissements
+    if (task.id === 'terrain' && isGarageOrExtension) {
+      return false;
+    }
+    return true;
+  });
+  
   // Utiliser directement useProjectSchedule pour synchroniser avec l'échéancier
   const { schedules, updateScheduleAndRecalculate, isUpdating } = useProjectSchedule(projectId || null);
   
@@ -67,7 +84,7 @@ export function StepDetail({
   // Trouver l'étape correspondante dans l'échéancier
   const currentSchedule = schedules.find(s => s.step_id === step.id);
 
-  const completedCount = step.tasks.filter(task => 
+  const completedCount = filteredTasks.filter(task => 
     isTaskCompleted?.(step.id, task.id)
   ).length;
 
@@ -189,8 +206,8 @@ export function StepDetail({
                   <span>{step.duration}</span>
                 </div>
                 {projectId && (
-                  <Badge variant={completedCount === step.tasks.length ? "default" : "outline"} className="ml-auto">
-                    {completedCount}/{step.tasks.length} tâches
+                  <Badge variant={completedCount === filteredTasks.length ? "default" : "outline"} className="ml-auto">
+                    {completedCount}/{filteredTasks.length} tâches
                   </Badge>
                 )}
               </div>
@@ -332,7 +349,7 @@ export function StepDetail({
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
-            {step.tasks.map((task, index) => {
+            {filteredTasks.map((task, index) => {
               const taskCompleted = isTaskCompleted?.(step.id, task.id) || false;
               
               return (

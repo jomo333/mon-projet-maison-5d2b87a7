@@ -21,9 +21,18 @@ import {
   FileCheck,
   Phone,
   Sparkles,
-  X
+  X,
+  UserCheck
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface SoumissionsManagerProps {
   projectId: string;
@@ -63,12 +72,18 @@ interface AnalysisState {
   result: string | null;
 }
 
+interface SupplierSelection {
+  tradeId: string;
+  tradeName: string;
+}
+
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   const queryClient = useQueryClient();
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [uploadingTrade, setUploadingTrade] = useState<string | null>(null);
   const [supplierInputs, setSupplierInputs] = useState<Record<string, { name: string; phone: string }>>({});
   const [analysisStates, setAnalysisStates] = useState<Record<string, AnalysisState>>({});
+  const [selectingSupplier, setSelectingSupplier] = useState<SupplierSelection | null>(null);
 
   // Charger les statuts des soumissions depuis task_dates
   const { data: soumissionStatuses, isLoading: loadingStatuses } = useQuery({
@@ -398,6 +413,42 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     });
   };
 
+  // Ouvrir le dialog de sélection du fournisseur
+  const openSupplierSelection = (tradeId: string, tradeName: string) => {
+    setSelectingSupplier({ tradeId, tradeName });
+  };
+
+  // Confirmer et enregistrer le fournisseur sélectionné
+  const confirmSupplierSelection = () => {
+    if (!selectingSupplier) return;
+    
+    const { tradeId } = selectingSupplier;
+    const inputs = supplierInputs[tradeId] || { name: '', phone: '' };
+    
+    if (!inputs.name.trim()) {
+      toast({
+        title: "Nom requis",
+        description: "Veuillez entrer le nom du fournisseur",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    saveStatusMutation.mutate({
+      tradeId,
+      isCompleted: true,
+      supplierName: inputs.name,
+      supplierPhone: inputs.phone,
+    });
+    
+    toast({
+      title: "Fournisseur retenu",
+      description: `${inputs.name} a été sélectionné pour ce corps de métier.`,
+    });
+    
+    setSelectingSupplier(null);
+  };
+
   const getTradeColor = (tradeId: string) => {
     const trade = tradeTypes.find(t => t.id === tradeId);
     return trade?.color || "#6B7280";
@@ -645,6 +696,19 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                               </ReactMarkdown>
                             </div>
                           </ScrollArea>
+                          
+                          {/* Bouton pour choisir le fournisseur */}
+                          <div className="mt-4 pt-4 border-t">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="w-full gap-2"
+                              onClick={() => openSupplierSelection(trade.id, trade.name)}
+                            >
+                              <UserCheck className="h-4 w-4" />
+                              Choisir le fournisseur retenu
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -665,6 +729,72 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
           );
         })}
       </div>
+
+      {/* Dialog de sélection du fournisseur */}
+      <Dialog open={!!selectingSupplier} onOpenChange={(open) => !open && setSelectingSupplier(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" />
+              Sélectionner le fournisseur
+            </DialogTitle>
+            <DialogDescription>
+              Entrez les coordonnées du fournisseur retenu pour {selectingSupplier?.tradeName}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectingSupplier && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nom du fournisseur *</label>
+                <Input
+                  placeholder="Ex: Construction ABC inc."
+                  value={supplierInputs[selectingSupplier.tradeId]?.name || ''}
+                  onChange={(e) => setSupplierInputs(prev => ({
+                    ...prev,
+                    [selectingSupplier.tradeId]: { 
+                      ...prev[selectingSupplier.tradeId], 
+                      name: e.target.value 
+                    }
+                  }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Téléphone</label>
+                <Input
+                  placeholder="Ex: 514-555-1234"
+                  value={supplierInputs[selectingSupplier.tradeId]?.phone || ''}
+                  onChange={(e) => setSupplierInputs(prev => ({
+                    ...prev,
+                    [selectingSupplier.tradeId]: { 
+                      ...prev[selectingSupplier.tradeId], 
+                      phone: e.target.value 
+                    }
+                  }))}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectingSupplier(null)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={confirmSupplierSelection}
+              disabled={saveStatusMutation.isPending}
+              className="gap-2"
+            >
+              {saveStatusMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Confirmer la sélection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

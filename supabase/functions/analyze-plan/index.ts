@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -277,101 +278,167 @@ ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
 Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts de construction actuels au Québec.`;
     }
 
-    // ============= PASSE 1: EXTRACTION (Lovable AI / Gemini) =============
-    // Objectif: traiter *tous* les plans sans exploser la mémoire du worker.
-    // On envoie les URLs des images directement au modèle vision (pas de base64 côté serveur).
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ success: false, error: 'AI not configured - LOVABLE_API_KEY missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // ============= CLAUDE MULTI-PASS VISION =============
+    // Analyse chaque page séparément (1 image à la fois) puis fusionne.
+    // Cela évite le dépassement mémoire (546) et gère toutes les pages.
 
-    const gatewayUserContent: any[] = [];
-    if (imageUrls.length > 0) {
-      console.log(`Sending ${imageUrls.length} image URLs to Lovable AI (Gemini)...`);
-      for (const url of imageUrls) {
-        gatewayUserContent.push({
-          type: 'image_url',
-          image_url: { url },
-        });
+    const MAX_IMAGE_SIZE = 1_800_000; // ~1.8MB limite par image
+
+    // Helper to fetch an image and convert to base64 (one at a time to save memory)
+    async function fetchImageAsBase64(url: string): Promise<{ base64: string; mediaType: string } | null> {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          console.log(`Failed to fetch ${url}: ${resp.status}`);
+          return null;
+        }
+        const arrayBuffer = await resp.arrayBuffer();
+        if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
+          console.log(`Skipping large image (${arrayBuffer.byteLength} bytes): ${url}`);
+          return null;
+        }
+        const base64 = encodeBase64(arrayBuffer);
+        const contentType = resp.headers.get('content-type') || 'image/png';
+        const mediaType = contentType.includes('jpeg') || contentType.includes('jpg')
+          ? 'image/jpeg'
+          : contentType.includes('webp')
+            ? 'image/webp'
+            : 'image/png';
+        return { base64, mediaType };
+      } catch (err) {
+        console.log(`Error fetching image ${url}:`, err);
+        return null;
       }
     }
-    gatewayUserContent.push({ type: 'text', text: extractionPrompt });
 
-    console.log('Analyzing with Lovable AI (Gemini)...');
-    const extractionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_EXTRACTION },
-          {
-            role: 'user',
-            content: imageUrls.length > 0 ? gatewayUserContent : extractionPrompt,
-          },
-        ],
-        temperature: 0.2,
-      }),
-    });
+    // Helper to call Claude with a single image and get partial extraction
+    async function analyzeOnePage(
+      apiKey: string,
+      imageBase64: string,
+      mediaType: string,
+      pageNumber: number,
+      totalPages: number,
+      additionalContext: string,
+    ): Promise<string | null> {
+      const pagePrompt = `Tu analyses la PAGE ${pageNumber}/${totalPages} d'un ensemble de plans de construction au Québec.
+${additionalContext}
 
-    if (!extractionResponse.ok) {
-      const errorText = await extractionResponse.text();
-      console.error('Lovable AI gateway error:', extractionResponse.status, errorText);
+QUALITÉ DE FINITION: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
 
-      // Surface common gateway errors to client
-      if (extractionResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Trop de requêtes IA. Attends 30 secondes et réessaie." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+INSTRUCTIONS:
+1. Extrait TOUTES les quantités et détails visibles sur CETTE PAGE uniquement.
+2. Identifie le type de vue (plan fondation, élévation, coupe, etc.).
+3. Liste les matériaux, dimensions, notes techniques.
+4. Retourne un JSON partiel avec les données de CETTE PAGE:
+{
+  "page": ${pageNumber},
+  "vue_type": "...",
+  "elements_extraits": [
+    { "description": "...", "quantite": number, "unite": "...", "dimension": "...", "prix_unitaire": number, "total": number }
+  ],
+  "notes_techniques": ["..."],
+  "dimensions_cles": { ... }
+}`;
+
+      const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT_EXTRACTION,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: { type: 'base64', media_type: mediaType, data: imageBase64 },
+                },
+                { type: 'text', text: pagePrompt },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!claudeResp.ok) {
+        const txt = await claudeResp.text();
+        console.error(`Claude page ${pageNumber} error: ${claudeResp.status}`, txt);
+        return null;
+      }
+
+      const data = await claudeResp.json();
+      return data.content?.[0]?.text || null;
+    }
+
+    let finalContent: string;
+
+    if (mode === 'plan' && imageUrls.length > 0) {
+      // Multi-pass: analyze each page separately
+      console.log(`Starting Claude multi-pass analysis for ${imageUrls.length} pages...`);
+      const pageResults: string[] = [];
+      const additionalContext = body.additionalNotes ? `NOTES CLIENT: ${body.additionalNotes}` : '';
+
+      for (let i = 0; i < imageUrls.length; i++) {
+        const url = imageUrls[i];
+        console.log(`Processing page ${i + 1}/${imageUrls.length}: ${url.substring(url.lastIndexOf('/') + 1)}`);
+
+        const imgData = await fetchImageAsBase64(url);
+        if (!imgData) {
+          console.log(`Skipping page ${i + 1} (fetch failed or too large)`);
+          continue;
+        }
+
+        const pageResult = await analyzeOnePage(
+          anthropicKey,
+          imgData.base64,
+          imgData.mediaType,
+          i + 1,
+          imageUrls.length,
+          additionalContext,
         );
-      }
-      if (extractionResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Crédits IA insuffisants. Ajoute des crédits puis réessaie." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+
+        if (pageResult) {
+          pageResults.push(pageResult);
+          console.log(`Page ${i + 1} analyzed successfully`);
+        } else {
+          console.log(`Page ${i + 1} analysis returned empty`);
+        }
       }
 
-      return new Response(
-        JSON.stringify({ success: false, error: `AI gateway failed: ${extractionResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    let extractionContent: string;
-    try {
-      const responseData = await extractionResponse.json();
-      extractionContent = responseData.choices?.[0]?.message?.content || '';
-      if (!extractionContent) {
-        console.error('Empty response from Lovable AI');
+      if (pageResults.length === 0) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Empty response from AI' }),
+          JSON.stringify({
+            success: false,
+            error: "Impossible d'analyser les plans. Vérifie que les images sont accessibles et pas trop lourdes.",
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-    } catch (parseErr) {
-      console.error('Failed to parse Lovable AI response:', parseErr);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse AI response' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
-    console.log('Gemini extraction complete');
+      // Merge all page results into a unified budget with Claude
+      console.log(`Merging ${pageResults.length} page analyses into unified budget...`);
+      const mergePrompt = `Tu as reçu ${pageResults.length} analyses partielles de pages de plans de construction pour un projet au Québec.
 
-    // ============= PASSE 2: VALIDATION (Claude texte) =============
-    // On garde Claude pour "nettoyer" / valider le JSON (sans images) -> faible coût mémoire.
-    let finalContent = extractionContent;
-    try {
-      console.log('Validating/repairing JSON with Claude...');
-      const validationResponse = await fetch('https://api.anthropic.com/v1/messages', {
+NOTES CLIENT: ${body.additionalNotes || 'Aucune'}
+QUALITÉ: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
+
+VOICI LES ANALYSES PAR PAGE:
+${pageResults.map((r, i) => `\n--- PAGE ${i + 1} ---\n${r}`).join('\n')}
+
+MISSION: Fusionne toutes ces données en UN SEUL JSON d'estimation budgétaire complet.
+- Déduplique les éléments identiques (même matériau = additionner quantités)
+- Calcule tous les sous-totaux par catégorie
+- Applique les prix Québec 2025
+- Calcule TPS 5% + TVQ 9.975%
+- Retourne le JSON au format demandé (extraction, totaux, validation, recommandations, resume_projet)`;
+
+      const mergeResp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'x-api-key': anthropicKey,
@@ -380,33 +447,61 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT_VALIDATION,
-          messages: [
-            {
-              role: 'user',
-              content:
-                `Voici une extraction (JSON) provenant d'une analyse de plans. ` +
-                `Corrige/complète uniquement ce qui est manifestement incohérent (totaux, taxes, ratios), ` +
-                `et renvoie un JSON STRICT conforme au schéma demandé.\n\n` +
-                extractionContent,
-            },
-          ],
+          max_tokens: 8192,
+          system: SYSTEM_PROMPT_EXTRACTION,
+          messages: [{ role: 'user', content: mergePrompt }],
         }),
       });
 
-      if (validationResponse.ok) {
-        const validationData = await validationResponse.json();
-        const validated = validationData.content?.[0]?.text;
-        if (validated && typeof validated === 'string') {
-          finalContent = validated;
-        }
-      } else {
-        const t = await validationResponse.text();
-        console.log('Claude validation skipped (non-fatal):', validationResponse.status, t);
+      if (!mergeResp.ok) {
+        const txt = await mergeResp.text();
+        console.error('Claude merge error:', mergeResp.status, txt);
+        return new Response(
+          JSON.stringify({ success: false, error: `Claude merge failed: ${mergeResp.status}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    } catch (e) {
-      console.log('Claude validation failed (non-fatal):', e);
+
+      const mergeData = await mergeResp.json();
+      finalContent = mergeData.content?.[0]?.text || '';
+      console.log('Multi-pass merge complete');
+    } else {
+      // Manual mode or no images: single call to Claude (text only)
+      console.log('Analyzing with Claude (text mode)...');
+      const textResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8192,
+          system: SYSTEM_PROMPT_EXTRACTION,
+          messages: [{ role: 'user', content: extractionPrompt }],
+        }),
+      });
+
+      if (!textResp.ok) {
+        const txt = await textResp.text();
+        console.error('Claude text error:', textResp.status, txt);
+        return new Response(
+          JSON.stringify({ success: false, error: `Claude API failed: ${textResp.status}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const textData = await textResp.json();
+      finalContent = textData.content?.[0]?.text || '';
+      console.log('Claude text analysis complete');
+    }
+
+    if (!finalContent) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Empty response from AI' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Parse the final JSON - handle text before/after JSON and truncation

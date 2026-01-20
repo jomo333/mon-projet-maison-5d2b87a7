@@ -55,6 +55,17 @@ export const constructionSteps: Step[] = [
           "Faites faire une étude de sol avant l'achat"
         ],
         documents: ["Certificat de localisation", "Acte de vente", "Étude géotechnique"]
+      },
+      {
+        id: "preapprobation-planification",
+        title: "Pré-approbation hypothécaire",
+        description: "Obtenez une pré-approbation de votre institution financière pour connaître votre capacité d'emprunt maximale.",
+        tips: [
+          "Comparez les offres de plusieurs banques et courtiers",
+          "Une pré-approbation est généralement valide 90 à 120 jours",
+          "Préparez vos preuves de revenus et relevés bancaires"
+        ],
+        documents: ["Talons de paie", "Avis de cotisation", "Relevés bancaires"]
       }
     ]
   },

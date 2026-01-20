@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,142 +10,53 @@ interface SoumissionDoc {
   file_url: string;
 }
 
-// Fonction pour extraire le texte d'un PDF en utilisant un service externe
-async function extractPdfContent(pdfUrl: string): Promise<string> {
+// Convertir un fichier en base64 pour l'envoyer à Gemini Vision
+async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mimeType: string } | null> {
   try {
-    console.log("Fetching PDF from:", pdfUrl);
+    console.log("Fetching file from:", fileUrl);
     
-    // Télécharger le PDF
-    const response = await fetch(pdfUrl);
+    const response = await fetch(fileUrl);
     if (!response.ok) {
-      console.error("Failed to fetch PDF:", response.status);
-      return `[Impossible de télécharger le document]`;
+      console.error("Failed to fetch file:", response.status);
+      return null;
     }
     
-    const pdfBuffer = await response.arrayBuffer();
-    const pdfBytes = new Uint8Array(pdfBuffer);
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
     
-    // Extraire le texte basique du PDF (recherche de streams de texte)
-    const text = extractTextFromPdfBytes(pdfBytes);
-    
-    if (text && text.trim().length > 50) {
-      return text;
+    // Convertir en base64
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    const base64 = btoa(binary);
     
-    return `[Document PDF - extraction de texte limitée. Taille: ${Math.round(pdfBuffer.byteLength / 1024)} KB]`;
+    console.log(`File fetched: ${Math.round(buffer.byteLength / 1024)} KB, type: ${contentType}`);
+    
+    return { base64, mimeType: contentType };
   } catch (error) {
-    console.error("Error extracting PDF content:", error);
-    return `[Erreur lors de l'extraction du contenu]`;
+    console.error("Error fetching file:", error);
+    return null;
   }
 }
 
-// Extraction basique de texte depuis les bytes d'un PDF
-function extractTextFromPdfBytes(bytes: Uint8Array): string {
-  const decoder = new TextDecoder("latin1");
-  const content = decoder.decode(bytes);
-  
-  const extractedTexts: string[] = [];
-  
-  // Chercher les objets stream contenant du texte
-  const streamRegex = /stream\s*([\s\S]*?)\s*endstream/gi;
-  let match;
-  
-  while ((match = streamRegex.exec(content)) !== null) {
-    const streamContent = match[1];
-    
-    // Extraire le texte entre parenthèses (format PDF pour les strings)
-    const textMatches = streamContent.match(/\(([^)]*)\)/g);
-    if (textMatches) {
-      for (const textMatch of textMatches) {
-        const text = textMatch.slice(1, -1)
-          .replace(/\\n/g, "\n")
-          .replace(/\\r/g, "\r")
-          .replace(/\\t/g, "\t")
-          .replace(/\\\(/g, "(")
-          .replace(/\\\)/g, ")")
-          .replace(/\\\\/g, "\\");
-        
-        if (text.trim().length > 2 && !/^[\x00-\x1F\x7F-\xFF]+$/.test(text)) {
-          extractedTexts.push(text.trim());
-        }
-      }
-    }
-    
-    // Chercher aussi les hex strings
-    const hexMatches = streamContent.match(/<([0-9A-Fa-f]+)>/g);
-    if (hexMatches) {
-      for (const hexMatch of hexMatches) {
-        const hex = hexMatch.slice(1, -1);
-        if (hex.length > 4 && hex.length % 2 === 0) {
-          try {
-            let text = "";
-            for (let i = 0; i < hex.length; i += 2) {
-              const charCode = parseInt(hex.substr(i, 2), 16);
-              if (charCode >= 32 && charCode < 127) {
-                text += String.fromCharCode(charCode);
-              }
-            }
-            if (text.trim().length > 2) {
-              extractedTexts.push(text.trim());
-            }
-          } catch {
-            // Ignorer les erreurs de conversion
-          }
-        }
-      }
-    }
-  }
-  
-  // Chercher aussi le texte BT...ET (text objects)
-  const btEtRegex = /BT\s*([\s\S]*?)\s*ET/gi;
-  while ((match = btEtRegex.exec(content)) !== null) {
-    const textObject = match[1];
-    const tjMatches = textObject.match(/\(([^)]*)\)\s*Tj/g);
-    if (tjMatches) {
-      for (const tjMatch of tjMatches) {
-        const text = tjMatch.match(/\(([^)]*)\)/)?.[1] || "";
-        if (text.trim().length > 1) {
-          extractedTexts.push(text.trim());
-        }
-      }
-    }
-  }
-  
-  // Nettoyer et joindre le texte
-  const uniqueTexts = [...new Set(extractedTexts)];
-  return uniqueTexts.join(" ").replace(/\s+/g, " ").trim();
-}
-
-// Fonction pour extraire le contenu d'autres types de fichiers
-async function extractFileContent(fileUrl: string, fileName: string): Promise<string> {
-  const extension = fileName.toLowerCase().split('.').pop() || '';
-  
-  if (['pdf'].includes(extension)) {
-    return await extractPdfContent(fileUrl);
-  }
-  
-  if (['txt', 'csv', 'json', 'xml'].includes(extension)) {
-    try {
-      const response = await fetch(fileUrl);
-      if (response.ok) {
-        const text = await response.text();
-        return text.substring(0, 10000); // Limiter à 10k caractères
-      }
-    } catch (error) {
-      console.error("Error reading text file:", error);
-    }
-    return `[Impossible de lire le fichier texte]`;
-  }
-  
-  if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
-    return `[Document ${extension.toUpperCase()} - L'extraction directe n'est pas supportée. Veuillez fournir les informations clés manuellement: montant total, détails des travaux, conditions, garanties]`;
-  }
-  
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
-    return `[Image: ${fileName} - Veuillez décrire le contenu pertinent de cette image]`;
-  }
-  
-  return `[Format de fichier non supporté: ${extension}]`;
+// Déterminer le type MIME basé sur l'extension
+function getMimeType(fileName: string): string {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
 }
 
 serve(async (req) => {
@@ -175,60 +85,114 @@ serve(async (req) => {
 
     console.log(`Analyzing ${documents.length} documents for ${tradeName}`);
 
-    // Extraire le contenu de chaque document
-    const documentContents: string[] = [];
+    // Préparer les parties du message avec les documents en base64
+    const messageParts: any[] = [];
     
+    // Ajouter le texte d'introduction
+    messageParts.push({
+      type: "text",
+      text: `Analyse les soumissions suivantes pour le corps de métier "${tradeName}" (${tradeDescription}).
+
+Je vais te montrer ${documents.length} document(s) de soumission. Pour chaque document:
+1. Identifie le nom du fournisseur/entreprise
+2. Extrait le montant total de la soumission
+3. Liste les travaux inclus
+4. Note les exclusions et conditions
+5. Identifie les garanties offertes
+6. Note les délais mentionnés
+
+Ensuite, fournis:
+- Un tableau comparatif clair
+- Une analyse du rapport qualité-prix
+- Ta recommandation avec justification
+- Des points de négociation suggérés
+
+Voici les documents:`
+    });
+
+    // Télécharger et ajouter chaque document
     for (let i = 0; i < documents.length; i++) {
       const doc = documents[i];
       console.log(`Processing document ${i + 1}: ${doc.file_name}`);
       
-      const content = await extractFileContent(doc.file_url, doc.file_name);
-      documentContents.push(`
-### Document ${i + 1}: ${doc.file_name}
-
-${content}
-`);
+      // Ajouter le nom du document
+      messageParts.push({
+        type: "text",
+        text: `\n\n--- Document ${i + 1}: ${doc.file_name} ---`
+      });
+      
+      const fileData = await fetchFileAsBase64(doc.file_url);
+      
+      if (fileData) {
+        // Gemini supporte les PDFs et images directement
+        const mimeType = getMimeType(doc.file_name);
+        
+        if (mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
+          messageParts.push({
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${fileData.base64}`
+            }
+          });
+          console.log(`Added ${mimeType} document to analysis`);
+        } else {
+          messageParts.push({
+            type: "text",
+            text: `[Document ${doc.file_name} - Format non supporté pour l'analyse visuelle. Veuillez convertir en PDF ou image.]`
+          });
+        }
+      } else {
+        messageParts.push({
+          type: "text",
+          text: `[Impossible de charger le document ${doc.file_name}]`
+        });
+      }
     }
 
-    const allDocumentsContent = documentContents.join("\n---\n");
-
-    const systemPrompt = `Tu es un expert en construction résidentielle au Québec, spécialisé dans l'analyse des soumissions de sous-traitants.
-Tu dois analyser les soumissions reçues pour un corps de métier spécifique et fournir une recommandation détaillée.
-
-IMPORTANT: Tu as accès au contenu extrait des documents PDF/fichiers. Analyse ce contenu pour:
-1. Identifier les montants proposés
-2. Comparer les portées de travaux
-3. Évaluer les conditions et garanties
-4. Déterminer le meilleur rapport qualité-prix
-
-Ton analyse doit inclure:
-1. Un résumé de chaque soumission avec les montants identifiés
-2. Un tableau comparatif des éléments clés (prix, délais, garanties, exclusions)
-3. Une analyse du rapport qualité-prix
-4. Une recommandation claire avec justification
-5. Des points de négociation suggérés
-
-Réponds en français. Sois précis, professionnel et objectif.`;
-
-    const userPrompt = `Analyse les soumissions pour le corps de métier suivant:
-
-**Corps de métier:** ${tradeName}
-**Description:** ${tradeDescription}
+    // Ajouter l'instruction finale
+    messageParts.push({
+      type: "text",
+      text: `
 
 ---
 
-## CONTENU DES DOCUMENTS DE SOUMISSION
+Maintenant, analyse tous ces documents et fournis:
 
-${allDocumentsContent}
+## 📋 Résumé des Soumissions
+Pour chaque soumission, indique:
+- Fournisseur
+- Montant total
+- Principaux travaux inclus
+- Exclusions importantes
 
----
+## 📊 Tableau Comparatif
+| Critère | Document 1 | Document 2 | ... |
+|---------|------------|------------|-----|
+| Entreprise | | | |
+| Montant | | | |
+| Délai | | | |
+| Garantie | | | |
 
-Fournis une analyse détaillée et structurée avec:
-1. **Résumé de chaque soumission** (montants, portée des travaux, délais)
-2. **Tableau comparatif** des éléments clés
-3. **Analyse du rapport qualité-prix** 
-4. **Recommandation finale** avec justification
-5. **Points de négociation** suggérés pour obtenir de meilleures conditions`;
+## 💰 Analyse Qualité-Prix
+Évalue le rapport qualité-prix de chaque soumission.
+
+## ✅ Recommandation
+Quelle soumission recommandes-tu et pourquoi?
+
+## 🤝 Points de Négociation
+Suggestions pour négocier de meilleures conditions.`
+    });
+
+    const systemPrompt = `Tu es un expert en construction résidentielle au Québec. Tu analyses des soumissions de sous-traitants pour aider les auto-constructeurs à choisir le meilleur fournisseur.
+
+IMPORTANT:
+- Lis attentivement CHAQUE document fourni
+- Extrait les montants exacts en dollars
+- Compare objectivement les offres
+- Sois précis dans tes recommandations
+- Réponds en français`;
+
+    console.log("Sending request to AI with", messageParts.length, "parts");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -240,7 +204,7 @@ Fournis une analyse détaillée et structurée avec:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: messageParts }
         ],
         stream: true,
       }),
@@ -262,7 +226,7 @@ Fournis une analyse détaillée et structurée avec:
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Erreur lors de l'analyse" }),
+        JSON.stringify({ error: "Erreur lors de l'analyse: " + errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

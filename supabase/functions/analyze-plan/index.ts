@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -278,115 +277,70 @@ ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
 Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts de construction actuels au Québec.`;
     }
 
-    // Build messages for Claude API - convert images to base64
-    const userContent: any[] = [];
-    
-    // Download and convert images to base64 for Claude
+    // ============= PASSE 1: EXTRACTION (Lovable AI / Gemini) =============
+    // Objectif: traiter *tous* les plans sans exploser la mémoire du worker.
+    // On envoie les URLs des images directement au modèle vision (pas de base64 côté serveur).
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ success: false, error: 'AI not configured - LOVABLE_API_KEY missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const gatewayUserContent: any[] = [];
     if (imageUrls.length > 0) {
-      console.log(`Converting ${imageUrls.length} images to base64...`);
-
-      // Guardrails: avoid worker memory limit (546 error)
-      // Edge functions have ~150MB memory - each large PNG can be 5-10MB+ in RAM
-      const MAX_IMAGE_BYTES = 1_500_000; // ~1.5MB per image max (after base64 ~2MB)
-      const MAX_IMAGES = 3; // Process max 3 images to stay within memory limits
-      const MAX_TOTAL_BYTES = 4_000_000; // Total payload limit
-      const urlsToProcess = imageUrls.slice(0, MAX_IMAGES);
-      let totalBytes = 0;
-
-      for (const url of urlsToProcess) {
-        try {
-          const imageResponse = await fetch(url);
-          if (imageResponse.ok) {
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
-
-            const imageSize = bytes.byteLength;
-            
-            if (imageSize > MAX_IMAGE_BYTES) {
-              console.log(`Skipping large image (${imageSize} bytes > ${MAX_IMAGE_BYTES}): ${url}`);
-              continue;
-            }
-            
-            if (totalBytes + imageSize > MAX_TOTAL_BYTES) {
-              console.log(`Stopping - total payload would exceed limit (${totalBytes + imageSize} bytes)`);
-              break;
-            }
-            
-            totalBytes += imageSize;
-
-            // Use std base64 encoder (avoids call stack overflow from String.fromCharCode spread)
-            const base64 = encodeBase64(arrayBuffer);
-            
-            // Determine media type from URL or response
-            const contentType = imageResponse.headers.get('content-type') || 'image/png';
-            const mediaType = contentType.includes('jpeg') || contentType.includes('jpg') 
-              ? 'image/jpeg' 
-              : contentType.includes('webp') 
-                ? 'image/webp'
-                : 'image/png';
-            
-            userContent.push({
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64
-              }
-            });
-          } else {
-            console.log(`Failed to fetch image: ${url}`);
-          }
-        } catch (imgErr) {
-          console.log(`Error fetching image ${url}:`, imgErr);
-        }
-      }
-
-      const convertedImagesCount = userContent.filter((c) => c?.type === 'image').length;
-      console.log(`Successfully converted ${convertedImagesCount} images`);
-
-      // If we fail to include any images, don't run a "plan" analysis without visuals.
-      if (mode === 'plan' && convertedImagesCount === 0) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Impossible de lire les images du plan (fichiers trop lourds ou conversion échouée). Réessaie avec moins de pages ou des images plus légères.",
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      console.log(`Sending ${imageUrls.length} image URLs to Lovable AI (Gemini)...`);
+      for (const url of imageUrls) {
+        gatewayUserContent.push({
+          type: 'image_url',
+          image_url: { url },
+        });
       }
     }
-    
-    // Add the text prompt
-    userContent.push({
-      type: "text",
-      text: extractionPrompt
-    });
+    gatewayUserContent.push({ type: 'text', text: extractionPrompt });
 
-    // Call Claude API
-     console.log('Analyzing with Claude (Anthropic)...');
-    const extractionResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    console.log('Analyzing with Lovable AI (Gemini)...');
+    const extractionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
-        system: SYSTEM_PROMPT_EXTRACTION,
-        messages: [{
-          role: "user",
-          content: userContent.some((c) => c?.type === 'image') ? userContent : extractionPrompt,
-        }],
+        model: 'google/gemini-2.5-pro',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT_EXTRACTION },
+          {
+            role: 'user',
+            content: imageUrls.length > 0 ? gatewayUserContent : extractionPrompt,
+          },
+        ],
+        temperature: 0.2,
       }),
     });
 
     if (!extractionResponse.ok) {
       const errorText = await extractionResponse.text();
-      console.error('Claude API error:', extractionResponse.status, errorText);
+      console.error('Lovable AI gateway error:', extractionResponse.status, errorText);
+
+      // Surface common gateway errors to client
+      if (extractionResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Trop de requêtes IA. Attends 30 secondes et réessaie." }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (extractionResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Crédits IA insuffisants. Ajoute des crédits puis réessaie." }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ success: false, error: `Claude API failed: ${extractionResponse.status}` }),
+        JSON.stringify({ success: false, error: `AI gateway failed: ${extractionResponse.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -394,26 +348,66 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
     let extractionContent: string;
     try {
       const responseData = await extractionResponse.json();
-      extractionContent = responseData.content?.[0]?.text || '';
-      
+      extractionContent = responseData.choices?.[0]?.message?.content || '';
       if (!extractionContent) {
-        console.error('Empty response from Claude');
+        console.error('Empty response from Lovable AI');
         return new Response(
-          JSON.stringify({ success: false, error: 'Empty response from Claude' }),
+          JSON.stringify({ success: false, error: 'Empty response from AI' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     } catch (parseErr) {
-      console.error('Failed to parse Claude response:', parseErr);
+      console.error('Failed to parse Lovable AI response:', parseErr);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to parse Claude response' }),
+        JSON.stringify({ success: false, error: 'Failed to parse AI response' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Use extraction directly (Claude is accurate enough for single pass)
+    console.log('Gemini extraction complete');
+
+    // ============= PASSE 2: VALIDATION (Claude texte) =============
+    // On garde Claude pour "nettoyer" / valider le JSON (sans images) -> faible coût mémoire.
     let finalContent = extractionContent;
-    console.log('Claude analysis complete');
+    try {
+      console.log('Validating/repairing JSON with Claude...');
+      const validationResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT_VALIDATION,
+          messages: [
+            {
+              role: 'user',
+              content:
+                `Voici une extraction (JSON) provenant d'une analyse de plans. ` +
+                `Corrige/complète uniquement ce qui est manifestement incohérent (totaux, taxes, ratios), ` +
+                `et renvoie un JSON STRICT conforme au schéma demandé.\n\n` +
+                extractionContent,
+            },
+          ],
+        }),
+      });
+
+      if (validationResponse.ok) {
+        const validationData = await validationResponse.json();
+        const validated = validationData.content?.[0]?.text;
+        if (validated && typeof validated === 'string') {
+          finalContent = validated;
+        }
+      } else {
+        const t = await validationResponse.text();
+        console.log('Claude validation skipped (non-fatal):', validationResponse.status, t);
+      }
+    } catch (e) {
+      console.log('Claude validation failed (non-fatal):', e);
+    }
 
     // Parse the final JSON - handle text before/after JSON and truncation
     let budgetData;

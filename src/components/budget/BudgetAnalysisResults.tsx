@@ -262,12 +262,29 @@ export function BudgetAnalysisResults({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">
-                {formatCurrency(analysis.estimatedTotal)}
-              </CardTitle>
-              <CardDescription>
-                {analysis.projectSummary}
-              </CardDescription>
+              {/* Afficher fourchette ±15% pour estimation préliminaire */}
+              {analysis.plansAnalyzed === 1 && !analysis.totauxDetails?.total_materiaux ? (
+                <>
+                  <CardTitle className="text-2xl flex items-baseline gap-2 flex-wrap">
+                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 0.85))}</span>
+                    <span className="text-muted-foreground text-lg">à</span>
+                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 1.15))}</span>
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs">±15%</Badge>
+                    Estimation préliminaire • {analysis.projectSummary}
+                  </CardDescription>
+                </>
+              ) : (
+                <>
+                  <CardTitle className="text-2xl">
+                    {formatCurrency(analysis.estimatedTotal)}
+                  </CardTitle>
+                  <CardDescription>
+                    {analysis.projectSummary}
+                  </CardDescription>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               {analysis.projectType && (

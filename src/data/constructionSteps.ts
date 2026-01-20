@@ -70,27 +70,6 @@ export const constructionSteps: Step[] = [
     ]
   },
   {
-    id: "financement",
-    title: "Financement",
-    description: "Obtenez votre financement et préparez votre montage financier.",
-    phase: "pre-construction",
-    phaseLabel: "Pré-construction",
-    icon: "DollarSign",
-    duration: "2 semaines",
-    tasks: [
-      {
-        id: "pret-construction",
-        title: "Prêt construction",
-        description: "Négociez votre prêt construction avec déboursements progressifs.",
-        tips: [
-          "Les fonds sont débloqués par étapes selon l'avancement",
-          "Prévoyez des fonds propres pour les premières dépenses"
-        ],
-        documents: ["Soumissions des entrepreneurs", "Plans et devis", "Budget détaillé"]
-      }
-    ]
-  },
-  {
     id: "plans-permis",
     title: "Plans et permis",
     description: "Faites préparer vos plans et obtenez tous les permis nécessaires.",
@@ -127,6 +106,27 @@ export const constructionSteps: Step[] = [
           "Obtenez au moins 3 soumissions par spécialité",
           "Vérifiez les licences RBQ des entrepreneurs"
         ]
+      }
+    ]
+  },
+  {
+    id: "financement",
+    title: "Financement",
+    description: "Obtenez votre financement et préparez votre montage financier.",
+    phase: "pre-construction",
+    phaseLabel: "Pré-construction",
+    icon: "DollarSign",
+    duration: "2 semaines",
+    tasks: [
+      {
+        id: "pret-construction",
+        title: "Prêt construction",
+        description: "Négociez votre prêt construction avec déboursements progressifs.",
+        tips: [
+          "Les fonds sont débloqués par étapes selon l'avancement",
+          "Prévoyez des fonds propres pour les premières dépenses"
+        ],
+        documents: ["Soumissions des entrepreneurs", "Plans et devis", "Budget détaillé"]
       }
     ]
   },

@@ -72,6 +72,13 @@ interface AnalysisState {
   result: string | null;
 }
 
+interface ExtractedContact {
+  docName: string;
+  supplierName: string;
+  phone: string;
+  amount: string;
+}
+
 interface SupplierSelection {
   tradeId: string;
   tradeName: string;
@@ -427,6 +434,56 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     });
   };
 
+  // Parser les contacts extraits de l'analyse IA
+  const parseExtractedContacts = (analysisResult: string | null, docs: typeof soumissionDocs): ExtractedContact[] => {
+    if (!analysisResult) return [];
+    
+    const contacts: ExtractedContact[] = [];
+    
+    // Chercher le bloc ```contacts
+    const contactsMatch = analysisResult.match(/```contacts\n([\s\S]*?)```/);
+    if (contactsMatch) {
+      const lines = contactsMatch[1].split('\n').filter(line => line.trim() && line.includes('|'));
+      for (const line of lines) {
+        const parts = line.split('|').map(p => p.trim());
+        if (parts.length >= 4) {
+          contacts.push({
+            docName: parts[0],
+            supplierName: parts[1],
+            phone: parts[2],
+            amount: parts[3],
+          });
+        }
+      }
+    }
+    
+    // Si pas de bloc contacts, essayer d'extraire du tableau comparatif
+    if (contacts.length === 0 && docs) {
+      const tableMatch = analysisResult.match(/\|\s*Téléphone\s*\|([^\n]+)\|/i);
+      const entrepriseMatch = analysisResult.match(/\|\s*Entreprise\s*\|([^\n]+)\|/i);
+      const montantMatch = analysisResult.match(/\|\s*Montant\s*\|([^\n]+)\|/i);
+      
+      if (tableMatch && entrepriseMatch) {
+        const phones = tableMatch[1].split('|').map(p => p.trim());
+        const names = entrepriseMatch[1].split('|').map(p => p.trim());
+        const amounts = montantMatch ? montantMatch[1].split('|').map(p => p.trim()) : [];
+        
+        for (let i = 0; i < Math.min(names.length, docs.length); i++) {
+          if (names[i] && names[i] !== '-' && names[i] !== '') {
+            contacts.push({
+              docName: docs[i]?.file_name || '',
+              supplierName: names[i],
+              phone: phones[i] || '',
+              amount: amounts[i]?.replace(/[^\d]/g, '') || '',
+            });
+          }
+        }
+      }
+    }
+    
+    return contacts;
+  };
+
   // Ouvrir le dialog de sélection du fournisseur
   const openSupplierSelection = (tradeId: string, tradeName: string) => {
     setSelectingSupplier({ tradeId, tradeName });
@@ -531,24 +588,50 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     }
   };
 
-  // Sélectionner un document et pré-remplir le nom du fournisseur
-  const selectDocument = (tradeId: string, docId: string, docName: string) => {
-    // Extraire le nom du fournisseur du nom du fichier
-    const cleanName = docName
-      .replace(/\.pdf$/i, '')
-      .replace(/\.docx?$/i, '')
-      .replace(/\.xlsx?$/i, '')
-      .replace(/_/g, ' ')
-      .replace(/-/g, ' ')
-      .replace(/\d{10,}/g, '') // Enlever les timestamps
-      .trim();
+  // Sélectionner un document et pré-remplir avec les contacts extraits
+  const selectDocument = (tradeId: string, docId: string, docName: string, extractedContacts: ExtractedContact[]) => {
+    // Chercher les contacts extraits pour ce document
+    const matchedContact = extractedContacts.find(c => {
+      const docNameNormalized = docName.toLowerCase().replace(/[_\-\s]/g, '');
+      const contactDocNormalized = c.docName.toLowerCase().replace(/[_\-\s]/g, '');
+      return docNameNormalized.includes(contactDocNormalized) || contactDocNormalized.includes(docNameNormalized);
+    });
+    
+    let supplierName = matchedContact?.supplierName || '';
+    let phone = matchedContact?.phone || '';
+    let amount = matchedContact?.amount || '';
+    
+    // Si pas trouvé par correspondance exacte, essayer par index
+    if (!matchedContact) {
+      const docs = getTradeDocs(tradeId);
+      const docIndex = docs.findIndex(d => d.id === docId);
+      if (docIndex !== -1 && extractedContacts[docIndex]) {
+        supplierName = extractedContacts[docIndex].supplierName;
+        phone = extractedContacts[docIndex].phone;
+        amount = extractedContacts[docIndex].amount;
+      }
+    }
+    
+    // Fallback: extraire du nom de fichier
+    if (!supplierName) {
+      supplierName = docName
+        .replace(/\.pdf$/i, '')
+        .replace(/\.docx?$/i, '')
+        .replace(/\.xlsx?$/i, '')
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .replace(/\d{10,}/g, '')
+        .trim();
+    }
     
     setSupplierInputs(prev => ({
       ...prev,
       [tradeId]: {
         ...prev[tradeId],
         selectedDocId: docId,
-        name: prev[tradeId]?.name || cleanName,
+        name: supplierName,
+        phone: phone,
+        amount: amount,
       }
     }));
   };
@@ -611,7 +694,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                         {trade.name}
                       </span>
                       {status.isCompleted && (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       )}
                       {docs.length > 0 && (
                         <Badge variant="outline" className="text-xs">
@@ -847,31 +930,76 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
             </DialogDescription>
           </DialogHeader>
           
-          {selectingSupplier && (
+          {selectingSupplier && (() => {
+            const tradeDocs = getTradeDocs(selectingSupplier.tradeId);
+            const extractedContacts = parseExtractedContacts(
+              analysisStates[selectingSupplier.tradeId]?.result || null,
+              tradeDocs
+            );
+            
+            return (
             <div className="space-y-4 py-4">
+              {/* Afficher les contacts extraits si disponibles */}
+              {extractedContacts.length > 0 && (
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Contacts extraits par l'IA</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Cliquez sur une soumission pour pré-remplir automatiquement les informations.
+                  </p>
+                </div>
+              )}
+              
               {/* Liste des documents à cocher */}
-              {getTradeDocs(selectingSupplier.tradeId).length > 0 && (
+              {tradeDocs.length > 0 && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Soumission retenue</label>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {getTradeDocs(selectingSupplier.tradeId).map((doc) => (
-                      <div 
-                        key={doc.id}
-                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                          supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id 
-                            ? 'border-primary bg-primary/5' 
-                            : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => selectDocument(selectingSupplier.tradeId, doc.id, doc.file_name)}
-                      >
-                        <Checkbox 
-                          checked={supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id}
-                          className="pointer-events-none"
-                        />
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm truncate flex-1">{doc.file_name}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {tradeDocs.map((doc, idx) => {
+                      const contact = extractedContacts[idx];
+                      const isSelected = supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id;
+                      
+                      return (
+                        <div 
+                          key={doc.id}
+                          className={`flex flex-col gap-1 p-3 border rounded-lg cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'border-primary bg-primary/5' 
+                              : 'hover:bg-muted/50'
+                          }`}
+                          onClick={() => selectDocument(selectingSupplier.tradeId, doc.id, doc.file_name, extractedContacts)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox 
+                              checked={isSelected}
+                              className="pointer-events-none"
+                            />
+                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm truncate flex-1">{doc.file_name}</span>
+                          </div>
+                          {contact && (contact.supplierName || contact.phone || contact.amount) && (
+                            <div className="ml-10 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              {contact.supplierName && (
+                                <span className="bg-muted px-2 py-0.5 rounded">{contact.supplierName}</span>
+                              )}
+                              {contact.phone && (
+                                <span className="bg-muted px-2 py-0.5 rounded flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {contact.phone}
+                                </span>
+                              )}
+                              {contact.amount && (
+                                <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded">
+                                  {parseFloat(contact.amount).toLocaleString('fr-CA')} $
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -932,7 +1060,8 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectingSupplier(null)}>

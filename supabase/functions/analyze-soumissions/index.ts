@@ -95,14 +95,15 @@ serve(async (req) => {
 
 Je vais te montrer ${documents.length} document(s) de soumission. Pour chaque document:
 1. Identifie le nom du fournisseur/entreprise
-2. Extrait le montant total de la soumission
-3. Liste les travaux inclus
-4. Note les exclusions et conditions
-5. Identifie les garanties offertes
-6. Note les délais mentionnés
+2. **IMPORTANT: Extrait le numéro de téléphone de contact** (cherche dans l'en-tête, le pied de page, la signature, ou les coordonnées)
+3. Extrait le montant total de la soumission
+4. Liste les travaux inclus
+5. Note les exclusions et conditions
+6. Identifie les garanties offertes
+7. Note les délais mentionnés
 
 Ensuite, fournis:
-- Un tableau comparatif clair
+- Un tableau comparatif clair avec les coordonnées
 - Une analyse du rapport qualité-prix
 - Ta recommandation avec justification
 - Des points de négociation suggérés
@@ -149,7 +150,7 @@ Voici les documents:`
       }
     }
 
-    // Ajouter l'instruction finale
+    // Ajouter l'instruction finale avec section contacts
     messageParts.push({
       type: "text",
       text: `
@@ -158,9 +159,23 @@ Voici les documents:`
 
 Maintenant, analyse tous ces documents et fournis:
 
+## 📞 Coordonnées des Fournisseurs
+**IMPORTANT: Pour chaque soumission, extrait les informations de contact trouvées dans le document.**
+Utilise ce format exact pour chaque fournisseur (une ligne par fournisseur):
+\`\`\`contacts
+NOM_DOCUMENT|NOM_ENTREPRISE|TELEPHONE|MONTANT
+\`\`\`
+
+Exemple:
+\`\`\`contacts
+soumission_abc.pdf|Construction ABC Inc.|514-555-1234|15000
+devis_xyz.pdf|Entreprise XYZ|450-123-4567|18500
+\`\`\`
+
 ## 📋 Résumé des Soumissions
 Pour chaque soumission, indique:
 - Fournisseur
+- Téléphone de contact
 - Montant total
 - Principaux travaux inclus
 - Exclusions importantes
@@ -169,6 +184,7 @@ Pour chaque soumission, indique:
 | Critère | Document 1 | Document 2 | ... |
 |---------|------------|------------|-----|
 | Entreprise | | | |
+| Téléphone | | | |
 | Montant | | | |
 | Délai | | | |
 | Garantie | | | |
@@ -187,10 +203,12 @@ Suggestions pour négocier de meilleures conditions.`
 
 IMPORTANT:
 - Lis attentivement CHAQUE document fourni
+- **EXTRAIT OBLIGATOIREMENT le numéro de téléphone** de chaque fournisseur (cherche dans l'en-tête, le pied de page, la signature, les coordonnées, le logo, partout dans le document)
 - Extrait les montants exacts en dollars
 - Compare objectivement les offres
 - Sois précis dans tes recommandations
-- Réponds en français`;
+- Réponds en français
+- Inclus TOUJOURS la section \`\`\`contacts\`\`\` avec le format demandé`;
 
     console.log("Sending request to AI with", messageParts.length, "parts");
 

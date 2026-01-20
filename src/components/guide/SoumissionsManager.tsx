@@ -1040,6 +1040,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
             };
             
             return (
+            <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-4 py-4">
               {/* Afficher les contacts extraits si disponibles */}
               {(extractedContacts.length > 0 || extractedOptions.length > 0) && (
@@ -1221,6 +1222,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                 </div>
               </div>
             </div>
+            </ScrollArea>
             );
           })()}
           

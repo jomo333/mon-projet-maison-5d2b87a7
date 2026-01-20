@@ -285,6 +285,7 @@ const Project = () => {
             <StepDetail 
               step={selectedStep}
               projectId={projectId}
+              projectType={project?.project_type}
               onNext={() => {
                 const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
                 if (nextIndex < constructionSteps.length) {

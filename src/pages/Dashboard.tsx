@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { constructionSteps, phases } from "@/data/constructionSteps";
@@ -24,6 +26,23 @@ const Dashboard = () => {
   
   // État local pour les mises à jour optimistes
   const [optimisticCompletedSteps, setOptimisticCompletedSteps] = useState<Record<string, boolean>>({});
+
+  // Fetch project data
+  const { data: project } = useQuery({
+    queryKey: ["project", projectFromUrl],
+    queryFn: async () => {
+      if (!projectFromUrl) return null;
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectFromUrl)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectFromUrl,
+  });
 
   // Fetch project schedules
   const {
@@ -240,6 +259,7 @@ const Dashboard = () => {
             <StepDetail 
               step={selectedStep}
               projectId={projectFromUrl || undefined}
+              projectType={project?.project_type}
               onNext={() => {
                 const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
                 if (nextIndex < constructionSteps.length) {

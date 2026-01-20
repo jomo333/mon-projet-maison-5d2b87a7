@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { constructionSteps, phases } from "@/data/constructionSteps";
@@ -19,6 +21,23 @@ const ConstructionGuide = () => {
   
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<string | null>(null);
+
+  // Fetch project data for type filtering
+  const { data: project } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: async () => {
+      if (!projectId) return null;
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId,
+  });
 
   // Hook pour recalculer l'échéancier
   const { regenerateSchedule, isUpdating } = useProjectSchedule(projectId);
@@ -74,6 +93,7 @@ const ConstructionGuide = () => {
             <StepDetail 
               step={selectedStep}
               projectId={projectId || undefined}
+              projectType={project?.project_type}
               onNext={() => {
                 const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
                 if (nextIndex < constructionSteps.length) {

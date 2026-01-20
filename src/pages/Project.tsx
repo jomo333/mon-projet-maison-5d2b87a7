@@ -18,7 +18,7 @@ import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { 
   ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, 
-  Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2
+  Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2, PhoneCall, Bell
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -94,8 +94,11 @@ const Project = () => {
     enabled: !!projectId && !!user,
   });
 
-  // Fetch project schedules
-  const { schedules, completeStep, uncompleteStep } = useProjectSchedule(projectId || null);
+  // Fetch project schedules and alerts
+  const { schedules, alerts, completeStep, uncompleteStep, dismissAlert } = useProjectSchedule(projectId || null);
+  
+  // Filter urgent alerts (contact_subcontractor)
+  const urgentAlerts = alerts.filter(a => a.alert_type === 'contact_subcontractor');
 
   // Fetch completed tasks
   const { isTaskCompleted, toggleTask } = useCompletedTasks(projectId || null);
@@ -345,6 +348,37 @@ const Project = () => {
               </div>
             </div>
           </div>
+
+          {/* Urgent Alerts Banner */}
+          {urgentAlerts.length > 0 && (
+            <div className="mb-6 space-y-2">
+              {urgentAlerts.map((alert) => (
+                <Alert 
+                  key={alert.id} 
+                  className="border-amber-500 bg-amber-50 dark:bg-amber-950/30 animate-pulse"
+                >
+                  <PhoneCall className="h-4 w-4 text-amber-500" />
+                  <AlertTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    Sous-traitant à contacter
+                  </AlertTitle>
+                  <AlertDescription className="flex items-start justify-between gap-4">
+                    <span className="text-amber-600 dark:text-amber-300">
+                      {alert.message.replace('⚠️ URGENT: ', '')}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 shrink-0"
+                      onClick={() => dismissAlert(alert.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          )}
 
           {/* Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

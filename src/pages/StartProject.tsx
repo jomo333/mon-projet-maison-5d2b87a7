@@ -465,6 +465,20 @@ const StartProject = () => {
       // After selecting stage, go to date selection
       setCurrentStep(5);
     } else if (currentStep === 5) {
+      // If planification stage, save project and redirect directly to steps page
+      if (projectData.currentStage === "planification") {
+        setIsSaving(true);
+        const projectId = await saveProject();
+        setIsSaving(false);
+        
+        if (projectId) {
+          toast.success("Projet créé avec succès!");
+          const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
+          navigate(`/etapes?step=${guideStepId}&project=${projectId}`);
+        }
+        return;
+      }
+      
       // After date selection, check if we need plan upload step
       if (shouldOfferPlanUpload(projectData.currentStage)) {
         // Save project first, then go to plan upload step

@@ -602,18 +602,19 @@ serve(async (req) => {
     let extractionPrompt: string;
     
     if (mode === "plan") {
+      // Mode plan: AUCUNE donnée manuelle - seulement les plans
+      // Les données manuelles peuvent être obsolètes par rapport aux plans
       extractionPrompt = `Analyse ${imageUrls.length > 1 ? 'ces ' + imageUrls.length + ' plans' : 'ce plan'} de construction pour un projet AU QUÉBEC.
 
 QUALITÉ DE FINITION: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
 
-${body.additionalNotes ? `NOTES CLIENT: ${body.additionalNotes}` : ''}
-
 INSTRUCTIONS CRITIQUES:
 1. Examine TOUTES les pages/images fournies ensemble
-2. Extrait les dimensions et quantités visibles
-3. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie totale
-4. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
-5. Applique les prix du marché Québec 2025
+2. EXTRAIS les dimensions, superficies et quantités DIRECTEMENT des plans
+3. DÉDUIS le type de projet et le nombre d'étages à partir des plans
+4. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie EXTRAITE des plans
+5. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
+6. Applique les prix du marché Québec 2025
 
 Retourne le JSON structuré COMPLET avec TOUTES les catégories.`;
     } else {

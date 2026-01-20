@@ -467,11 +467,12 @@ export function PlanAnalyzer({
       const stylePhotoUrls = stylePhotos.map((p: any) => p.file_url);
       
       // IMPORTANT: Quand des plans sont sélectionnés, TOUJOURS utiliser mode "plan"
-      // et fournir les infos de base pour compléter les catégories manquantes
+      // et IGNORER complètement les données manuelles - les plans sont la source de vérité
       const hasPlansSelected = selectedPlanUrls.length > 0;
       
       const body = (analysisMode === "manual" && !hasPlansSelected)
         ? {
+            // Mode manuel: utiliser toutes les données entrées par l'utilisateur
             mode: "manual",
             projectType: projectType === "maison-unifamiliale" ? "Maison unifamiliale" :
                          projectType === "jumelee" ? "Maison jumelée" :
@@ -487,14 +488,13 @@ export function PlanAnalyzer({
             stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
           }
         : {
-            // Mode plan: envoyer les plans sélectionnés + infos contextuelles
+            // Mode plan: SEULEMENT les plans - aucune donnée manuelle
+            // L'IA extraira toutes les informations directement des plans
             mode: "plan",
             imageUrls: selectedPlanUrls,
             finishQuality,
-            // Inclure squareFootage pour aider à compléter les catégories manquantes
-            squareFootage: parseInt(squareFootage) || undefined,
-            numberOfFloors: parseInt(numberOfFloors) || undefined,
-            additionalNotes: additionalNotes || undefined,
+            // NE PAS envoyer squareFootage, numberOfFloors, additionalNotes
+            // Les plans sont la source de vérité, les données manuelles peuvent être obsolètes
             stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
           };
 

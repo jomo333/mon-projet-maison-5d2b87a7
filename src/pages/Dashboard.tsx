@@ -51,6 +51,7 @@ const Dashboard = () => {
         start_date: string | null;
         end_date: string | null;
         status: string | null;
+        is_manual_date: boolean;
       }
     > = {};
     if (schedules) {
@@ -60,6 +61,7 @@ const Dashboard = () => {
           start_date: schedule.start_date,
           end_date: schedule.end_date,
           status: schedule.status,
+          is_manual_date: schedule.is_manual_date,
         };
       });
     }
@@ -390,6 +392,7 @@ const Dashboard = () => {
                   scheduleStartDate={stepSchedule?.start_date}
                   scheduleEndDate={stepSchedule?.end_date}
                   isCompleted={isStepCompleted(step.id)}
+                  isManualDate={stepSchedule?.is_manual_date}
                   onToggleComplete={projectFromUrl ? handleToggleComplete : undefined}
                 />
               );

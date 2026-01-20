@@ -2,7 +2,7 @@ import { Step, phases } from "@/data/constructionSteps";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -35,6 +35,7 @@ interface StepCardProps {
   scheduleStartDate?: string | null;
   scheduleEndDate?: string | null;
   isCompleted?: boolean;
+  isManualDate?: boolean;
   onToggleComplete?: (stepId: string, completed: boolean) => void;
 }
 
@@ -45,6 +46,7 @@ export function StepCard({
   scheduleStartDate, 
   scheduleEndDate,
   isCompleted = false,
+  isManualDate = false,
   onToggleComplete
 }: StepCardProps) {
   const phase = phases.find(p => p.id === step.phase);
@@ -147,6 +149,9 @@ export function StepCard({
             deadlineStatus?.bg || "bg-muted"
           )}>
             <CalendarClock className={cn("h-4 w-4", deadlineStatus?.color)} />
+            {isManualDate && (
+              <Lock className="h-3 w-3 text-amber-600" />
+            )}
             <div className="flex-1">
               <span className={cn("font-medium", deadlineStatus?.color)}>
                 {format(parseISO(scheduleStartDate), "d MMM", { locale: fr })}

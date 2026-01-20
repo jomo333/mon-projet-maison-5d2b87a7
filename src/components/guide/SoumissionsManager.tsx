@@ -77,13 +77,21 @@ interface SupplierSelection {
   tradeName: string;
 }
 
+interface SupplierFormData {
+  name: string;
+  phone: string;
+  amount: string;
+  selectedDocId: string | null;
+}
+
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   const queryClient = useQueryClient();
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [uploadingTrade, setUploadingTrade] = useState<string | null>(null);
-  const [supplierInputs, setSupplierInputs] = useState<Record<string, { name: string; phone: string }>>({});
+  const [supplierInputs, setSupplierInputs] = useState<Record<string, SupplierFormData>>({});
   const [analysisStates, setAnalysisStates] = useState<Record<string, AnalysisState>>({});
   const [selectingSupplier, setSelectingSupplier] = useState<SupplierSelection | null>(null);
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
 
   // Charger les statuts des soumissions depuis task_dates
   const { data: soumissionStatuses, isLoading: loadingStatuses } = useQuery({
@@ -122,23 +130,25 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   // Initialiser les inputs des fournisseurs
   useEffect(() => {
     if (soumissionStatuses) {
-      const inputs: Record<string, { name: string; phone: string }> = {};
+      const inputs: Record<string, SupplierFormData> = {};
       soumissionStatuses.forEach(status => {
         const tradeId = status.task_id.replace('soumission-', '');
         const notes = status.notes ? JSON.parse(status.notes) : {};
         inputs[tradeId] = {
           name: notes.supplierName || '',
           phone: notes.supplierPhone || '',
+          amount: notes.amount || '',
+          selectedDocId: notes.selectedDocId || null,
         };
       });
       setSupplierInputs(inputs);
     }
   }, [soumissionStatuses]);
 
-  // Mutation pour sauvegarder le statut
+  // Mutation pour sauvegarder le statut avec montant
   const saveStatusMutation = useMutation({
-    mutationFn: async ({ tradeId, isCompleted, supplierName, supplierPhone }: SoumissionStatus) => {
-      const notes = JSON.stringify({ supplierName, supplierPhone, isCompleted });
+    mutationFn: async ({ tradeId, isCompleted, supplierName, supplierPhone, amount, selectedDocId }: SoumissionStatus & { amount?: string; selectedDocId?: string }) => {
+      const notes = JSON.stringify({ supplierName, supplierPhone, isCompleted, amount, selectedDocId });
       
       const { data: existing } = await supabase
         .from('task_dates')
@@ -146,7 +156,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         .eq('project_id', projectId)
         .eq('step_id', 'plans-permis')
         .eq('task_id', `soumission-${tradeId}`)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
@@ -272,23 +282,27 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
 
   const handleToggleCompleted = (tradeId: string) => {
     const current = getTradeStatus(tradeId);
-    const inputs = supplierInputs[tradeId] || { name: '', phone: '' };
+    const inputs = supplierInputs[tradeId] || { name: '', phone: '', amount: '', selectedDocId: null };
     saveStatusMutation.mutate({
       tradeId,
       isCompleted: !current.isCompleted,
       supplierName: inputs.name || current.supplierName,
       supplierPhone: inputs.phone || current.supplierPhone,
+      amount: inputs.amount,
+      selectedDocId: inputs.selectedDocId || undefined,
     });
   };
 
   const handleSaveSupplier = (tradeId: string) => {
     const current = getTradeStatus(tradeId);
-    const inputs = supplierInputs[tradeId] || { name: '', phone: '' };
+    const inputs = supplierInputs[tradeId] || { name: '', phone: '', amount: '', selectedDocId: null };
     saveStatusMutation.mutate({
       tradeId,
       isCompleted: current.isCompleted,
       supplierName: inputs.name,
       supplierPhone: inputs.phone,
+      amount: inputs.amount,
+      selectedDocId: inputs.selectedDocId || undefined,
     });
     toast({
       title: "Fournisseur enregistré",
@@ -418,12 +432,12 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     setSelectingSupplier({ tradeId, tradeName });
   };
 
-  // Confirmer et enregistrer le fournisseur sélectionné
-  const confirmSupplierSelection = () => {
+  // Confirmer et enregistrer le fournisseur sélectionné avec budget
+  const confirmSupplierSelection = async () => {
     if (!selectingSupplier) return;
     
-    const { tradeId } = selectingSupplier;
-    const inputs = supplierInputs[tradeId] || { name: '', phone: '' };
+    const { tradeId, tradeName } = selectingSupplier;
+    const inputs = supplierInputs[tradeId] || { name: '', phone: '', amount: '', selectedDocId: null };
     
     if (!inputs.name.trim()) {
       toast({
@@ -434,19 +448,109 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       return;
     }
     
-    saveStatusMutation.mutate({
-      tradeId,
-      isCompleted: true,
-      supplierName: inputs.name,
-      supplierPhone: inputs.phone,
-    });
+    setIsSavingBudget(true);
     
-    toast({
-      title: "Fournisseur retenu",
-      description: `${inputs.name} a été sélectionné pour ce corps de métier.`,
-    });
+    try {
+      // Sauvegarder le fournisseur
+      saveStatusMutation.mutate({
+        tradeId,
+        isCompleted: true,
+        supplierName: inputs.name,
+        supplierPhone: inputs.phone,
+        amount: inputs.amount,
+        selectedDocId: inputs.selectedDocId || undefined,
+      });
+      
+      // Si un montant est fourni, l'enregistrer dans le budget
+      if (inputs.amount && parseFloat(inputs.amount) > 0) {
+        const amountValue = parseFloat(inputs.amount);
+        
+        // Vérifier si une catégorie budget existe pour ce corps de métier
+        const { data: existingBudget } = await supabase
+          .from('project_budgets')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('category_name', tradeName)
+          .maybeSingle();
+        
+        if (existingBudget) {
+          // Mettre à jour le coût réel (spent)
+          await supabase
+            .from('project_budgets')
+            .update({ 
+              spent: amountValue,
+              items: JSON.stringify([{
+                name: inputs.name,
+                amount: amountValue,
+                type: 'soumission'
+              }])
+            })
+            .eq('id', existingBudget.id);
+        } else {
+          // Créer une nouvelle catégorie budget
+          const trade = soumissionTrades.find(t => t.id === tradeId);
+          await supabase
+            .from('project_budgets')
+            .insert({
+              project_id: projectId,
+              category_name: tradeName,
+              description: trade?.description || '',
+              budget: 0, // Coût projeté à définir
+              spent: amountValue, // Coût réel
+              color: getTradeColor(tradeId),
+              items: JSON.stringify([{
+                name: inputs.name,
+                amount: amountValue,
+                type: 'soumission'
+              }])
+            });
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+        
+        toast({
+          title: "Fournisseur et budget enregistrés",
+          description: `${inputs.name} sélectionné. Montant de ${amountValue.toLocaleString('fr-CA')} $ ajouté au budget.`,
+        });
+      } else {
+        toast({
+          title: "Fournisseur retenu",
+          description: `${inputs.name} a été sélectionné pour ${tradeName}.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error saving supplier/budget:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingBudget(false);
+      setSelectingSupplier(null);
+    }
+  };
+
+  // Sélectionner un document et pré-remplir le nom du fournisseur
+  const selectDocument = (tradeId: string, docId: string, docName: string) => {
+    // Extraire le nom du fournisseur du nom du fichier
+    const cleanName = docName
+      .replace(/\.pdf$/i, '')
+      .replace(/\.docx?$/i, '')
+      .replace(/\.xlsx?$/i, '')
+      .replace(/_/g, ' ')
+      .replace(/-/g, ' ')
+      .replace(/\d{10,}/g, '') // Enlever les timestamps
+      .trim();
     
-    setSelectingSupplier(null);
+    setSupplierInputs(prev => ({
+      ...prev,
+      [tradeId]: {
+        ...prev[tradeId],
+        selectedDocId: docId,
+        name: prev[tradeId]?.name || cleanName,
+      }
+    }));
   };
 
   const getTradeColor = (tradeId: string) => {
@@ -732,19 +836,47 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
 
       {/* Dialog de sélection du fournisseur */}
       <Dialog open={!!selectingSupplier} onOpenChange={(open) => !open && setSelectingSupplier(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-primary" />
               Sélectionner le fournisseur
             </DialogTitle>
             <DialogDescription>
-              Entrez les coordonnées du fournisseur retenu pour {selectingSupplier?.tradeName}.
+              Choisissez la soumission retenue pour {selectingSupplier?.tradeName}.
             </DialogDescription>
           </DialogHeader>
           
           {selectingSupplier && (
             <div className="space-y-4 py-4">
+              {/* Liste des documents à cocher */}
+              {getTradeDocs(selectingSupplier.tradeId).length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Soumission retenue</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {getTradeDocs(selectingSupplier.tradeId).map((doc) => (
+                      <div 
+                        key={doc.id}
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                          supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id 
+                            ? 'border-primary bg-primary/5' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => selectDocument(selectingSupplier.tradeId, doc.id, doc.file_name)}
+                      >
+                        <Checkbox 
+                          checked={supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id}
+                          className="pointer-events-none"
+                        />
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm truncate flex-1">{doc.file_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Nom du fournisseur */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Nom du fournisseur *</label>
                 <Input
@@ -759,6 +891,8 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                   }))}
                 />
               </div>
+
+              {/* Téléphone */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Téléphone</label>
                 <Input
@@ -773,6 +907,30 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                   }))}
                 />
               </div>
+
+              {/* Montant de la soumission */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  Montant de la soumission
+                  <span className="text-xs text-muted-foreground">(sera ajouté au budget comme coût réel)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    className="pl-7"
+                    value={supplierInputs[selectingSupplier.tradeId]?.amount || ''}
+                    onChange={(e) => setSupplierInputs(prev => ({
+                      ...prev,
+                      [selectingSupplier.tradeId]: { 
+                        ...prev[selectingSupplier.tradeId], 
+                        amount: e.target.value 
+                      }
+                    }))}
+                  />
+                </div>
+              </div>
             </div>
           )}
           
@@ -782,15 +940,15 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
             </Button>
             <Button 
               onClick={confirmSupplierSelection}
-              disabled={saveStatusMutation.isPending}
+              disabled={saveStatusMutation.isPending || isSavingBudget}
               className="gap-2"
             >
-              {saveStatusMutation.isPending ? (
+              {(saveStatusMutation.isPending || isSavingBudget) ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              Confirmer la sélection
+              Confirmer et enregistrer
             </Button>
           </DialogFooter>
         </DialogContent>

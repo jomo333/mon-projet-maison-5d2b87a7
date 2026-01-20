@@ -100,6 +100,18 @@ export const constructionSteps: Step[] = [
         documents: ["Rapport géotechnique", "Recommandations de fondation"]
       },
       {
+        id: "services-publics",
+        title: "Validation des services (eau, égouts)",
+        description: "Vérifiez la disponibilité des services municipaux (aqueduc, égouts) ou planifiez les installations privées (puits, fosse septique, champ d'épuration).",
+        tips: [
+          "Contactez la municipalité pour connaître les services disponibles",
+          "Si hors réseau: prévoir étude de sol pour installation septique",
+          "Le champ d'épuration nécessite une superficie de terrain adéquate",
+          "Un puits artésien peut nécessiter plusieurs forages"
+        ],
+        documents: ["Certificat de conformité septique", "Permis d'installation septique", "Analyse d'eau (puits)"]
+      },
+      {
         id: "permis-construction",
         title: "Demande de permis de construction",
         description: "Soumettez votre demande à la municipalité avec tous les documents requis.",

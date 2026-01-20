@@ -505,17 +505,44 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       const lines = optionsMatch[1].split('\n').filter(line => line.trim() && line.includes('|'));
       for (const line of lines) {
         const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 4) {
+        if (parts.length >= 3) {
           options.push({
             docName: parts[0],
             optionName: parts[1],
-            amount: parts[2].replace(/[^\d]/g, ''),
-            description: parts[3],
+            amount: parts[2].replace(/[^\d.]/g, ''),
+            description: parts[3] || '',
           });
         }
       }
     }
     
+    // Si pas de bloc options, chercher des patterns d'options dans le texte
+    if (options.length === 0) {
+      // Chercher des patterns comme "Option A: 15000$" ou "Forfait Premium - 18500$"
+      const optionPatterns = [
+        /(?:Option|Forfait|Package|Choix)\s*([A-Za-z0-9\s]+)[:\-–]\s*(\d[\d\s,\.]*)\s*\$/gi,
+        /([A-Za-z]+\s*(?:Standard|Premium|Deluxe|Basic|Pro|Gold|Silver|Bronze))[:\-–]?\s*(\d[\d\s,\.]*)\s*\$/gi,
+      ];
+      
+      for (const pattern of optionPatterns) {
+        let match;
+        while ((match = pattern.exec(analysisResult)) !== null) {
+          const optionName = match[1].trim();
+          const amount = match[2].replace(/[\s,]/g, '');
+          // Éviter les doublons
+          if (!options.some(o => o.optionName === optionName)) {
+            options.push({
+              docName: '',
+              optionName,
+              amount,
+              description: '',
+            });
+          }
+        }
+      }
+    }
+    
+    console.log('Parsed options:', options);
     return options;
   };
 
@@ -976,13 +1003,29 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
               analysisStates[selectingSupplier.tradeId]?.result || null
             );
             
-            // Grouper les options par document
+            // Grouper les options par document sélectionné
             const selectedDocName = tradeDocs.find(d => d.id === supplierInputs[selectingSupplier.tradeId]?.selectedDocId)?.file_name || '';
+            const selectedDocIndex = tradeDocs.findIndex(d => d.id === supplierInputs[selectingSupplier.tradeId]?.selectedDocId);
+            
+            // Filtrer les options pour le document sélectionné
             const docOptions = extractedOptions.filter(opt => {
-              const optDocNormalized = opt.docName.toLowerCase().replace(/[_\-\s]/g, '');
-              const selectedNormalized = selectedDocName.toLowerCase().replace(/[_\-\s]/g, '');
-              return optDocNormalized.includes(selectedNormalized) || selectedNormalized.includes(optDocNormalized);
+              // Si l'option n'a pas de nom de document, on l'affiche pour tous
+              if (!opt.docName || opt.docName === '') return true;
+              
+              // Normaliser les noms pour la comparaison
+              const optDocNormalized = opt.docName.toLowerCase().replace(/[_\-\s\d]/g, '');
+              const selectedNormalized = selectedDocName.toLowerCase().replace(/[_\-\s\d]/g, '');
+              
+              // Correspondance partielle
+              return optDocNormalized.includes(selectedNormalized) || 
+                     selectedNormalized.includes(optDocNormalized) ||
+                     // Correspondance par mots-clés
+                     optDocNormalized.split(/[_\-\s]/).some(word => 
+                       word.length > 3 && selectedNormalized.includes(word)
+                     );
             });
+            
+            console.log('Selected doc:', selectedDocName, 'Options:', extractedOptions, 'Filtered:', docOptions);
             
             // Sélectionner une option
             const selectOption = (optionName: string, amount: string) => {

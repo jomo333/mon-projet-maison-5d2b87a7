@@ -1,8 +1,8 @@
 import { Step, phases } from "@/data/constructionSteps";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2, Lock, Check } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -102,48 +102,61 @@ export function StepCard({
               <IconComponent className="h-5 w-5" />
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {onToggleComplete && (
-              <div 
-                onClick={handleCheckboxChange}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Checkbox 
-                  checked={isCompleted}
-                  className={cn(
-                    "h-5 w-5",
-                    isCompleted && "bg-green-500 border-green-500 data-[state=checked]:bg-green-500"
-                  )}
-                />
-              </div>
-            )}
-            <Badge variant="secondary" className="text-xs">
-              {phase?.label}
-            </Badge>
-          </div>
+          <Badge variant="secondary" className="text-xs">
+            {phase?.label}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-2 mb-2">
-          <span className={cn(
-            "text-sm font-medium",
-            isCompleted ? "text-green-600 line-through" : "text-muted-foreground"
-          )}>
-            Étape {stepNumber}
-          </span>
-        </div>
-        <h3 className={cn(
-          "font-semibold text-lg mb-2 group-hover:text-primary transition-colors",
-          isCompleted && "line-through text-muted-foreground"
+      <div className="flex items-center gap-2 mb-2">
+        <span className={cn(
+          "text-sm font-medium",
+          isCompleted ? "text-green-600 line-through" : "text-muted-foreground"
         )}>
-          {step.title}
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-          {step.description}
-        </p>
-        
-        {/* Schedule dates */}
-        {scheduleStartDate && (
+          Étape {stepNumber}
+        </span>
+      </div>
+      <h3 className={cn(
+        "font-semibold text-lg mb-2 group-hover:text-primary transition-colors",
+        isCompleted && "line-through text-muted-foreground"
+      )}>
+        {step.title}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+        {step.description}
+      </p>
+      
+      {/* Bouton Étape complétée */}
+      {onToggleComplete && (
+        <div className="mb-3">
+          <Button
+            variant={isCompleted ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "w-full gap-2 transition-all",
+              isCompleted 
+                ? "bg-green-500 hover:bg-green-600 text-white" 
+                : "hover:bg-green-50 hover:text-green-600 hover:border-green-300 dark:hover:bg-green-950/30"
+            )}
+            onClick={handleCheckboxChange}
+          >
+            {isCompleted ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Étape complétée
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Marquer comme complétée
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+      
+      {/* Schedule dates */}
+      {scheduleStartDate && (
           <div className={cn(
             "flex items-center gap-2 mb-3 p-2 rounded-md text-sm",
             deadlineStatus?.bg || "bg-muted"

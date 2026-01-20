@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   FileText, 
   Upload, 
@@ -16,7 +17,9 @@ import {
   Download,
   Building2,
   FileCheck,
-  Phone
+  Phone,
+  Sparkles,
+  X
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -52,11 +55,18 @@ interface SoumissionStatus {
   supplierPhone?: string;
 }
 
+interface AnalysisState {
+  tradeId: string;
+  isAnalyzing: boolean;
+  result: string | null;
+}
+
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   const queryClient = useQueryClient();
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [uploadingTrade, setUploadingTrade] = useState<string | null>(null);
   const [supplierInputs, setSupplierInputs] = useState<Record<string, { name: string; phone: string }>>({});
+  const [analysisStates, setAnalysisStates] = useState<Record<string, AnalysisState>>({});
 
   // Charger les statuts des soumissions depuis task_dates
   const { data: soumissionStatuses, isLoading: loadingStatuses } = useQuery({
@@ -269,6 +279,123 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     });
   };
 
+  // Fonction pour analyser les soumissions d'un corps de métier
+  const analyzeSoumissions = async (tradeId: string, tradeName: string, tradeDescription: string) => {
+    const docs = getTradeDocs(tradeId);
+    
+    if (docs.length === 0) {
+      toast({
+        title: "Aucun document",
+        description: "Veuillez d'abord télécharger des soumissions à analyser.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAnalysisStates(prev => ({
+      ...prev,
+      [tradeId]: { tradeId, isAnalyzing: true, result: null }
+    }));
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-soumissions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            tradeName,
+            tradeDescription,
+            documents: docs.map(d => ({
+              file_name: d.file_name,
+              file_url: d.file_url,
+            })),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de l'analyse");
+      }
+
+      if (!response.body) {
+        throw new Error("Pas de réponse du serveur");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let analysisResult = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              analysisResult += content;
+              setAnalysisStates(prev => ({
+                ...prev,
+                [tradeId]: { tradeId, isAnalyzing: true, result: analysisResult }
+              }));
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      setAnalysisStates(prev => ({
+        ...prev,
+        [tradeId]: { tradeId, isAnalyzing: false, result: analysisResult }
+      }));
+
+      toast({
+        title: "Analyse terminée",
+        description: `L'analyse des soumissions pour ${tradeName} est prête.`,
+      });
+    } catch (error) {
+      console.error("Analysis error:", error);
+      setAnalysisStates(prev => ({
+        ...prev,
+        [tradeId]: { tradeId, isAnalyzing: false, result: null }
+      }));
+      toast({
+        title: "Erreur d'analyse",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearAnalysis = (tradeId: string) => {
+    setAnalysisStates(prev => {
+      const newState = { ...prev };
+      delete newState[tradeId];
+      return newState;
+    });
+  };
+
   const getTradeColor = (tradeId: string) => {
     const trade = tradeTypes.find(t => t.id === tradeId);
     return trade?.color || "#6B7280";
@@ -462,6 +589,54 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                         <p className="text-xs text-muted-foreground italic">
                           Aucune soumission téléchargée pour ce corps de métier.
                         </p>
+                      )}
+                    </div>
+
+                    {/* Bouton d'analyse et résultats */}
+                    <div className="space-y-3">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => analyzeSoumissions(trade.id, trade.name, trade.description)}
+                        disabled={docs.length === 0 || analysisStates[trade.id]?.isAnalyzing}
+                        className="w-full gap-2"
+                      >
+                        {analysisStates[trade.id]?.isAnalyzing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Analyse en cours...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Analyser les soumissions
+                          </>
+                        )}
+                      </Button>
+
+                      {/* Résultat de l'analyse */}
+                      {analysisStates[trade.id]?.result && (
+                        <div className="relative border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/10">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => clearAnalysis(trade.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Analyse IA - Rapport qualité-prix</span>
+                          </div>
+                          <ScrollArea className="h-[300px]">
+                            <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
+                              <div className="whitespace-pre-wrap text-sm">
+                                {analysisStates[trade.id].result}
+                              </div>
+                            </div>
+                          </ScrollArea>
+                        </div>
                       )}
                     </div>
 

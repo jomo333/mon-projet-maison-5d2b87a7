@@ -150,7 +150,7 @@ export function StepCard({
           )}>
             <CalendarClock className={cn("h-4 w-4", deadlineStatus?.color)} />
             {isManualDate && (
-              <Lock className="h-3 w-3 text-primary" />
+              <Lock className="h-3 w-3 text-amber-500" />
             )}
             <div className="flex-1">
               <span className={cn("font-medium", deadlineStatus?.color)}>

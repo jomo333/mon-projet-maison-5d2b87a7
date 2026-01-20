@@ -487,7 +487,8 @@ export function StepDetail({
                           params.set('autoAnalyze', '1');
                           
                           if (besoinsNote) {
-                            params.set('besoinsNote', encodeURIComponent(besoinsNote));
+                            // URLSearchParams gère déjà l'encodage
+                            params.set('besoinsNote', besoinsNote);
                             
                             // Parser les informations du texte
                             const noteLower = besoinsNote.toLowerCase();

@@ -12,12 +12,14 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, Camera, FileText } from "lucide-react";
+import { ArrowLeft, Home, Calendar, ChevronRight, AlertTriangle, X, Camera, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
+import { useAuth } from "@/hooks/useAuth";
 const Dashboard = () => {
-  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const stepFromUrl = searchParams.get("step");
   const projectFromUrl = searchParams.get("project");
   const [selectedStepId, setSelectedStepId] = useState<string | null>(stepFromUrl);
@@ -43,6 +45,31 @@ const Dashboard = () => {
     },
     enabled: !!projectFromUrl,
   });
+
+  // Fetch user's projects so we can auto-select one when dashboard is opened without ?project=
+  const { data: userProjects = [] } = useQuery({
+    queryKey: ["user-projects", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, project_type, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // If we have projects but no project in URL, pick the most recent one.
+  useEffect(() => {
+    if (projectFromUrl) return;
+    if (!userProjects.length) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("project", userProjects[0].id);
+    setSearchParams(next, { replace: true });
+  }, [projectFromUrl, userProjects, searchParams, setSearchParams]);
 
   // Fetch project schedules
   const {
@@ -156,12 +183,10 @@ const Dashboard = () => {
     }
   }, [selectedStepId]);
 
-  // Mock project data (would come from state/context after wizard)
-  const projectData = {
-    projectName: "Mon projet maison",
-    projectType: "Maison neuve",
-    municipality: "Sherbrooke",
-    currentStage: "planification",
+  const projectDisplay = {
+    name: project?.name || userProjects[0]?.name || "Mon projet",
+    type: project?.project_type || userProjects[0]?.project_type || "",
+    createdAt: project?.created_at ? new Date(project.created_at) : null,
   };
 
   const selectedStep = selectedStepId 
@@ -289,25 +314,38 @@ const Dashboard = () => {
       <Header />
       <main className="flex-1 py-8">
         <div className="container">
+          {!projectFromUrl && user && userProjects.length === 0 && (
+            <Alert className="mb-8">
+              <FileText className="h-4 w-4" />
+              <AlertTitle>Aucun projet sélectionné</AlertTitle>
+              <AlertDescription>
+                Créez un projet pour débloquer les notes et le suivi des étapes.
+                <Button asChild variant="link" className="px-1 h-auto">
+                  <Link to="/start">Créer un projet</Link>
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Project header */}
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
                 <h1 className="font-display text-3xl font-bold tracking-tight">
-                  {projectData.projectName}
+                  {projectDisplay.name}
                 </h1>
                 <div className="flex flex-wrap items-center gap-4 mt-2 text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Home className="h-4 w-4" />
-                    <span>{projectData.projectType}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{projectData.municipality}</span>
+                    <span>{projectDisplay.type || "Projet"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>Démarré le 15 janvier 2025</span>
+                    <span>
+                      {projectDisplay.createdAt
+                        ? `Créé le ${projectDisplay.createdAt.toLocaleDateString("fr-CA")}`
+                        : ""}
+                    </span>
                   </div>
                 </div>
               </div>

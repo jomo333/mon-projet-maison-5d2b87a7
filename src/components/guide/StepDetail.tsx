@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2, AlertTriangle, X, Lock, Unlock, RotateCcw, Calculator, Save, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
+import { SoumissionsManager } from "./SoumissionsManager";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
 import { StylePhotosUpload } from "./StylePhotosUpload";
 import { TaskDatePicker } from "./TaskDatePicker";
@@ -605,6 +606,11 @@ export function StepDetail({
                             </div>
                           )}
                         </div>
+                      )}
+                      
+                      {/* Gestionnaire de soumissions par corps de métier */}
+                      {task.id === 'soumissions' && projectId && (
+                        <SoumissionsManager projectId={projectId} />
                       )}
                       
                       {task.tips && task.tips.length > 0 && (

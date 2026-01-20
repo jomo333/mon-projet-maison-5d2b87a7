@@ -356,53 +356,58 @@ export function StepDetail({
               
               return (
                 <AccordionItem key={task.id} value={task.id}>
-                  <AccordionTrigger className="text-left hover:no-underline">
-                    <div className="flex items-center gap-3 flex-1">
-                      {projectId && onToggleTask ? (
-                        <div 
-                          onClick={(e) => handleTaskToggle(task.id, e)}
-                          className="cursor-pointer"
-                        >
-                          <Checkbox 
-                            checked={taskCompleted}
-                            className="h-5 w-5"
-                          />
-                        </div>
-                      ) : (
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                          {index + 1}
+                  <div className="flex items-center gap-2">
+                    <AccordionTrigger className="text-left hover:no-underline flex-1">
+                      <div className="flex items-center gap-3 flex-1">
+                        {projectId && onToggleTask ? (
+                          <div 
+                            onClick={(e) => handleTaskToggle(task.id, e)}
+                            className="cursor-pointer"
+                          >
+                            <Checkbox 
+                              checked={taskCompleted}
+                              className="h-5 w-5"
+                            />
+                          </div>
+                        ) : (
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            {index + 1}
+                          </span>
+                        )}
+                        <span className={taskCompleted ? "line-through text-muted-foreground" : ""}>
+                          {task.title}
                         </span>
-                      )}
-                      <span className={taskCompleted ? "line-through text-muted-foreground" : ""}>
-                        {task.title}
-                      </span>
-                      {taskCompleted && (
-                        <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto mr-2" />
-                      )}
-                    </div>
-                  </AccordionTrigger>
+                        {taskCompleted && (
+                          <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto mr-2" />
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    
+                    {/* Bouton Analyse de budget visible à côté du titre */}
+                    {task.id === 'budget-initial' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = projectId 
+                            ? `/budget?project=${projectId}&autoAnalyze=1` 
+                            : '/budget?autoAnalyze=1';
+                          navigate(url);
+                        }}
+                      >
+                        <Calculator className="h-4 w-4 mr-1" />
+                        <span className="hidden sm:inline">Analyse de budget</span>
+                        <span className="sm:hidden">Analyse</span>
+                      </Button>
+                    )}
+                  </div>
                   <AccordionContent>
                     <div className="pl-9 space-y-4">
                       <p className="text-muted-foreground">
                         {task.description}
                       </p>
-                      
-                      {/* Bouton Analyse de budget pour la tâche budget-initial */}
-                      {task.id === 'budget-initial' && (
-                        <Button
-                          variant="outline"
-                          className="w-full sm:w-auto"
-                          onClick={() => {
-                            const url = projectId 
-                              ? `/budget?project=${projectId}&autoAnalyze=1` 
-                              : '/budget?autoAnalyze=1';
-                            navigate(url);
-                          }}
-                        >
-                          <Calculator className="h-4 w-4 mr-2" />
-                          Analyse de budget
-                        </Button>
-                      )}
                       
                       {task.tips && task.tips.length > 0 && (
                         <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4">

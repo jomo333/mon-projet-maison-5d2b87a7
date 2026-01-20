@@ -1221,6 +1221,7 @@ export const useProjectSchedule = (projectId: string | null) => {
       "actual_days",
       "start_date",
       "end_date",
+      "is_manual_date",
       "supplier_name",
       "supplier_phone",
       "supplier_schedule_lead_days",

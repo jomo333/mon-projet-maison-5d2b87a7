@@ -138,7 +138,7 @@ export const constructionSteps: Step[] = [
         description: "Demandez des soumissions détaillées aux différents corps de métier.",
         tips: [
           "Obtenez au moins 3 soumissions par spécialité",
-          "Ne choisissez pas uniquement sur le prix le plus bas",
+          "Ne choisissez pas uniquement sur le prix le plus bas — utilisez l'analyse IA pour vous aider à comparer",
           "Vérifiez les références des entrepreneurs",
           "Demandez des preuves d'assurance responsabilité",
           "Vérifiez les licences RBQ des entrepreneurs",

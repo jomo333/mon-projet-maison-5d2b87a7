@@ -510,14 +510,14 @@ export function StepDetail({
                               params.set('projectType', 'jumelee');
                             }
                             
-                            // Détection du nombre d'étages
-                            if (noteLower.includes('2 chambre') || noteLower.includes('chambres au dessus') || noteLower.includes('étage aménagé')) {
-                              params.set('floors', '2');
-                            } else if (noteLower.includes('3 étage') || noteLower.includes('trois étage')) {
+                            // Détection du nombre d'étages - seulement sur mentions explicites
+                            // Ne pas inférer à partir de "2 chambre" car cela ne dit pas si c'est sur 1 ou 2 étages
+                            if (noteLower.includes('3 étage') || noteLower.includes('trois étage') || noteLower.includes('3 étages') || noteLower.includes('trois étages')) {
                               params.set('floors', '3');
-                            } else if (noteLower.includes('2 étage') || noteLower.includes('deux étage')) {
+                            } else if (noteLower.includes('2 étage') || noteLower.includes('deux étage') || noteLower.includes('2 étages') || noteLower.includes('deux étages') || noteLower.includes('au dessus') || noteLower.includes('au-dessus')) {
                               params.set('floors', '2');
                             }
+                            // Note: si "garage-etage" est détecté mais pas d'étages explicites, laisser l'utilisateur choisir
                             
                             // Détection des dimensions (ex: 18x25, 20 x 30, etc.)
                             const dimensionMatch = besoinsNote.match(/(\d+)\s*[xX×]\s*(\d+)/);

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, RotateCcw } from "lucide-react";
+import { AlertTriangle, Clock, Lock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeName, getTradeColor } from "@/data/tradeTypes";
@@ -303,6 +303,16 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="text-sm">{delayInfo.reason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {schedule.is_manual_date && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Lock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Date verrouillée manuellement</p>
                         </TooltipContent>
                       </Tooltip>
                     )}

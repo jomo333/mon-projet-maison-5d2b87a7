@@ -141,7 +141,7 @@ export const constructionSteps: Step[] = [
           "Ne choisissez pas uniquement sur le prix le plus bas — utilisez l'analyse IA pour vous aider à comparer",
           "Vérifiez les références des entrepreneurs",
           "Demandez des preuves d'assurance responsabilité",
-          "Vérifiez les licences RBQ des entrepreneurs",
+          "Vérifiez les licences RBQ des entrepreneurs (https://www.rbq.gouv.qc.ca/vous-etes/citoyen/verifier-la-licence-dun-entrepreneur/)",
           "Comparez les garanties et délais proposés"
         ],
         documents: ["Soumissions signées", "Preuves d'assurance", "Licences RBQ"]

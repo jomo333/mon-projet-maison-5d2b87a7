@@ -277,21 +277,43 @@ ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
 Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts de construction actuels au Québec.`;
     }
 
-    // Build messages for Claude API
+    // Build messages for Claude API - need to convert images to base64
     const userContent: any[] = [];
     
-    // Add images first for Claude format
+    // Download and convert images to base64 for Claude
     if (imageUrls.length > 0) {
+      console.log(`Converting ${imageUrls.length} images to base64...`);
       for (const url of imageUrls) {
-        // Claude requires base64 or URL with media_type
-        userContent.push({
-          type: "image",
-          source: {
-            type: "url",
-            url: url
+        try {
+          const imageResponse = await fetch(url);
+          if (imageResponse.ok) {
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            
+            // Determine media type from URL or response
+            const contentType = imageResponse.headers.get('content-type') || 'image/png';
+            const mediaType = contentType.includes('jpeg') || contentType.includes('jpg') 
+              ? 'image/jpeg' 
+              : contentType.includes('webp') 
+                ? 'image/webp'
+                : 'image/png';
+            
+            userContent.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
+                data: base64
+              }
+            });
+          } else {
+            console.log(`Failed to fetch image: ${url}`);
           }
-        });
+        } catch (imgErr) {
+          console.log(`Error fetching image ${url}:`, imgErr);
+        }
       }
+      console.log(`Successfully converted ${userContent.length} images`);
     }
     
     // Add the text prompt

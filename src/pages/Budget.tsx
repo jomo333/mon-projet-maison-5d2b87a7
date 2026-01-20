@@ -76,9 +76,14 @@ const Budget = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const projectFromUrl = searchParams.get("project");
   const autoAnalyze = searchParams.get("autoAnalyze") === "1";
+  const autoManual = searchParams.get("mode") === "manual";
   const besoinsNoteFromUrl = searchParams.get("besoinsNote") 
     ? decodeURIComponent(searchParams.get("besoinsNote") || "") 
     : undefined;
+  // Prefill params from URL (parsed from besoins note)
+  const prefillProjectType = searchParams.get("projectType") || undefined;
+  const prefillFloors = searchParams.get("floors") || undefined;
+  const prefillSquareFootage = searchParams.get("sqft") || undefined;
 
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>(defaultCategories);
@@ -360,9 +365,13 @@ const Budget = () => {
             <PlanAnalyzer 
               onBudgetGenerated={handleBudgetGenerated} 
               projectId={selectedProjectId}
-              autoSelectPlanTab={autoAnalyze}
+              autoSelectPlanTab={autoAnalyze && !autoManual}
+              autoSelectManualTab={autoManual}
               onGenerateSchedule={() => setShowScheduleDialog(true)}
               besoinsNote={besoinsNoteFromUrl}
+              prefillProjectType={prefillProjectType}
+              prefillFloors={prefillFloors}
+              prefillSquareFootage={prefillSquareFootage}
             />
           </div>
 

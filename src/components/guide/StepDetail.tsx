@@ -480,11 +480,54 @@ export function StepDetail({
                         className="shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Passer la note des besoins via URL pour pré-remplir l'analyse
+                          // Parse la note des besoins pour extraire les informations
                           const params = new URLSearchParams();
                           if (projectId) params.set('project', projectId);
+                          params.set('mode', 'manual'); // Toujours aller en mode manuel
                           params.set('autoAnalyze', '1');
-                          if (besoinsNote) params.set('besoinsNote', encodeURIComponent(besoinsNote));
+                          
+                          if (besoinsNote) {
+                            params.set('besoinsNote', encodeURIComponent(besoinsNote));
+                            
+                            // Parser les informations du texte
+                            const noteLower = besoinsNote.toLowerCase();
+                            
+                            // Détection du type de projet
+                            if (noteLower.includes('garage') && (noteLower.includes('étage') || noteLower.includes('chambre') || noteLower.includes('aménagé'))) {
+                              params.set('projectType', 'garage-etage');
+                            } else if (noteLower.includes('garage')) {
+                              params.set('projectType', 'garage');
+                            } else if (noteLower.includes('agrandissement') || noteLower.includes('extension')) {
+                              params.set('projectType', 'agrandissement');
+                            } else if (noteLower.includes('rénovation') || noteLower.includes('renovation')) {
+                              params.set('projectType', 'renovation');
+                            } else if (noteLower.includes('bungalow')) {
+                              params.set('projectType', 'bungalow');
+                            } else if (noteLower.includes('cottage')) {
+                              params.set('projectType', 'cottage');
+                            } else if (noteLower.includes('jumelé') || noteLower.includes('jumele') || noteLower.includes('jumelée') || noteLower.includes('jumelee')) {
+                              params.set('projectType', 'jumelee');
+                            }
+                            
+                            // Détection du nombre d'étages
+                            if (noteLower.includes('2 chambre') || noteLower.includes('chambres au dessus') || noteLower.includes('étage aménagé')) {
+                              params.set('floors', '2');
+                            } else if (noteLower.includes('3 étage') || noteLower.includes('trois étage')) {
+                              params.set('floors', '3');
+                            } else if (noteLower.includes('2 étage') || noteLower.includes('deux étage')) {
+                              params.set('floors', '2');
+                            }
+                            
+                            // Détection des dimensions (ex: 18x25, 20 x 30, etc.)
+                            const dimensionMatch = besoinsNote.match(/(\d+)\s*[xX×]\s*(\d+)/);
+                            if (dimensionMatch) {
+                              const width = parseInt(dimensionMatch[1]);
+                              const length = parseInt(dimensionMatch[2]);
+                              const sqft = width * length;
+                              params.set('sqft', sqft.toString());
+                            }
+                          }
+                          
                           navigate(`/budget?${params.toString()}`);
                         }}
                       >

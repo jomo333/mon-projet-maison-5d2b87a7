@@ -55,21 +55,41 @@ interface PlanAnalyzerProps {
   projectId?: string | null;
   /** When true, auto-select the "Analyse de plan" tab on mount */
   autoSelectPlanTab?: boolean;
+  /** When true, auto-select the "Configuration manuelle" tab on mount */
+  autoSelectManualTab?: boolean;
   /** Callback when user wants to generate schedule after analysis */
   onGenerateSchedule?: () => void;
   /** Pre-filled requirements note from step 1 */
   besoinsNote?: string;
+  /** Pre-filled project type */
+  prefillProjectType?: string;
+  /** Pre-filled number of floors */
+  prefillFloors?: string;
+  /** Pre-filled square footage */
+  prefillSquareFootage?: string;
 }
 
-export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab = false, onGenerateSchedule, besoinsNote }: PlanAnalyzerProps) {
+export function PlanAnalyzer({ 
+  onBudgetGenerated, 
+  projectId, 
+  autoSelectPlanTab = false, 
+  autoSelectManualTab = false,
+  onGenerateSchedule, 
+  besoinsNote,
+  prefillProjectType,
+  prefillFloors,
+  prefillSquareFootage
+}: PlanAnalyzerProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BudgetAnalysis | null>(null);
-  const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">(autoSelectPlanTab ? "plan" : "manual");
+  const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">(
+    autoSelectManualTab ? "manual" : (autoSelectPlanTab ? "plan" : "manual")
+  );
   
-  // Manual mode state
-  const [projectType, setProjectType] = useState("maison-unifamiliale");
-  const [squareFootage, setSquareFootage] = useState("1500");
-  const [numberOfFloors, setNumberOfFloors] = useState("1");
+  // Manual mode state - use prefilled values if provided
+  const [projectType, setProjectType] = useState(prefillProjectType || "maison-unifamiliale");
+  const [squareFootage, setSquareFootage] = useState(prefillSquareFootage || "1500");
+  const [numberOfFloors, setNumberOfFloors] = useState(prefillFloors || "1");
   const [hasGarage, setHasGarage] = useState(false);
   const [foundationSqft, setFoundationSqft] = useState("");
   const [floorSqftDetails, setFloorSqftDetails] = useState<string[]>([""]);
@@ -547,6 +567,10 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
                     <SelectItem value="bungalow">Bungalow</SelectItem>
                     <SelectItem value="cottage">Cottage (2 étages)</SelectItem>
                     <SelectItem value="jumelee">Maison jumelée</SelectItem>
+                    <SelectItem value="agrandissement">Agrandissement</SelectItem>
+                    <SelectItem value="garage">Garage détaché</SelectItem>
+                    <SelectItem value="garage-etage">Garage avec étage aménagé</SelectItem>
+                    <SelectItem value="renovation">Rénovation majeure</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

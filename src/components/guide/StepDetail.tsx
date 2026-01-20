@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2, AlertTriangle, X, Lock, Unlock, RotateCcw, Calculator, Save } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2, AlertTriangle, X, Lock, Unlock, RotateCcw, Calculator, Save, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
@@ -90,12 +90,26 @@ export function StepDetail({
   const [besoinsNote, setBesoinsNote] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   
+  // State pour les services publics
+  const [servicesType, setServicesType] = useState<"public" | "prive" | null>(null);
+  const [isSavingServices, setIsSavingServices] = useState(false);
+  
   // Charger la note existante pour la tâche "besoins"
   useEffect(() => {
     if (projectId && step.id === "planification") {
       const taskData = getTaskDate("planification", "besoins");
       if (taskData?.notes) {
         setBesoinsNote(taskData.notes);
+      }
+    }
+  }, [projectId, step.id, getTaskDate]);
+  
+  // Charger le choix des services publics
+  useEffect(() => {
+    if (projectId && step.id === "plans-permis") {
+      const taskData = getTaskDate("plans-permis", "services-publics");
+      if (taskData?.notes) {
+        setServicesType(taskData.notes as "public" | "prive");
       }
     }
   }, [projectId, step.id, getTaskDate]);
@@ -132,6 +146,34 @@ export function StepDetail({
       });
     } finally {
       setIsSavingNote(false);
+    }
+  };
+  
+  // Sauvegarder le choix des services
+  const handleSaveServicesType = async (type: "public" | "prive") => {
+    if (!projectId) return;
+    setServicesType(type);
+    setIsSavingServices(true);
+    try {
+      await upsertTaskDateAsync({
+        stepId: "plans-permis",
+        taskId: "services-publics",
+        notes: type,
+      });
+      toast({
+        title: "Choix enregistré",
+        description: type === "public" 
+          ? "Services municipaux sélectionnés (aqueduc, égouts)" 
+          : "Installation privée sélectionnée (puits, fosse septique)",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le choix",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingServices(false);
     }
   };
 
@@ -487,6 +529,81 @@ export function StepDetail({
                           
                           {/* Photos de style pour l'analyse */}
                           <StylePhotosUpload projectId={projectId} />
+                        </div>
+                      )}
+                      
+                      {/* Choix services publics ou privés */}
+                      {task.id === 'services-publics' && projectId && (
+                        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                          <div className="flex items-center gap-2 font-medium">
+                            <Waves className="h-4 w-4 text-primary" />
+                            <span>Type d'installation</span>
+                            {isSavingServices && <Loader2 className="h-4 w-4 animate-spin" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Sélectionnez le type de services pour votre projet.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Option Services publics */}
+                            <div 
+                              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                servicesType === "public" 
+                                  ? "border-primary bg-primary/10" 
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              onClick={() => handleSaveServicesType("public")}
+                            >
+                              <div className="flex items-start gap-3">
+                                <Checkbox 
+                                  checked={servicesType === "public"}
+                                  className="mt-1"
+                                />
+                                <div>
+                                  <p className="font-medium">Services municipaux</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Aqueduc et égouts municipaux
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Option Installation privée */}
+                            <div 
+                              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                servicesType === "prive" 
+                                  ? "border-primary bg-primary/10" 
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              onClick={() => handleSaveServicesType("prive")}
+                            >
+                              <div className="flex items-start gap-3">
+                                <Checkbox 
+                                  checked={servicesType === "prive"}
+                                  className="mt-1"
+                                />
+                                <div>
+                                  <p className="font-medium">Installation privée</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Puits artésien + Fosse septique + Champ d'épuration
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {servicesType && (
+                            <div className={`p-3 rounded-md text-sm ${
+                              servicesType === "public" 
+                                ? "bg-blue-50 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+                                : "bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-300"
+                            }`}>
+                              {servicesType === "public" ? (
+                                <>✓ Prévoir les frais de branchement à l'aqueduc et aux égouts municipaux</>
+                              ) : (
+                                <>✓ Prévoir: étude de sol pour installation septique, forage de puits, installation du champ d'épuration</>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                       

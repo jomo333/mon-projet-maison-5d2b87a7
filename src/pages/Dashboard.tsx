@@ -71,6 +71,9 @@ const Dashboard = () => {
     setSearchParams(next, { replace: true });
   }, [projectFromUrl, userProjects, searchParams, setSearchParams]);
 
+  // Use the project from URL, or fallback to the first user project
+  const effectiveProjectId = projectFromUrl || (userProjects.length > 0 ? userProjects[0].id : null);
+
   // Fetch project schedules
   const {
     schedules,
@@ -78,10 +81,10 @@ const Dashboard = () => {
     completeStep,
     completeStepByStepId,
     uncompleteStep,
-  } = useProjectSchedule(projectFromUrl);
+  } = useProjectSchedule(effectiveProjectId);
 
   // Fetch completed tasks
-  const { isTaskCompleted, toggleTask } = useCompletedTasks(projectFromUrl);
+  const { isTaskCompleted, toggleTask } = useCompletedTasks(effectiveProjectId);
 
   // Handle toggle task for individual tasks
   const handleToggleTask = (stepId: string, taskId: string, isCompleted: boolean) => {
@@ -283,7 +286,7 @@ const Dashboard = () => {
 
             <StepDetail 
               step={selectedStep}
-              projectId={projectFromUrl || undefined}
+              projectId={effectiveProjectId || undefined}
               projectType={project?.project_type}
               onNext={() => {
                 const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;

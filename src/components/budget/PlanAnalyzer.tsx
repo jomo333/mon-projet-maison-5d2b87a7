@@ -99,6 +99,25 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
     }
   }, [besoinsNote]);
 
+  // Fetch style photos for the project (category "style")
+  const { data: stylePhotos = [] } = useQuery({
+    queryKey: ["style-photos", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("task_attachments")
+        .select("id, file_url, file_name")
+        .eq("project_id", projectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "besoins")
+        .eq("category", "style")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!projectId,
+  });
+
   // Fetch uploaded plans/documents from project tasks AND project photos
   const { data: plans = [] } = useQuery({
     queryKey: ["project-plans", projectId],
@@ -424,6 +443,9 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
     setAnalysis(null);
 
     try {
+      // Get style photo URLs to include in analysis
+      const stylePhotoUrls = stylePhotos.map((p: any) => p.file_url);
+      
       const body = analysisMode === "manual" 
         ? {
             mode: "manual",
@@ -438,12 +460,14 @@ export function PlanAnalyzer({ onBudgetGenerated, projectId, autoSelectPlanTab =
             floorSqftDetails: floorSqftDetails.filter(s => s).map(s => parseInt(s)),
             finishQuality,
             additionalNotes: additionalNotes || undefined,
+            stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
           }
         : {
             mode: "plan",
             imageUrls: selectedPlanUrls,
             finishQuality,
             additionalNotes: additionalNotes || undefined,
+            stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
           };
 
       const { data, error } = await supabase.functions.invoke('analyze-plan', {

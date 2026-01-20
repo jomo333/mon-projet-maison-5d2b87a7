@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { mode, finishQuality = "standard" } = body;
+    const { mode, finishQuality = "standard", stylePhotoUrls = [] } = body;
     
     // Quality level descriptions for the AI
     const qualityDescriptions: Record<string, string> = {
@@ -68,6 +68,10 @@ serve(async (req) => {
     let systemPrompt: string;
     let userMessage: string;
     let imageUrls: string[] = [];
+    
+    // Check if we have style reference photos
+    const hasStylePhotos = stylePhotoUrls && Array.isArray(stylePhotoUrls) && stylePhotoUrls.length > 0;
+    console.log('Style photos count:', hasStylePhotos ? stylePhotoUrls.length : 0);
 
     if (mode === "plan") {
       // Plan analysis mode - analyze uploaded plan images (supports multiple)
@@ -78,14 +82,29 @@ serve(async (req) => {
         imageUrls = [body.imageUrl];
       }
       
-      console.log('Analyzing plan images:', { imageCount: imageUrls.length });
+      // Add style photos to the image URLs for analysis
+      if (hasStylePhotos) {
+        imageUrls = [...imageUrls, ...stylePhotoUrls];
+      }
+      
+      console.log('Analyzing plan images:', { planCount: body.imageUrls?.length || 1, styleCount: hasStylePhotos ? stylePhotoUrls.length : 0, totalImages: imageUrls.length });
 
       systemPrompt = `Tu es un expert en analyse de plans de construction et rénovation résidentielle au QUÉBEC, CANADA.
 Tu dois analyser TOUS les plans fournis ENSEMBLE pour obtenir une vision complète du projet avant de générer une estimation budgétaire.
 
 NIVEAU DE QUALITÉ DES FINITIONS CHOISI PAR LE CLIENT: ${qualityLabel}
 ${qualityContext}
-
+${hasStylePhotos ? `
+PHOTOS DE STYLE/INSPIRATION DU CLIENT:
+Le client a fourni ${stylePhotoUrls.length} photo(s) d'inspiration montrant le style souhaité pour son projet.
+ANALYSE CES PHOTOS ATTENTIVEMENT pour comprendre:
+- Le style architectural désiré (moderne, traditionnel, contemporain, rustique, etc.)
+- Les matériaux préférés (bois, pierre, métal, etc.)
+- Les couleurs dominantes
+- Le niveau de finition visé
+- Les détails architecturaux importants (moulures, escaliers, fenestration, etc.)
+ADAPTE ton estimation budgétaire pour refléter ce style, en choisissant des matériaux et finitions cohérents avec les inspirations fournies.
+` : ''}
 IMPORTANT - ANALYSE MULTI-PLANS:
 - Tu recevras possiblement PLUSIEURS images de plans (plans d'étages, élévations, coupes, détails, etc.)
 - ANALYSE TOUS LES PLANS ENSEMBLE pour comprendre le projet dans sa globalité
@@ -259,13 +278,29 @@ Génère une estimation budgétaire réaliste basée sur l'analyse ${imageUrls.l
         additionalNotes
       } = body;
 
-      console.log('Manual analysis:', { projectType, squareFootage, numberOfFloors, hasGarage, foundationSqft, additionalNotes: additionalNotes?.substring(0, 100) });
+      console.log('Manual analysis:', { projectType, squareFootage, numberOfFloors, hasGarage, foundationSqft, additionalNotes: additionalNotes?.substring(0, 100), stylePhotos: hasStylePhotos ? stylePhotoUrls.length : 0 });
+      
+      // For manual mode, if we have style photos, add them to imageUrls for analysis
+      if (hasStylePhotos) {
+        imageUrls = [...stylePhotoUrls];
+      }
 
       systemPrompt = `Tu es un expert en estimation de coûts de construction résidentielle au QUÉBEC, CANADA. 
 Tu dois analyser les informations fournies sur un projet de construction et générer une estimation budgétaire détaillée.
 
 NIVEAU DE QUALITÉ DES FINITIONS CHOISI PAR LE CLIENT: ${qualityLabel}
 ${qualityContext}
+${hasStylePhotos ? `
+PHOTOS DE STYLE/INSPIRATION DU CLIENT:
+Le client a fourni ${stylePhotoUrls.length} photo(s) d'inspiration montrant le style souhaité pour son projet.
+ANALYSE CES PHOTOS ATTENTIVEMENT pour comprendre:
+- Le style architectural désiré (moderne, traditionnel, contemporain, rustique, etc.)
+- Les matériaux préférés (bois, pierre, métal, etc.)
+- Les couleurs dominantes
+- Le niveau de finition visé
+- Les détails architecturaux importants (moulures, escaliers, fenestration, etc.)
+ADAPTE ton estimation budgétaire pour refléter ce style, en choisissant des matériaux et finitions cohérents avec les inspirations fournies.
+` : ''}
 
 IMPORTANT - CONTEXTE QUÉBÉCOIS:
 - Tous les prix doivent refléter le marché québécois 2024-2025

@@ -12,6 +12,7 @@ import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, Cl
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
+import { StylePhotosUpload } from "./StylePhotosUpload";
 import { TaskDatePicker } from "./TaskDatePicker";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useTaskDates } from "@/hooks/useTaskDates";
@@ -483,6 +484,9 @@ export function StepDetail({
                             )}
                             Sauvegarder
                           </Button>
+                          
+                          {/* Photos de style pour l'analyse */}
+                          <StylePhotosUpload projectId={projectId} />
                         </div>
                       )}
                       

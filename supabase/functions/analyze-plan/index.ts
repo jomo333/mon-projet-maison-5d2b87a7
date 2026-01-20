@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -277,18 +278,32 @@ ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
 Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts de construction actuels au Québec.`;
     }
 
-    // Build messages for Claude API - need to convert images to base64
+    // Build messages for Claude API - convert images to base64
     const userContent: any[] = [];
     
     // Download and convert images to base64 for Claude
     if (imageUrls.length > 0) {
       console.log(`Converting ${imageUrls.length} images to base64...`);
-      for (const url of imageUrls) {
+
+      // Guardrails: avoid crashing on very large images (and keep payload reasonable)
+      const MAX_IMAGE_BYTES = 4_000_000; // ~4MB per image before base64 expansion
+      const MAX_IMAGES = 6;
+      const urlsToProcess = imageUrls.slice(0, MAX_IMAGES);
+
+      for (const url of urlsToProcess) {
         try {
           const imageResponse = await fetch(url);
           if (imageResponse.ok) {
             const arrayBuffer = await imageResponse.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            const bytes = new Uint8Array(arrayBuffer);
+
+            if (bytes.byteLength > MAX_IMAGE_BYTES) {
+              console.log(`Skipping large image (${bytes.byteLength} bytes): ${url}`);
+              continue;
+            }
+
+            // Use std base64 encoder (avoids call stack overflow from String.fromCharCode spread)
+            const base64 = encodeBase64(arrayBuffer);
             
             // Determine media type from URL or response
             const contentType = imageResponse.headers.get('content-type') || 'image/png';
@@ -313,7 +328,20 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
           console.log(`Error fetching image ${url}:`, imgErr);
         }
       }
-      console.log(`Successfully converted ${userContent.length} images`);
+
+      const convertedImagesCount = userContent.filter((c) => c?.type === 'image').length;
+      console.log(`Successfully converted ${convertedImagesCount} images`);
+
+      // If we fail to include any images, don't run a "plan" analysis without visuals.
+      if (mode === 'plan' && convertedImagesCount === 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Impossible de lire les images du plan (fichiers trop lourds ou conversion échouée). Réessaie avec moins de pages ou des images plus légères.",
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
     
     // Add the text prompt
@@ -323,7 +351,7 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
     });
 
     // Call Claude API
-    console.log('Analyzing with Claude (Anthropic)...');
+     console.log('Analyzing with Claude (Anthropic)...');
     const extractionResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -337,7 +365,7 @@ Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts d
         system: SYSTEM_PROMPT_EXTRACTION,
         messages: [{
           role: "user",
-          content: imageUrls.length > 0 ? userContent : extractionPrompt
+          content: userContent.some((c) => c?.type === 'image') ? userContent : extractionPrompt,
         }],
       }),
     });

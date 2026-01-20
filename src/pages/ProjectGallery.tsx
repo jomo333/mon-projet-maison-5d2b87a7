@@ -33,7 +33,12 @@ import {
   ArrowLeft,
   Download,
   File,
-  FileImage
+  FileImage,
+  ClipboardCheck,
+  CheckCircle2,
+  Clock,
+  Phone,
+  User
 } from "lucide-react";
 
 const documentCategories = [
@@ -47,6 +52,27 @@ const documentCategories = [
   { value: "facture", label: "Factures" },
   { value: "photo", label: "Photos" },
   { value: "other", label: "Autres" },
+];
+
+// Corps de métier pour les soumissions
+const soumissionTrades = [
+  { id: "excavation", name: "Excavation" },
+  { id: "fondation", name: "Fondation/Béton" },
+  { id: "charpente", name: "Charpentier" },
+  { id: "toiture", name: "Couvreur" },
+  { id: "fenetre", name: "Fenêtres/Portes" },
+  { id: "electricite", name: "Électricien" },
+  { id: "plomberie", name: "Plombier" },
+  { id: "hvac", name: "Chauffage/Ventilation" },
+  { id: "isolation", name: "Isolation" },
+  { id: "gypse", name: "Plâtrier/Gypse" },
+  { id: "peinture", name: "Peintre" },
+  { id: "plancher", name: "Plancher" },
+  { id: "ceramique", name: "Céramiste" },
+  { id: "armoires", name: "Ébéniste/Armoires" },
+  { id: "comptoirs", name: "Comptoirs" },
+  { id: "exterieur", name: "Revêtement extérieur" },
+  { id: "amenagement", name: "Aménagement paysager" },
 ];
 
 const ProjectGallery = () => {
@@ -129,6 +155,43 @@ const ProjectGallery = () => {
     enabled: !!projectId && !!user,
   });
 
+  // Fetch soumission statuses (fournisseurs retenus)
+  const { data: soumissionStatuses = [], isLoading: soumissionsLoading } = useQuery({
+    queryKey: ["soumission-statuses-gallery", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("task_dates")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("step_id", "soumissions")
+        .like("task_id", "soumission-%");
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && !!user,
+  });
+
+  // Fetch soumission documents
+  const { data: soumissionDocs = [], isLoading: soumissionDocsLoading } = useQuery({
+    queryKey: ["soumission-docs-gallery", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("task_attachments")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("step_id", "soumissions")
+        .like("task_id", "soumission-%")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && !!user,
+  });
+
   // Group photos by step
   const photosByStep = photos.reduce((acc, photo) => {
     const stepId = photo.step_id;
@@ -148,6 +211,41 @@ const ProjectGallery = () => {
   const filteredDocuments = selectedCategory === "all"
     ? documents
     : documents.filter(d => d.category === selectedCategory);
+
+  // Parse supplier info from notes JSON
+  const parseSupplierInfo = (notes: string | null) => {
+    if (!notes) return null;
+    try {
+      return JSON.parse(notes);
+    } catch {
+      return null;
+    }
+  };
+
+  // Get soumissions data by trade
+  const getSoumissionsByTrade = () => {
+    return soumissionTrades.map(trade => {
+      const status = soumissionStatuses.find(s => s.task_id === `soumission-${trade.id}`);
+      const docs = soumissionDocs.filter(d => d.task_id === `soumission-${trade.id}`);
+      const supplierInfo = status ? parseSupplierInfo(status.notes) : null;
+      const isRetenu = supplierInfo?.isCompleted === true;
+      
+      return {
+        ...trade,
+        status,
+        docs,
+        supplierInfo,
+        isRetenu,
+        supplierName: supplierInfo?.supplierName || null,
+        supplierPhone: supplierInfo?.supplierPhone || null,
+        amount: supplierInfo?.amount || null,
+      };
+    });
+  };
+
+  const soumissionsData = getSoumissionsByTrade();
+  const retenuCount = soumissionsData.filter(s => s.isRetenu).length;
+  const totalDocsCount = soumissionDocs.length;
 
   const getStepTitle = (stepId: string) => {
     const step = constructionSteps.find(s => s.id === stepId);
@@ -258,7 +356,7 @@ const ProjectGallery = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="photos" className="gap-2">
                 <Camera className="h-4 w-4" />
                 Photos ({photos.length})
@@ -266,6 +364,10 @@ const ProjectGallery = () => {
               <TabsTrigger value="documents" className="gap-2">
                 <FileText className="h-4 w-4" />
                 Documents ({documents.length})
+              </TabsTrigger>
+              <TabsTrigger value="soumissions" className="gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Soumissions ({retenuCount}/{soumissionTrades.length})
               </TabsTrigger>
             </TabsList>
 
@@ -430,6 +532,102 @@ const ProjectGallery = () => {
                       </Card>
                     );
                   })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Soumissions Tab */}
+            <TabsContent value="soumissions" className="mt-6">
+              {soumissionsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-20 rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Fournisseurs retenus */}
+                  <div>
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      Fournisseurs retenus ({retenuCount})
+                    </h3>
+                    {retenuCount === 0 ? (
+                      <Card className="border-dashed">
+                        <CardContent className="py-8 text-center">
+                          <p className="text-muted-foreground">
+                            Aucun fournisseur retenu pour le moment
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Sélectionnez vos fournisseurs dans l'étape "Soumissions" du guide
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {soumissionsData.filter(s => s.isRetenu).map((trade) => (
+                          <Card key={trade.id} className="border-green-200 bg-green-50/50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-medium flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    {trade.name}
+                                  </h4>
+                                  {trade.supplierName && (
+                                    <p className="text-sm mt-1 flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      {trade.supplierName}
+                                    </p>
+                                  )}
+                                  {trade.supplierPhone && (
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {trade.supplierPhone}
+                                    </p>
+                                  )}
+                                </div>
+                                {trade.amount && (
+                                  <Badge variant="secondary" className="text-green-700">
+                                    {parseFloat(trade.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
+                                  </Badge>
+                                )}
+                              </div>
+                              {trade.docs.length > 0 && (
+                                <div className="mt-2 pt-2 border-t">
+                                  <p className="text-xs text-muted-foreground">{trade.docs.length} document(s)</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* En attente */}
+                  <div>
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-600" />
+                      En attente ({soumissionTrades.length - retenuCount})
+                    </h3>
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                      {soumissionsData.filter(s => !s.isRetenu).map((trade) => (
+                        <Card key={trade.id} className="border-dashed">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">{trade.name}</span>
+                              {trade.docs.length > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {trade.docs.length} doc(s)
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </TabsContent>

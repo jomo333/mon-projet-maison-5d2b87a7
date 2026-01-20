@@ -109,6 +109,7 @@ export const ProjectSummary = ({
           // Calculer min et max à partir des descriptions (si disponibles)
           let minBudget = 0;
           let maxBudget = 0;
+          let hasExplicitRange = false;
           
           budgets.forEach(b => {
             if (b.description) {
@@ -117,6 +118,7 @@ export const ProjectSummary = ({
                 if (range.min && range.max) {
                   minBudget += range.min;
                   maxBudget += range.max;
+                  hasExplicitRange = true;
                 }
               } catch {
                 // Description n'est pas un JSON, ignorer
@@ -124,10 +126,10 @@ export const ProjectSummary = ({
             }
           });
           
-          // Si pas de fourchette trouvée, utiliser le budget total
-          if (minBudget === 0 && maxBudget === 0 && totalBudget > 0) {
-            minBudget = totalBudget;
-            maxBudget = totalBudget;
+          // Si pas de fourchette explicite, appliquer ±15% (budget basé sur peu d'info)
+          if (!hasExplicitRange && totalBudget > 0) {
+            minBudget = Math.round(totalBudget * 0.85);
+            maxBudget = Math.round(totalBudget * 1.15);
           }
           
           setBudgetSummary({

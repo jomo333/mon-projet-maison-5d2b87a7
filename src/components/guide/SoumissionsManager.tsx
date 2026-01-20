@@ -109,6 +109,15 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   const [selectingSupplier, setSelectingSupplier] = useState<SupplierSelection | null>(null);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
 
+  const safeParseNotes = (raw: string | null | undefined): any => {
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  };
+
   // Charger les statuts des soumissions depuis task_dates
   const { data: soumissionStatuses, isLoading: loadingStatuses } = useQuery({
     queryKey: ['soumission-statuses', projectId],
@@ -149,7 +158,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       const inputs: Record<string, SupplierFormData> = {};
       soumissionStatuses.forEach(status => {
         const tradeId = status.task_id.replace('soumission-', '');
-        const notes = status.notes ? JSON.parse(status.notes) : {};
+        const notes = safeParseNotes(status.notes);
         inputs[tradeId] = {
           name: notes.supplierName || '',
           phone: notes.supplierPhone || '',

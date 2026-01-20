@@ -1058,11 +1058,19 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
               {/* Liste des documents à cocher */}
               {tradeDocs.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Soumission retenue</label>
+                  <label className="text-sm font-medium">1. Choisissez la soumission retenue</label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {tradeDocs.map((doc, idx) => {
                       const contact = extractedContacts[idx];
                       const isSelected = supplierInputs[selectingSupplier.tradeId]?.selectedDocId === doc.id;
+                      
+                      // Vérifier si ce document a des options
+                      const docNameNormalized = doc.file_name.toLowerCase().replace(/[_\-\s\d]/g, '');
+                      const hasOptions = extractedOptions.some(opt => {
+                        if (!opt.docName) return false;
+                        const optDocNormalized = opt.docName.toLowerCase().replace(/[_\-\s\d]/g, '');
+                        return optDocNormalized.includes(docNameNormalized) || docNameNormalized.includes(optDocNormalized);
+                      });
                       
                       return (
                         <div 
@@ -1081,6 +1089,11 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                             />
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm truncate flex-1">{doc.file_name}</span>
+                            {hasOptions && (
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                Options
+                              </Badge>
+                            )}
                           </div>
                           {contact && (contact.supplierName || contact.phone || contact.amount) && (
                             <div className="ml-10 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -1106,27 +1119,26 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                   </div>
                 </div>
               )}
-              
-              {/* Options de la soumission sélectionnée ou toutes les options */}
-              {extractedOptions.length > 0 && (
-                <div className="space-y-2">
+              {/* Options de la soumission sélectionnée */}
+              {supplierInputs[selectingSupplier.tradeId]?.selectedDocId && docOptions.length > 0 && (
+                <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
                   <label className="text-sm font-medium flex items-center gap-2">
-                    Options disponibles
-                    <Badge variant="secondary" className="text-xs">{extractedOptions.length} options</Badge>
+                    2. Choisissez l'option retenue
+                    <Badge variant="secondary" className="text-xs">{docOptions.length} options</Badge>
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Sélectionnez l'option que vous souhaitez retenir. Le montant sera automatiquement mis à jour.
+                    Cette soumission propose plusieurs options. Sélectionnez celle que vous retenez :
                   </p>
                   <div className="space-y-2 max-h-52 overflow-y-auto">
-                    {extractedOptions.map((option, idx) => {
+                    {docOptions.map((option, idx) => {
                       const isOptionSelected = supplierInputs[selectingSupplier.tradeId]?.selectedOption === option.optionName;
                       
                       return (
                         <div 
                           key={idx}
-                          className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                          className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors bg-background ${
                             isOptionSelected 
-                              ? 'border-primary bg-primary/5' 
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary' 
                               : 'hover:bg-muted/50'
                           }`}
                           onClick={() => selectOption(option.optionName, option.amount)}
@@ -1144,11 +1156,6 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                             </div>
                             {option.description && (
                               <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
-                            )}
-                            {option.docName && (
-                              <p className="text-xs text-muted-foreground/70 mt-1 italic">
-                                Source: {option.docName}
-                              </p>
                             )}
                           </div>
                         </div>

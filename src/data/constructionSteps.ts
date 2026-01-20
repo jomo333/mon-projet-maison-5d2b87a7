@@ -145,17 +145,6 @@ export const constructionSteps: Step[] = [
           "Comparez les garanties et délais proposés"
         ],
         documents: ["Soumissions signées", "Preuves d'assurance", "Licences RBQ"]
-      },
-      {
-        id: "comparer-soumissions",
-        title: "Comparer et sélectionner",
-        description: "Analysez les soumissions reçues et choisissez les meilleurs fournisseurs pour chaque corps de métier.",
-        tips: [
-          "Ne choisissez pas uniquement sur le prix le plus bas",
-          "Vérifiez les références des entrepreneurs",
-          "Demandez des preuves d'assurance responsabilité"
-        ],
-        documents: ["Soumissions signées", "Preuves d'assurance", "Licences RBQ"]
       }
     ]
   },

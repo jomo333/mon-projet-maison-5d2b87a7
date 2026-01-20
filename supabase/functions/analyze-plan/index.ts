@@ -166,11 +166,11 @@ serve(async (req) => {
     const body = await req.json();
     const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl } = body;
     
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      console.error('LOVABLE_API_KEY not configured');
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicKey) {
+      console.error('ANTHROPIC_API_KEY not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'AI not configured' }),
+        JSON.stringify({ success: false, error: 'AI not configured - ANTHROPIC_API_KEY missing' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -277,114 +277,81 @@ ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
 Retourne le JSON structuré avec des montants RÉALISTES reflétant les coûts de construction actuels au Québec.`;
     }
 
-    // Build messages for extraction pass
-    const extractionMessages: any[] = [
-      { role: "system", content: SYSTEM_PROMPT_EXTRACTION }
-    ];
-
+    // Build messages for Claude API
+    const userContent: any[] = [];
+    
+    // Add images first for Claude format
     if (imageUrls.length > 0) {
-      const contentArray: any[] = [{ type: "text", text: extractionPrompt }];
       for (const url of imageUrls) {
-        contentArray.push({ type: "image_url", image_url: { url } });
+        // Claude requires base64 or URL with media_type
+        userContent.push({
+          type: "image",
+          source: {
+            type: "url",
+            url: url
+          }
+        });
       }
-      extractionMessages.push({ role: "user", content: contentArray });
-    } else {
-      extractionMessages.push({ role: "user", content: extractionPrompt });
     }
+    
+    // Add the text prompt
+    userContent.push({
+      type: "text",
+      text: extractionPrompt
+    });
 
-    // First API call - Extraction with Gemini 2.5 Pro (best accuracy)
-    console.log('Pass 1: Extraction with Gemini 2.5 Pro...');
-    const extractionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Claude API
+    console.log('Analyzing with Claude (Anthropic)...');
+    const extractionResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
-        messages: extractionMessages,
-        temperature: 0.1,
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8192,
+        system: SYSTEM_PROMPT_EXTRACTION,
+        messages: [{
+          role: "user",
+          content: imageUrls.length > 0 ? userContent : extractionPrompt
+        }],
       }),
     });
 
     if (!extractionResponse.ok) {
       const errorText = await extractionResponse.text();
-      console.error('Extraction API error:', extractionResponse.status, errorText);
+      console.error('Claude API error:', extractionResponse.status, errorText);
       return new Response(
-        JSON.stringify({ success: false, error: `Extraction failed: ${extractionResponse.status}` }),
+        JSON.stringify({ success: false, error: `Claude API failed: ${extractionResponse.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     let extractionContent: string;
     try {
-      const responseText = await extractionResponse.text();
-      if (!responseText || responseText.trim() === '') {
-        console.error('Empty response from AI');
+      const responseData = await extractionResponse.json();
+      extractionContent = responseData.content?.[0]?.text || '';
+      
+      if (!extractionContent) {
+        console.error('Empty response from Claude');
         return new Response(
-          JSON.stringify({ success: false, error: 'Empty response from AI - please try again' }),
+          JSON.stringify({ success: false, error: 'Empty response from Claude' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const extractionData = JSON.parse(responseText);
-      extractionContent = extractionData.choices?.[0]?.message?.content;
     } catch (parseErr) {
-      console.error('Failed to parse extraction response:', parseErr);
+      console.error('Failed to parse Claude response:', parseErr);
       return new Response(
-        JSON.stringify({ success: false, error: 'AI response was incomplete - please try again' }),
+        JSON.stringify({ success: false, error: 'Failed to parse Claude response' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!extractionContent) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No extraction response' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Skip validation pass for plan mode with many images to avoid timeout
-    // The extraction with Gemini 2.5 Pro is already high quality
+    // Use extraction directly (Claude is accurate enough for single pass)
     let finalContent = extractionContent;
-    
-    // Only run validation for manual mode (no images, faster)
-    if (mode !== "plan" || imageUrls.length <= 2) {
-      console.log('Pass 2: Validation with Gemini 2.5 Pro...');
-      const validationMessages = [
-        { role: "system", content: SYSTEM_PROMPT_VALIDATION },
-        { role: "user", content: `Voici l'extraction initiale à valider et corriger:\n\n${extractionContent}\n\nVérifie chaque élément et corrige les erreurs. Retourne le JSON final corrigé.` }
-      ];
-
-      try {
-        const validationResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
-            messages: validationMessages,
-            temperature: 0.1,
-          }),
-        });
-
-        if (validationResponse.ok) {
-          const validationText = await validationResponse.text();
-          if (validationText && validationText.trim()) {
-            const validationData = JSON.parse(validationText);
-            const validatedContent = validationData.choices?.[0]?.message?.content;
-            if (validatedContent) {
-              finalContent = validatedContent;
-            }
-          }
-        }
-      } catch (validationErr) {
-        console.log('Validation pass skipped due to error, using extraction result');
-      }
-    } else {
-      console.log('Skipping validation pass for multi-image analysis');
-    }
+    console.log('Claude analysis complete');
 
     // Parse the final JSON - handle text before/after JSON and truncation
     let budgetData;

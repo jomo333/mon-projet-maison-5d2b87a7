@@ -146,6 +146,415 @@ Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les p
   "resume_projet": "Description du projet"
 }`;
 
+type PageExtraction = {
+  type_projet?: string;
+  superficie_nouvelle_pi2?: number;
+  nombre_etages?: number;
+  plans_analyses?: number;
+  categories?: any[];
+  elements_manquants?: string[];
+  ambiguites?: string[];
+  incoherences?: string[];
+};
+
+function stripMarkdownCodeFences(text: string) {
+  return String(text || "")
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+}
+
+function safeParseJsonFromModel(text: string): any | null {
+  try {
+    let clean = stripMarkdownCodeFences(text);
+    const jsonStart = clean.indexOf("{");
+    if (jsonStart > 0) clean = clean.substring(jsonStart);
+
+    try {
+      return JSON.parse(clean);
+    } catch {
+      // Basic repair if truncated
+      let braceCount = 0;
+      let bracketCount = 0;
+      for (const ch of clean) {
+        if (ch === "{") braceCount++;
+        if (ch === "}") braceCount--;
+        if (ch === "[") bracketCount++;
+        if (ch === "]") bracketCount--;
+      }
+      let repaired = clean;
+      while (bracketCount > 0) {
+        repaired += "]";
+        bracketCount--;
+      }
+      while (braceCount > 0) {
+        repaired += "}";
+        braceCount--;
+      }
+      return JSON.parse(repaired);
+    }
+  } catch {
+    return null;
+  }
+}
+
+async function fetchImageAsBase64(url: string, maxBytes: number): Promise<{ base64: string; mediaType: string } | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const arrayBuffer = await resp.arrayBuffer();
+    if (arrayBuffer.byteLength > maxBytes) return null;
+    const base64 = encodeBase64(arrayBuffer);
+    const contentType = resp.headers.get('content-type') || 'image/png';
+    const mediaType = contentType.includes('jpeg') || contentType.includes('jpg')
+      ? 'image/jpeg'
+      : contentType.includes('webp')
+        ? 'image/webp'
+        : 'image/png';
+    return { base64, mediaType };
+  } catch {
+    return null;
+  }
+}
+
+async function analyzeOnePageWithClaude({
+  apiKey,
+  imageBase64,
+  mediaType,
+  finishQualityLabel,
+  pageNumber,
+  totalPages,
+  additionalNotes,
+}: {
+  apiKey: string;
+  imageBase64: string;
+  mediaType: string;
+  finishQualityLabel: string;
+  pageNumber: number;
+  totalPages: number;
+  additionalNotes?: string;
+}): Promise<string | null> {
+  const pagePrompt = `Tu analyses la PAGE ${pageNumber}/${totalPages} d'un ensemble de plans de construction au Québec.
+
+QUALITÉ DE FINITION: ${finishQualityLabel}
+${additionalNotes ? `NOTES CLIENT: ${additionalNotes}` : ''}
+
+OBJECTIF:
+- Extraire UNIQUEMENT ce qui est visible sur cette page (dimensions, quantités, matériaux).
+- Si une catégorie n'est pas visible sur cette page, ne l'invente pas.
+- Retourne du JSON STRICT (sans texte autour), au format suivant:
+
+{
+  "extraction": {
+    "type_projet": "CONSTRUCTION_NEUVE | AGRANDISSEMENT | RENOVATION | GARAGE | GARAGE_AVEC_ETAGE",
+    "superficie_nouvelle_pi2": number,
+    "nombre_etages": number,
+    "plans_analyses": 1,
+    "categories": [
+      {
+        "nom": string,
+        "items": [
+          {
+            "description": string,
+            "quantite": number,
+            "unite": string,
+            "dimension": string,
+            "prix_unitaire": number,
+            "total": number,
+            "source": "Page ${pageNumber}",
+            "confiance": "haute" | "moyenne" | "basse"
+          }
+        ],
+        "sous_total_materiaux": number,
+        "heures_main_oeuvre": number,
+        "taux_horaire_CCQ": number,
+        "sous_total_main_oeuvre": number,
+        "sous_total_categorie": number
+      }
+    ],
+    "elements_manquants": string[],
+    "ambiguites": string[],
+    "incoherences": string[]
+  }
+}`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2500,
+      system: SYSTEM_PROMPT_EXTRACTION,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+            { type: 'text', text: pagePrompt },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  return data.content?.[0]?.text || null;
+}
+
+function mid(min: number, max: number) {
+  return (min + max) / 2;
+}
+
+function ensureAllMainCategoriesAndRecalc({
+  mergedCategories,
+  squareFootage,
+  finishQuality,
+}: {
+  mergedCategories: any[];
+  squareFootage: number;
+  finishQuality: string;
+}) {
+  // Benchmarks ($/pi²) include materials+labour
+  const perSqft: Record<string, { economique: [number, number]; standard: [number, number]; "haut-de-gamme": [number, number] }> = {
+    "Fondation": { economique: [35, 45], standard: [45, 60], "haut-de-gamme": [60, 80] },
+    "Structure": { economique: [25, 35], standard: [35, 50], "haut-de-gamme": [50, 70] },
+    "Toiture": { economique: [15, 20], standard: [20, 30], "haut-de-gamme": [30, 45] },
+    "Revêtement extérieur": { economique: [15, 25], standard: [25, 40], "haut-de-gamme": [40, 70] },
+    "Fenêtres et portes": { economique: [20, 30], standard: [30, 50], "haut-de-gamme": [50, 80] },
+    "Isolation et pare-air": { economique: [8, 12], standard: [12, 18], "haut-de-gamme": [18, 25] },
+    "Électricité": { economique: [15, 20], standard: [20, 30], "haut-de-gamme": [30, 50] },
+    "Plomberie": { economique: [12, 18], standard: [18, 28], "haut-de-gamme": [28, 45] },
+    "Chauffage/CVAC": { economique: [15, 25], standard: [25, 40], "haut-de-gamme": [40, 60] },
+    "Finition intérieure": { economique: [12, 18], standard: [18, 25], "haut-de-gamme": [25, 35] },
+  };
+
+  const fixed: Record<string, { economique: number; standard: number; "haut-de-gamme": number }> = {
+    "Cuisine": { economique: mid(8000, 15000), standard: mid(15000, 35000), "haut-de-gamme": mid(35000, 80000) },
+    // Assumption: 1 bathroom when unknown
+    "Salle de bain": { economique: mid(5000, 10000), standard: mid(10000, 25000), "haut-de-gamme": mid(25000, 50000) },
+  };
+
+  const quality = (finishQuality === "economique" || finishQuality === "haut-de-gamme" || finishQuality === "standard")
+    ? (finishQuality as "economique" | "standard" | "haut-de-gamme")
+    : "standard";
+
+  const normalize = (s: unknown) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const existingKeys = new Set(mergedCategories.map((c) => normalize(c.nom || c.name)));
+
+  const required = [
+    "Fondation",
+    "Structure",
+    "Toiture",
+    "Revêtement extérieur",
+    "Fenêtres et portes",
+    "Isolation et pare-air",
+    "Électricité",
+    "Plomberie",
+    "Chauffage/CVAC",
+    "Finition intérieure",
+    "Cuisine",
+    "Salle de bain",
+  ];
+
+  const defaultLaborShare = 0.42; // within 35-50%
+
+  for (const nom of required) {
+    if (existingKeys.has(normalize(nom))) continue;
+
+    let total = 0;
+    if (perSqft[nom] && squareFootage > 0) {
+      const [mn, mx] = perSqft[nom][quality];
+      total = mid(mn, mx) * squareFootage;
+    } else if (fixed[nom]) {
+      total = fixed[nom][quality];
+    }
+
+    const sous_total_main_oeuvre = total * defaultLaborShare;
+    const sous_total_materiaux = total - sous_total_main_oeuvre;
+
+    mergedCategories.push({
+      nom,
+      items: [
+        {
+          description: "Estimation basée sur repères Québec 2025",
+          quantite: 1,
+          unite: "forfait",
+          dimension: "",
+          prix_unitaire: total,
+          total,
+          source: "Estimé",
+          confiance: "basse",
+        },
+      ],
+      sous_total_materiaux,
+      heures_main_oeuvre: 0,
+      taux_horaire_CCQ: 0,
+      sous_total_main_oeuvre,
+      sous_total_categorie: total,
+    });
+  }
+
+  // Recompute subtotals consistently (and ensure labour isn't dropped)
+  let totalMateriaux = 0;
+  let totalMainOeuvre = 0;
+
+  const normalizedCategories = mergedCategories.map((c) => {
+    const itemsTotal = (c.items || []).reduce((sum: number, it: any) => sum + (Number(it.total) || 0), 0);
+    let sousMat = Number(c.sous_total_materiaux);
+    let sousMO = Number(c.sous_total_main_oeuvre);
+    let sousCat = Number(c.sous_total_categorie);
+
+    if (!Number.isFinite(sousMat) || sousMat <= 0) sousMat = itemsTotal;
+    if (!Number.isFinite(sousMO) || sousMO < 0) sousMO = 0;
+
+    // If category total missing, build it from materials + labour
+    if (!Number.isFinite(sousCat) || sousCat <= 0) sousCat = sousMat + sousMO;
+
+    // If labour missing but total suggests it, infer
+    if (sousMO === 0 && sousCat > sousMat) sousMO = sousCat - sousMat;
+    // If still missing, apply default labour share
+    if (sousMO === 0 && sousMat > 0) sousMO = (sousMat * defaultLaborShare) / (1 - defaultLaborShare);
+
+    sousCat = sousMat + sousMO;
+
+    totalMateriaux += sousMat;
+    totalMainOeuvre += sousMO;
+
+    return {
+      ...c,
+      nom: c.nom || c.name,
+      sous_total_materiaux: sousMat,
+      sous_total_main_oeuvre: sousMO,
+      sous_total_categorie: sousCat,
+    };
+  });
+
+  const sousTotalAvantTaxes = normalizedCategories.reduce((sum: number, c: any) => sum + (Number(c.sous_total_categorie) || 0), 0);
+  const contingence = sousTotalAvantTaxes * 0.05;
+  const sousTotalAvecContingence = sousTotalAvantTaxes + contingence;
+  const tps = sousTotalAvecContingence * 0.05;
+  const tvq = sousTotalAvecContingence * 0.09975;
+  const totalTtc = sousTotalAvecContingence + tps + tvq;
+
+  const ratio = totalMateriaux > 0 ? totalMainOeuvre / totalMateriaux : null;
+  const ratioAcceptable = ratio === null ? null : ratio >= 0.35 && ratio <= 0.5;
+
+  return {
+    categories: normalizedCategories,
+    totaux: {
+      total_materiaux: totalMateriaux,
+      total_main_oeuvre: totalMainOeuvre,
+      sous_total_avant_taxes: sousTotalAvantTaxes,
+      contingence_5_pourcent: contingence,
+      sous_total_avec_contingence: sousTotalAvecContingence,
+      tps_5_pourcent: tps,
+      tvq_9_975_pourcent: tvq,
+      total_ttc: totalTtc,
+    },
+    validation: {
+      surfaces_completes: false,
+      ratio_main_oeuvre_materiaux: ratio,
+      ratio_acceptable: ratioAcceptable,
+      alertes: [],
+    },
+  };
+}
+
+function mergePageExtractions(pageExtractions: PageExtraction[]) {
+  const normalizeKey = (s: unknown) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  const catMap = new Map<string, any>();
+  const missing = new Set<string>();
+  const ambiguites = new Set<string>();
+  const incoherences = new Set<string>();
+
+  let typeProjet: string | undefined;
+  let superficie: number | undefined;
+  let etages: number | undefined;
+
+  for (const ex of pageExtractions) {
+    typeProjet = typeProjet || ex.type_projet;
+    if (!superficie && Number(ex.superficie_nouvelle_pi2)) superficie = Number(ex.superficie_nouvelle_pi2);
+    if (!etages && Number(ex.nombre_etages)) etages = Number(ex.nombre_etages);
+
+    for (const e of ex.elements_manquants || []) missing.add(String(e));
+    for (const e of ex.ambiguites || []) ambiguites.add(String(e));
+    for (const e of ex.incoherences || []) incoherences.add(String(e));
+
+    for (const cat of ex.categories || []) {
+      const nom = cat.nom || cat.name || 'Autre';
+      const key = normalizeKey(nom);
+      const existing = catMap.get(key) || {
+        nom,
+        items: [],
+        heures_main_oeuvre: 0,
+        sous_total_main_oeuvre: 0,
+        sous_total_materiaux: 0,
+        taux_horaire_CCQ: Number(cat.taux_horaire_CCQ) || 0,
+      };
+
+      existing.heures_main_oeuvre += Number(cat.heures_main_oeuvre) || 0;
+      existing.sous_total_main_oeuvre += Number(cat.sous_total_main_oeuvre) || 0;
+      existing.sous_total_materiaux += Number(cat.sous_total_materiaux) || 0;
+      existing.taux_horaire_CCQ = existing.taux_horaire_CCQ || Number(cat.taux_horaire_CCQ) || 0;
+
+      // Merge items by description+unit+dimension
+      const itemMap = new Map<string, any>();
+      for (const it of existing.items) {
+        const k = `${normalizeKey(it.description)}|${normalizeKey(it.unite)}|${normalizeKey(it.dimension)}`;
+        itemMap.set(k, it);
+      }
+      for (const it of cat.items || []) {
+        const desc = it.description;
+        const unite = it.unite || it.unit;
+        const dimension = it.dimension || '';
+        const k = `${normalizeKey(desc)}|${normalizeKey(unite)}|${normalizeKey(dimension)}`;
+
+        const quantite = Number(it.quantite) || 0;
+        const prix = Number(it.prix_unitaire) || 0;
+        const total = Number(it.total) || (quantite && prix ? quantite * prix : 0);
+
+        const prev = itemMap.get(k);
+        if (prev) {
+          prev.quantite = (Number(prev.quantite) || 0) + quantite;
+          prev.total = (Number(prev.total) || 0) + total;
+          prev.prix_unitaire = Math.max(Number(prev.prix_unitaire) || 0, prix);
+          prev.source = prev.source || it.source;
+          itemMap.set(k, prev);
+        } else {
+          itemMap.set(k, {
+            description: desc,
+            quantite,
+            unite,
+            dimension,
+            prix_unitaire: prix,
+            total,
+            source: it.source,
+            confiance: it.confiance || 'moyenne',
+          });
+        }
+      }
+      existing.items = Array.from(itemMap.values());
+      catMap.set(key, existing);
+    }
+  }
+
+  return {
+    typeProjet: typeProjet || 'GARAGE',
+    superficie: superficie || 0,
+    etages: etages || 1,
+    categories: Array.from(catMap.values()),
+    elements_manquants: Array.from(missing),
+    ambiguites: Array.from(ambiguites),
+    incoherences: Array.from(incoherences),
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -235,111 +644,87 @@ Retourne le JSON structuré COMPLET.`;
     let finalContent: string;
 
     if (mode === 'plan' && imageUrls.length > 0) {
-      // Fetch and convert all images to base64
-      console.log(`Converting ${imageUrls.length} images to base64...`);
-      
-      const imageContents: any[] = [];
-      
+      // IMPORTANT: Do NOT accumulate base64 images in memory (WORKER_LIMIT). Process sequentially.
+      console.log(`Starting sequential plan analysis for ${imageUrls.length} images...`);
+
+      const maxBytesPerImage = 2_800_000; // ~2.8MB to stay safe
+      const pageExtractions: PageExtraction[] = [];
+      let skipped = 0;
+
+      const finishQualityLabel = qualityDescriptions[finishQuality] || qualityDescriptions["standard"];
+
       for (let i = 0; i < imageUrls.length; i++) {
         const url = imageUrls[i];
-        console.log(`Fetching image ${i + 1}/${imageUrls.length}...`);
-        
-        try {
-          const resp = await fetch(url);
-          if (!resp.ok) {
-            console.log(`Failed to fetch image ${i + 1}: ${resp.status}`);
-            continue;
-          }
-          
-          const arrayBuffer = await resp.arrayBuffer();
-          const bytes = arrayBuffer.byteLength;
-          
-          // Skip very large images (>5MB)
-          if (bytes > 5_000_000) {
-            console.log(`Skipping large image ${i + 1} (${Math.round(bytes / 1024 / 1024)}MB)`);
-            continue;
-          }
-          
-          const base64 = encodeBase64(arrayBuffer);
-          const contentType = resp.headers.get('content-type') || 'image/png';
-          const mediaType = contentType.includes('jpeg') || contentType.includes('jpg')
-            ? 'image/jpeg'
-            : contentType.includes('webp')
-              ? 'image/webp'
-              : 'image/png';
-          
-          imageContents.push({
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: base64 }
-          });
-          
-          console.log(`Image ${i + 1} converted (${Math.round(bytes / 1024)}KB)`);
-        } catch (err) {
-          console.log(`Error fetching image ${i + 1}:`, err);
+        console.log(`Processing image ${i + 1}/${imageUrls.length}...`);
+
+        const img = await fetchImageAsBase64(url, maxBytesPerImage);
+        if (!img) {
+          skipped++;
+          console.log(`Skipping image ${i + 1} (fetch failed or too large)`);
+          continue;
+        }
+
+        const pageText = await analyzeOnePageWithClaude({
+          apiKey: anthropicKey,
+          imageBase64: img.base64,
+          mediaType: img.mediaType,
+          finishQualityLabel,
+          pageNumber: i + 1,
+          totalPages: imageUrls.length,
+          additionalNotes: body.additionalNotes,
+        });
+
+        const parsed = pageText ? safeParseJsonFromModel(pageText) : null;
+        const extraction = (parsed?.extraction || parsed) as PageExtraction | undefined;
+        if (extraction && Array.isArray(extraction.categories)) {
+          pageExtractions.push(extraction);
+          console.log(`Image ${i + 1} analyzed (categories: ${extraction.categories.length})`);
+        } else {
+          console.log(`Image ${i + 1} returned non-parseable JSON`);
         }
       }
 
-      if (imageContents.length === 0) {
+      if (pageExtractions.length === 0) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: "Impossible de charger les images. Vérifiez qu'elles sont accessibles.",
+            error: "Impossible d'analyser les plans. Images trop lourdes/illisibles ou erreur IA.",
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log(`Sending ${imageContents.length} images to Claude for analysis...`);
-
-      // Single call with ALL images
-      const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 8192,
-          system: SYSTEM_PROMPT_EXTRACTION,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                ...imageContents,
-                { type: 'text', text: extractionPrompt },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (!claudeResp.ok) {
-        const txt = await claudeResp.text();
-        console.error('Claude API error:', claudeResp.status, txt);
-        
-        // Check for specific errors
-        if (claudeResp.status === 413 || txt.includes('too large')) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'Les images sont trop volumineuses. Essayez avec moins de pages ou des images plus petites.' 
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({ success: false, error: `Erreur API: ${claudeResp.status}` }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const claudeData = await claudeResp.json();
-      finalContent = claudeData.content?.[0]?.text || '';
-      console.log('Claude analysis complete');
-      
+      const merged = mergePageExtractions(pageExtractions);
+      const sqftFallback = Number(body.squareFootage) || 0;
+      const sqft = merged.superficie || sqftFallback;
+
+      const completed = ensureAllMainCategoriesAndRecalc({
+        mergedCategories: merged.categories,
+        squareFootage: sqft,
+        finishQuality,
+      });
+
+      const budgetData = {
+        extraction: {
+          type_projet: merged.typeProjet,
+          superficie_nouvelle_pi2: sqft,
+          nombre_etages: merged.etages,
+          plans_analyses: imageUrls.length - skipped,
+          categories: completed.categories,
+          elements_manquants: merged.elements_manquants,
+          ambiguites: merged.ambiguites,
+          incoherences: merged.incoherences,
+        },
+        totaux: completed.totaux,
+        validation: completed.validation,
+        recommandations: [
+          "Analyse multi-pages: extraction séquentielle + complétion automatique des catégories manquantes.",
+        ],
+        resume_projet: body.additionalNotes || 'Analyse de plans',
+      };
+
+      finalContent = JSON.stringify(budgetData);
+      console.log('Plan analysis complete - categories:', budgetData.extraction.categories.length);
     } else {
       // Manual mode or no images: text-only call
       console.log('Analyzing with Claude (text mode)...');

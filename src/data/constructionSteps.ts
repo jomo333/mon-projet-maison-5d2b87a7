@@ -120,6 +120,16 @@ export const constructionSteps: Step[] = [
           "Certaines municipalités exigent un engagement d'un professionnel"
         ],
         documents: ["Formulaire de demande", "Plans certifiés", "Certificat de localisation"]
+      },
+      {
+        id: "obtenir-soumissions-plans",
+        title: "Obtenir les soumissions",
+        description: "Demandez des soumissions détaillées aux différents corps de métier pour établir votre budget précis.",
+        tips: [
+          "Obtenez au moins 3 soumissions par spécialité",
+          "Vérifiez les licences RBQ des entrepreneurs",
+          "Comparez les garanties et délais proposés"
+        ]
       }
     ]
   },

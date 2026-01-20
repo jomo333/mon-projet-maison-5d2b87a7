@@ -704,12 +704,21 @@ Retourne le JSON structuré COMPLET.`;
         finishQuality,
       });
 
+      // Generate descriptive project summary based on analysis (not user notes)
+      const typeProjetDisplay = merged.typeProjet
+        .replace('_', ' ')
+        .toLowerCase()
+        .replace(/^\w/, (c: string) => c.toUpperCase());
+      
+      const plansCount = imageUrls.length - skipped;
+      const resumeProjet = `Analyse de ${plansCount} plan(s) - ${typeProjetDisplay} de ${sqft} pi² sur ${merged.etages} étage(s)`;
+
       const budgetData = {
         extraction: {
           type_projet: merged.typeProjet,
           superficie_nouvelle_pi2: sqft,
           nombre_etages: merged.etages,
-          plans_analyses: imageUrls.length - skipped,
+          plans_analyses: plansCount,
           categories: completed.categories,
           elements_manquants: merged.elements_manquants,
           ambiguites: merged.ambiguites,
@@ -720,7 +729,7 @@ Retourne le JSON structuré COMPLET.`;
         recommandations: [
           "Analyse multi-pages: extraction séquentielle + complétion automatique des catégories manquantes.",
         ],
-        resume_projet: body.additionalNotes || 'Analyse de plans',
+        resume_projet: resumeProjet,
       };
 
       finalContent = JSON.stringify(budgetData);

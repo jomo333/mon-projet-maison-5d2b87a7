@@ -457,7 +457,8 @@ export const constructionSteps: Step[] = [
         description: "Installation des cadres de porte dans les murs de division.",
         tips: [
           "Vérifiez le niveau et l'aplomb des cadres",
-          "Prévoyez l'espace pour les portes coulissantes si désiré"
+          "Prévoyez l'espace pour les portes coulissantes si désiré",
+          "Assurez-vous de la bonne hauteur des ouvertures de porte selon l'épaisseur des revêtements de sol"
         ]
       }
     ]

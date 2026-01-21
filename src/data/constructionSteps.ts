@@ -599,6 +599,7 @@ export const constructionSteps: Step[] = [
         title: "Céramique",
         description: "Pose de la céramique dans les salles de bain, cuisine et entrée.",
         tips: [
+          "Ajouter un contreplaqué de 5/8\" vissé à tous les 6 pouces avant la pose de carrelage au sol. Un minimum de 1 1/4\" de substrat est recommandé.",
           "Utilisez une membrane d'étanchéité dans la douche",
           "Prévoyez le chauffage au sol avant la pose"
         ]

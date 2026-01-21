@@ -619,6 +619,9 @@ export const constructionSteps: Step[] = [
         id: "armoires",
         title: "Armoires de cuisine et vanités",
         description: "Installation des armoires et meubles-lavabos.",
+        tips: [
+          "Valider les mesures avec votre cuisiniste une fois les étapes du plâtre complétées"
+        ]
       },
       {
         id: "comptoirs",

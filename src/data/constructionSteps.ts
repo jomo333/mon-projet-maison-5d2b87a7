@@ -571,7 +571,7 @@ export const constructionSteps: Step[] = [
         description: "Application de l'apprêt et de la peinture sur murs et plafonds.",
         tips: [
           "Un bon apprêt est essentiel. Après l'application de l'apprêt, faire une inspection de tous les murs et réparer les défauts visibles avec une lumière. Le contrôle se fait à 3 pieds de distance des murs. Remettre de l'apprêt sur toutes les réparations avant de peindre les couches de finition.",
-          "Peignez les plafonds avant les murs"
+          "Peignez les plafonds, les boiseries et les portes avant les murs"
         ]
       }
     ]

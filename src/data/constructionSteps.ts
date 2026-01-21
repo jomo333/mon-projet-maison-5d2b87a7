@@ -553,7 +553,7 @@ export const constructionSteps: Step[] = [
         description: "Installation des panneaux de gypse sur tous les murs et plafonds.",
         tips: [
           "Utilisez du gypse résistant à l'humidité dans les salles de bain",
-          "Gypse 5/8 pour les plafonds"
+          "Gypse 5/8 sur les murs du garage obligatoire pour la protection coupe-feu"
         ]
       },
       {

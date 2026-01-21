@@ -660,11 +660,6 @@ export const constructionSteps: Step[] = [
         description: "Pose des plinthes, cadrages et moulures décoratives.",
       },
       {
-        id: "luminaires",
-        title: "Luminaires et accessoires",
-        description: "Installation des luminaires, prises finales et interrupteurs.",
-      },
-      {
         id: "escalier",
         title: "Escalier",
         description: "Finition de l'escalier (marches, contremarches, rampe).",

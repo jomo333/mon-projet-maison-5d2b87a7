@@ -752,6 +752,9 @@ export const constructionSteps: Step[] = [
         id: "balcons-terrasses",
         title: "Balcons et terrasses",
         description: "Construction des balcons, galeries et terrasses.",
+        tips: [
+          "Toujours appliquer une membrane d'étanchéité autocicatrisante sur la lisse d'assise (ceinture du bâtiment). Prévoir un espace d'air entre la membrane et la structure du balcon pour permettre le séchage et éviter une détérioration prématurée."
+        ]
       },
       {
         id: "amenagement",

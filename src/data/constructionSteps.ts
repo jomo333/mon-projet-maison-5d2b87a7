@@ -302,11 +302,6 @@ export const constructionSteps: Step[] = [
           "Faites installer les moulures de départ pour le fascia sous la membrane autocollante pour un bon écoulement d'eau en cas de fuite au niveau du revêtement"
         ]
       },
-      {
-        id: "fascia-soffite",
-        title: "Fascia et soffite",
-        description: "Installation des bordures de toit et de la ventilation du comble.",
-      }
     ]
   },
   {
@@ -698,6 +693,11 @@ export const constructionSteps: Step[] = [
         id: "amenagement",
         title: "Aménagement paysager",
         description: "Nivellement final, entrée de garage, gazon et plantations.",
+      },
+      {
+        id: "fascia-soffite",
+        title: "Fascia et soffite",
+        description: "Installation des bordures de toit et de la ventilation du comble.",
       }
     ]
   },

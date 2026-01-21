@@ -723,6 +723,9 @@ export const constructionSteps: Step[] = [
         id: "douche-bain",
         title: "Douche et baignoire",
         description: "Raccordement final des douches et baignoires.",
+        tips: [
+          "Prévoir un installateur spécialisé pour les écrans de bain et les portes de douche"
+        ]
       }
     ]
   },

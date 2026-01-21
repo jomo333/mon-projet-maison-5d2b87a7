@@ -529,7 +529,7 @@ export const constructionSteps: Step[] = [
       {
         id: "conduits",
         title: "Conduits de ventilation",
-        description: "Installation des conduits pour la hotte, sécheuse et salles de bain.",
+        description: "Installation des conduits pour la hotte, sécheuse et ventilateurs de salles de bain.",
       }
     ]
   },

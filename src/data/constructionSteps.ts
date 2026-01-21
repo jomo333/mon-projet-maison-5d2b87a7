@@ -446,7 +446,8 @@ export const constructionSteps: Step[] = [
         description: "Installation de l'ossature en bois ou en acier pour les murs de division.",
         tips: [
           "Utilisez des montants de 2x4 pour les murs non porteurs",
-          "Prévoyez l'emplacement des portes et ouvertures"
+          "Prévoyez l'emplacement des portes et ouvertures",
+          "Assurez-vous que les murs soient solidement attachés entre les planchers et les plafonds (un mur mal ancré pourrait créer des problèmes de plâtre qui craque)"
         ]
       },
       {

@@ -403,6 +403,35 @@ export const constructionSteps: Step[] = [
     ]
   },
   {
+    id: "dalle-sous-sol",
+    title: "Coulage de dalle du sous-sol",
+    description: "Coulage de la dalle de béton du sous-sol après l'installation de la plomberie brute.",
+    phase: "second-oeuvre",
+    phaseLabel: "Second œuvre",
+    icon: "Square",
+    duration: "2-3 jours",
+    tasks: [
+      {
+        id: "preparation-dalle",
+        title: "Préparation du sol",
+        description: "Nivellement, compaction et installation de la membrane pare-vapeur sous la dalle.",
+        tips: [
+          "Assurez-vous que le drainage est bien en place avant de couler",
+          "Installez un isolant rigide sous la dalle pour réduire les pertes de chaleur"
+        ]
+      },
+      {
+        id: "coulage-dalle",
+        title: "Coulage du béton",
+        description: "Coulage et nivellement de la dalle de béton.",
+        tips: [
+          "Prévoyez les joints de contrôle pour éviter les fissures",
+          "Cure du béton: gardez humide pendant 7 jours minimum"
+        ]
+      }
+    ]
+  },
+  {
     id: "electricite-roughin",
     title: "Électricité - Rough-in",
     description: "Installation du filage électrique brut avant la fermeture des murs.",

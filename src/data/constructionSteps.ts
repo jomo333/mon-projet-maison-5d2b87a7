@@ -711,7 +711,8 @@ export const constructionSteps: Step[] = [
         description: "Installation des robinets (cuisine, salles de bain, buanderie).",
         tips: [
           "Vérifiez l'étanchéité de chaque raccord",
-          "Installez des robinets à économie d'eau"
+          "Installez des robinets à économie d'eau",
+          "Privilégiez des robinetteries de marques reconnues offrant une garantie à vie. Avant l'achat, vérifiez la disponibilité des pièces de rechange auprès des distributeurs locaux : cela facilitera les réparations futures et évitera le coût d'un remplacement complet à long terme."
         ]
       },
       {

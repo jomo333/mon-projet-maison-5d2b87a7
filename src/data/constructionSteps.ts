@@ -647,6 +647,9 @@ export const constructionSteps: Step[] = [
         id: "portes-int",
         title: "Portes intérieures",
         description: "Installation des portes, cadres et quincaillerie.",
+        tips: [
+          "Prévoir une porte coupe-feu à fermeture automatique entre le garage et la maison (exigence du code du bâtiment)"
+        ]
       },
       {
         id: "moulures",

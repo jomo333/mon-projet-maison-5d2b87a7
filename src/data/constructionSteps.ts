@@ -432,6 +432,35 @@ export const constructionSteps: Step[] = [
     ]
   },
   {
+    id: "murs-division",
+    title: "Murs de division",
+    description: "Construction des murs de division intérieurs non porteurs.",
+    phase: "second-oeuvre",
+    phaseLabel: "Second œuvre",
+    icon: "LayoutGrid",
+    duration: "2-3 jours",
+    tasks: [
+      {
+        id: "ossature-murs",
+        title: "Ossature des murs",
+        description: "Installation de l'ossature en bois ou en acier pour les murs de division.",
+        tips: [
+          "Utilisez des montants de 2x4 pour les murs non porteurs",
+          "Prévoyez l'emplacement des portes et ouvertures"
+        ]
+      },
+      {
+        id: "cadrage-portes",
+        title: "Cadrage des portes",
+        description: "Installation des cadres de porte dans les murs de division.",
+        tips: [
+          "Vérifiez le niveau et l'aplomb des cadres",
+          "Prévoyez l'espace pour les portes coulissantes si désiré"
+        ]
+      }
+    ]
+  },
+  {
     id: "electricite-roughin",
     title: "Électricité - Rough-in",
     description: "Installation du filage électrique brut avant la fermeture des murs.",

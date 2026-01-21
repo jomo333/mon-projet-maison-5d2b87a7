@@ -743,7 +743,7 @@ export const constructionSteps: Step[] = [
         title: "Revêtement extérieur",
         description: "Installation du parement (vinyle, fibrociment, brique, bois).",
         tips: [
-          "Installez une membrane pare-air avant le revêtement",
+          "Installez une membrane pare-air avant le revêtement et assurez-vous qu'il n'y a pas de perforation",
           "Respectez les espacements de ventilation",
           "Toujours prévoir une lame d'air derrière le revêtement pour assurer une bonne circulation. Ne jamais installer de fourrures de bois à l'horizontale, car elles bloquent l'écoulement de l'air et de l'eau."
         ]

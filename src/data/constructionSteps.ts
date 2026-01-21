@@ -531,7 +531,7 @@ export const constructionSteps: Step[] = [
         title: "Conduits de ventilation",
         description: "Installation des conduits pour la hotte, sécheuse et ventilateurs de salles de bain.",
         tips: [
-          "Le conduit doit être isolé dans les premiers 24 pouces de sa sortie vers un mur extérieur, même dans un plafond chauffé, et isolé au collet dans le comble du toit"
+          "Le conduit doit être isolé au minimum dans les premiers 24 pouces de sa sortie vers un mur extérieur, même dans un plafond chauffé, et isolé au complet dans l'entretoit"
         ]
       }
     ]

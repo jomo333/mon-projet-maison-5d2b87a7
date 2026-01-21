@@ -447,7 +447,8 @@ export const constructionSteps: Step[] = [
         tips: [
           "Utilisez des montants de 2x4 pour les murs non porteurs",
           "Prévoyez l'emplacement des portes et ouvertures",
-          "Assurez-vous que les murs soient solidement attachés entre les planchers et les plafonds (un mur mal ancré pourrait créer des problèmes de plâtre qui craque)"
+          "Assurez-vous que les murs soient solidement attachés entre les planchers et les plafonds (un mur mal ancré pourrait créer des problèmes de plâtre qui craque)",
+          "Prévoyez des murs de 2x6 pour la ventilation de la sécheuse et le passage des colonnes de drainage"
         ]
       },
       {

@@ -519,7 +519,7 @@ export const constructionSteps: Step[] = [
       },
       {
         id: "vrc",
-        title: "Ventilateur récupérateur de chaleur (VRC)",
+        title: "Ventilateur récupérateur de chaleur (VRC) (échangeur d'air)",
         description: "Installation obligatoire pour assurer la qualité de l'air.",
         tips: [
           "Le VRC est obligatoire dans les constructions neuves",

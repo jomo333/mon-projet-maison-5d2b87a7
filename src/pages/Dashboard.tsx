@@ -399,7 +399,7 @@ const Dashboard = () => {
                       <div className="space-y-1 p-3 rounded-lg bg-muted/50">
                         <h3 className="font-medium text-sm text-primary">📷 Photos & Documents</h3>
                         <p className="text-sm text-muted-foreground">
-                          Accédez à vos dossiers pour gérer photos de chantier et documents importants liés au projet.
+                          Enregistrez vos photos de chantier et documents importants liés au projet pour un meilleur suivi.
                         </p>
                       </div>
                     </div>

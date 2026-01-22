@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, ListChecks } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import logo from "@/assets/logo.png";
 
 const navItems = [
   { href: "/mes-projets", label: "Mes Projets", icon: FolderOpen },
-  { href: "/dashboard", label: "Étapes", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/etapes", label: "Étapes", icon: ListChecks },
   { href: "/galerie", label: "Mes Dossiers", icon: FolderDown },
   { href: "/budget", label: "Budget", icon: Calculator },
   { href: "/echeancier", label: "Échéancier", icon: CalendarDays },
@@ -62,7 +63,13 @@ export function Header() {
             
             // Add project parameter for relevant pages
             let href = item.href;
-            if (projectId && (item.href === "/galerie" || item.href === "/dashboard" || item.href === "/budget")) {
+            if (
+              projectId &&
+              (item.href === "/galerie" ||
+                item.href === "/dashboard" ||
+                item.href === "/budget" ||
+                item.href === "/etapes")
+            ) {
               href = `${item.href}?project=${projectId}`;
             }
             
@@ -116,6 +123,14 @@ export function Header() {
                     <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Tableau de bord
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate(projectId ? `/etapes?project=${projectId}` : "/etapes")
+                      }
+                    >
+                      <ListChecks className="mr-2 h-4 w-4" />
+                      Étapes
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive">

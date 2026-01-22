@@ -949,24 +949,32 @@ export function PlanAnalyzer({
           </TabsContent>
         </Tabs>
 
-        <Button 
-          onClick={handleAnalyze} 
-          disabled={isAnalyzing || (analysisMode === "plan" && selectedPlanUrls.length === 0)}
-          className="w-full sm:w-auto gap-2"
-          variant="accent"
-        >
-          {isAnalyzing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Analyse en cours...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              {analysisMode === "manual" ? "Générer le budget" : "Analyser le plan"}
-            </>
+        <div className="space-y-2">
+          <Button 
+            onClick={handleAnalyze} 
+            disabled={isAnalyzing || (analysisMode === "plan" && selectedPlanUrls.length === 0)}
+            className="w-full sm:w-auto gap-2"
+            variant="accent"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analyse en cours...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                {analysisMode === "manual" ? "Générer le budget" : "Analyser le plan"}
+              </>
+            )}
+          </Button>
+          
+          {isAnalyzing && (
+            <p className="text-sm text-muted-foreground animate-pulse">
+              ⏳ L'analyse peut prendre quelques minutes selon la complexité des plans...
+            </p>
           )}
-        </Button>
+        </div>
 
         {/* Results */}
         {analysis && (

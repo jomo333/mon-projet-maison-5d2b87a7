@@ -368,6 +368,15 @@ export const constructionSteps: Step[] = [
           "Assurez-vous qu'il n'y a pas de perforation du pare-vapeur, réparez avec un ruban adhésif pare-vapeur"
         ],
         documents: ["Rapport de test d'infiltrométrie"]
+      },
+      {
+        id: "fourrures-clouage",
+        title: "Fourrures de bois et fond de clouage",
+        description: "Installation des fourrures de bois et des fonds de clouage pour la fixation des revêtements intérieurs.",
+        tips: [
+          "Assurez-vous que les fourrures sont bien nivelées",
+          "Prévoyez les fonds de clouage aux emplacements des armoires et accessoires muraux"
+        ]
       }
     ]
   },

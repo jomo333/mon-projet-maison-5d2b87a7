@@ -528,10 +528,64 @@ export function CategorySubmissionsDialog({
     return contacts;
   };
 
+  // Save analysis summary as a document
+  const saveAnalysisSummary = async (summary: string) => {
+    if (!summary) return null;
+    
+    // Create a text file blob from the summary
+    const blob = new Blob([summary], { type: 'text/markdown' });
+    const fileName = `Analyse_IA_${categoryName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.md`;
+    const sanitizedFileName = sanitizeFileName(fileName);
+    const storagePath = `${projectId}/soumissions/${tradeId}/analyses/${Date.now()}_${sanitizedFileName}`;
+    
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('task-attachments')
+      .upload(storagePath, blob);
+
+    if (uploadError) {
+      console.error("Error uploading analysis summary:", uploadError);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('task-attachments')
+      .getPublicUrl(storagePath);
+
+    // Save to task_attachments
+    const { error: dbError } = await supabase
+      .from('task_attachments')
+      .insert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: `soumission-${tradeId}`,
+        file_name: `Résumé analyse IA - ${categoryName}`,
+        file_url: urlData.publicUrl,
+        file_type: 'text/markdown',
+        file_size: blob.size,
+        category: 'analyse',
+      });
+
+    if (dbError) {
+      console.error("Error saving analysis to DB:", dbError);
+      return null;
+    }
+
+    return urlData.publicUrl;
+  };
+
   // Save everything
-  const handleSave = async () => {
+  const handleSave = async (saveAnalysis = false) => {
     const budgetValue = parseFloat(budget) || 0;
     const spentValue = parseFloat(spent) || parseFloat(selectedAmount) || 0;
+    
+    // Save analysis summary if requested
+    if (saveAnalysis && analysisResult) {
+      await saveAnalysisSummary(analysisResult);
+      toast.success(`Le résumé a été enregistré dans vos dossiers sous "Soumissions > ${categoryName}"`, {
+        duration: 5000,
+      });
+    }
     
     // Save supplier info to task_dates
     if (supplierName) {
@@ -576,7 +630,10 @@ export function CategorySubmissionsDialog({
     } : undefined);
     
     queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, tradeId] });
-    toast.success("Catégorie mise à jour");
+    queryClient.invalidateQueries({ queryKey: ['category-docs', projectId, tradeId] });
+    if (!saveAnalysis) {
+      toast.success("Catégorie mise à jour");
+    }
     onOpenChange(false);
   };
 
@@ -1034,7 +1091,7 @@ export function CategorySubmissionsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={() => handleSave(false)}>
             <Save className="h-4 w-4 mr-2" />
             Enregistrer
           </Button>
@@ -1055,7 +1112,7 @@ export function CategorySubmissionsDialog({
         onSelectOption={handleSelectOption}
         onConfirmSelection={() => {
           setShowFullAnalysis(false);
-          handleSave();
+          handleSave(true); // Save with analysis summary
         }}
       />
     </Dialog>

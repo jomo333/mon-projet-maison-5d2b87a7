@@ -298,16 +298,27 @@ export function CategorySubmissionsDialog({
       return;
     }
 
+    // Reset local state to allow new analysis
+    setSupplierName("");
+    setSupplierPhone("");
+    setContactPerson("");
+    setContactPersonPhone("");
+    setSelectedAmount("");
+    setSpent("0");
+    setSelectedSupplierIndex(null);
+    setSelectedOptionIndex(null);
+    setAnalysisResult(null);
+    setExtractedSuppliers([]);
+
     // Update budget spent to 0
     onSave(parseFloat(budget) || 0, 0);
     
     // Invalidate queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, tradeId] });
     
-    toast.success("Fournisseur supprimé");
+    toast.success("Fournisseur supprimé — vous pouvez relancer une analyse");
     
-    // Close the dialog to force a clean refresh
-    onOpenChange(false);
+    // Stay on the dialog for new analysis (don't close)
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

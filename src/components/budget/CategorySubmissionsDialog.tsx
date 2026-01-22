@@ -142,27 +142,12 @@ export function CategorySubmissionsDialog({
   const scrollToTop = () => {
     const viewport = getScrollViewport();
     if (!viewport) return;
-
-    console.log("[soumissions] scrollToTop", {
-      scrollTop: viewport.scrollTop,
-      scrollHeight: viewport.scrollHeight,
-      clientHeight: viewport.clientHeight,
-    });
-
-    // Bulletproof scroll (avoid scrollTo + smooth issues inside Dialog)
     viewport.scrollTop = 0;
   };
 
   const scrollToBottom = () => {
     const viewport = getScrollViewport();
     if (!viewport) return;
-
-    console.log("[soumissions] scrollToBottom", {
-      scrollTop: viewport.scrollTop,
-      scrollHeight: viewport.scrollHeight,
-      clientHeight: viewport.clientHeight,
-    });
-
     viewport.scrollTop = viewport.scrollHeight;
   };
 

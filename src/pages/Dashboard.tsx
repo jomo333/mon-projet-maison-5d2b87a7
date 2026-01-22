@@ -365,7 +365,7 @@ const Dashboard = () => {
               <div className="flex gap-2 flex-wrap">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button variant="default" size="sm" className="gap-2 bg-primary hover:bg-primary/90">
                       <HelpCircle className="h-4 w-4" />
                       Comment utiliser cette page
                     </Button>

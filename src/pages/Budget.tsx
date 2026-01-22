@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText } from "lucide-react";
 import { PlanAnalyzer } from "@/components/budget/PlanAnalyzer";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,6 +19,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
+import { SoumissionsManager } from "@/components/guide/SoumissionsManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -98,6 +100,7 @@ const Budget = () => {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editBudget, setEditBudget] = useState<string>("");
   const [editSpent, setEditSpent] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("analyse");
   
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
@@ -403,20 +406,64 @@ const Budget = () => {
             </Card>
           )}
 
-          {/* AI Plan Analyzer */}
-          <div ref={planAnalyzerRef}>
-            <PlanAnalyzer 
-              onBudgetGenerated={handleBudgetGenerated} 
-              projectId={selectedProjectId}
-              autoSelectPlanTab={autoAnalyze && !autoManual}
-              autoSelectManualTab={autoManual}
-              onGenerateSchedule={() => setShowScheduleDialog(true)}
-              besoinsNote={besoinsNoteFromUrl}
-              prefillProjectType={prefillProjectType}
-              prefillFloors={prefillFloors}
-              prefillSquareFootage={prefillSquareFootage}
-            />
-          </div>
+          {/* Tabs for Analysis and Submissions */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="analyse" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Analyse de budget
+              </TabsTrigger>
+              <TabsTrigger value="soumissions" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Soumissions
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="analyse">
+              {/* AI Plan Analyzer */}
+              <div ref={planAnalyzerRef}>
+                <PlanAnalyzer 
+                  onBudgetGenerated={handleBudgetGenerated} 
+                  projectId={selectedProjectId}
+                  autoSelectPlanTab={autoAnalyze && !autoManual}
+                  autoSelectManualTab={autoManual}
+                  onGenerateSchedule={() => setShowScheduleDialog(true)}
+                  besoinsNote={besoinsNoteFromUrl}
+                  prefillProjectType={prefillProjectType}
+                  prefillFloors={prefillFloors}
+                  prefillSquareFootage={prefillSquareFootage}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="soumissions">
+              {selectedProjectId ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-display flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Gestion des soumissions
+                    </CardTitle>
+                    <CardDescription>
+                      Téléchargez vos soumissions par corps de métier, analysez-les avec l'IA et sélectionnez vos fournisseurs. Les montants seront automatiquement synchronisés avec votre budget.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SoumissionsManager projectId={selectedProjectId} />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-warning/50 bg-warning/5">
+                  <CardContent className="py-8 text-center">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      Veuillez d'abord sélectionner un projet pour gérer vos soumissions.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Schedule Generation Dialog */}
           {selectedProjectId && (

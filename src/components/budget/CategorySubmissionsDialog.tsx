@@ -29,6 +29,7 @@ import {
   Maximize2,
   ChevronUp,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
@@ -727,9 +728,31 @@ export function CategorySubmissionsDialog({
                     <CheckCircle2 className="h-5 w-5" />
                     Fournisseur retenu
                   </h4>
-                  <Badge className="bg-primary text-primary-foreground">
-                    Sélectionné
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Reset supplier selection to allow new analysis
+                        setSupplierName("");
+                        setSupplierPhone("");
+                        setContactPerson("");
+                        setContactPersonPhone("");
+                        setSelectedAmount("");
+                        setSelectedSupplierIndex(null);
+                        setSelectedOptionIndex(null);
+                        setAnalysisResult(null);
+                        setExtractedSuppliers([]);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                    <Badge className="bg-primary text-primary-foreground">
+                      Sélectionné
+                    </Badge>
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">

@@ -45,21 +45,44 @@ interface BudgetCategory {
   items?: BudgetItem[];
 }
 
-// Categories aligned with construction guide steps (constructionSteps.ts)
+// Categories aligned with construction guide steps 5-22 (constructionSteps.ts)
 const defaultCategories: BudgetCategory[] = [
+  // Étape 5 - Gros œuvre
   { name: "Excavation et fondation", budget: 0, spent: 0, color: "#3B82F6", description: "Implantation, excavation, coulage des fondations, drain et remblai" },
+  // Étape 6
   { name: "Structure et charpente", budget: 0, spent: 0, color: "#F97316", description: "Plancher, murs, étage, fermes de toit, pontage et étanchéité" },
+  // Étape 7
   { name: "Toiture", budget: 0, spent: 0, color: "#22C55E", description: "Membrane et bardeaux" },
+  // Étape 8
   { name: "Fenêtres et portes extérieures", budget: 0, spent: 0, color: "#EAB308", description: "Installation des fenêtres et portes extérieures" },
+  // Étape 9 - Second œuvre
   { name: "Isolation et pare-vapeur", budget: 0, spent: 0, color: "#8B5CF6", description: "Isolation murs/toit, pare-vapeur, fourrures de bois" },
-  { name: "Plomberie", budget: 0, spent: 0, color: "#06B6D4", description: "Rough-in (tuyauterie brute, chauffe-eau) + Finition (robinetterie, toilettes, douche)" },
-  { name: "Électricité", budget: 0, spent: 0, color: "#EC4899", description: "Rough-in (entrée électrique, filage) + Finition (prises, luminaires, appareils)" },
+  // Étape 10
+  { name: "Plomberie sous dalle", budget: 0, spent: 0, color: "#0EA5E9", description: "Installation des drains et tuyaux sous la dalle de béton" },
+  // Étape 11
+  { name: "Dalle du sous-sol", budget: 0, spent: 0, color: "#64748B", description: "Préparation du sol, coulage du béton" },
+  // Étape 12
+  { name: "Murs de division", budget: 0, spent: 0, color: "#78716C", description: "Escalier, ossature des murs, cadrage des portes" },
+  // Étape 13
+  { name: "Plomberie - Rough-in", budget: 0, spent: 0, color: "#06B6D4", description: "Plomberie brute, chauffe-eau, branchements municipaux" },
+  // Étape 14
+  { name: "Électricité - Rough-in", budget: 0, spent: 0, color: "#EC4899", description: "Entrée électrique, filage brut, inspection électrique" },
+  // Étape 15
   { name: "Chauffage et ventilation", budget: 0, spent: 0, color: "#14B8A6", description: "Système de chauffage, VRC (échangeur d'air), conduits de ventilation" },
+  // Étape 16
   { name: "Revêtement extérieur", budget: 0, spent: 0, color: "#A855F7", description: "Parement, fascia et soffite, balcons et terrasses, aménagement paysager" },
+  // Étape 17 - Finitions
   { name: "Gypse et peinture", budget: 0, spent: 0, color: "#475569", description: "Pose du gypse, tirage de joints, peinture" },
+  // Étape 18
   { name: "Revêtements de sol", budget: 0, spent: 0, color: "#F59E0B", description: "Plancher de bois/stratifié, céramique" },
+  // Étape 19
   { name: "Travaux ébénisterie", budget: 0, spent: 0, color: "#10B981", description: "Armoires de cuisine et vanités, comptoirs" },
+  // Étape 20
   { name: "Finitions intérieures", budget: 0, spent: 0, color: "#EF4444", description: "Portes intérieures, moulures et plinthes, escalier, peinture de finition" },
+  // Étape 21
+  { name: "Électricité - Finition", budget: 0, spent: 0, color: "#DB2777", description: "Prises et interrupteurs, luminaires, raccordement des appareils" },
+  // Étape 22
+  { name: "Plomberie - Finition", budget: 0, spent: 0, color: "#0891B2", description: "Robinetterie, toilettes et lavabos, douche et baignoire" },
 ];
 
 // Couleurs vives et distinctes pour une meilleure lisibilité

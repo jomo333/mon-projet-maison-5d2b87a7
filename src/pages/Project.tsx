@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollToTopBottom } from "@/components/ui/scroll-to-top-bottom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -314,7 +314,7 @@ const Project = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <ScrollToTopBottom />
+      
       <main className="flex-1 py-8">
         <div className="container">
           {/* Project header */}

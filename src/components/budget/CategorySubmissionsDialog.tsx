@@ -282,6 +282,41 @@ export function CategorySubmissionsDialog({
     },
   });
 
+  // Delete supplier from database
+  const handleDeleteSupplier = async () => {
+    // Reset local state
+    setSupplierName("");
+    setSupplierPhone("");
+    setContactPerson("");
+    setContactPersonPhone("");
+    setSelectedAmount("");
+    setSpent("0");
+    setSelectedSupplierIndex(null);
+    setSelectedOptionIndex(null);
+    setAnalysisResult(null);
+    setExtractedSuppliers([]);
+
+    // Delete from database
+    const { error } = await supabase
+      .from('task_dates')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('step_id', 'soumissions')
+      .eq('task_id', `soumission-${tradeId}`);
+
+    if (error) {
+      console.error("Error deleting supplier:", error);
+      toast.error("Erreur lors de la suppression");
+      return;
+    }
+
+    // Update budget spent to 0
+    onSave(parseFloat(budget) || 0, 0);
+    
+    queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, tradeId] });
+    toast.success("Fournisseur supprimé");
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -789,21 +824,10 @@ export function CategorySubmissionsDialog({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        // Reset supplier selection to allow new analysis
-                        setSupplierName("");
-                        setSupplierPhone("");
-                        setContactPerson("");
-                        setContactPersonPhone("");
-                        setSelectedAmount("");
-                        setSelectedSupplierIndex(null);
-                        setSelectedOptionIndex(null);
-                        setAnalysisResult(null);
-                        setExtractedSuppliers([]);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
+                      onClick={handleDeleteSupplier}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
-                      <RefreshCw className="h-4 w-4 mr-1" />
+                      <Trash2 className="h-4 w-4 mr-1" />
                       Supprimer fournisseur
                     </Button>
                     <Badge className="bg-primary text-primary-foreground">

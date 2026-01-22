@@ -95,6 +95,9 @@ const Budget = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projectFromUrl);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editBudget, setEditBudget] = useState<string>("");
+  const [editSpent, setEditSpent] = useState<string>("");
   
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
@@ -278,6 +281,34 @@ const Budget = () => {
         ? prev.filter(name => name !== categoryName)
         : [...prev, categoryName]
     );
+  };
+
+  const handleEditCategory = (category: BudgetCategory, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingCategory(category.name);
+    setEditBudget(category.budget.toString());
+    setEditSpent(category.spent.toString());
+  };
+
+  const handleSaveCategory = (categoryName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBudgetCategories(prev => 
+      prev.map(cat => 
+        cat.name === categoryName 
+          ? { ...cat, budget: parseFloat(editBudget) || 0, spent: parseFloat(editSpent) || 0 }
+          : cat
+      )
+    );
+    setEditingCategory(null);
+    setEditBudget("");
+    setEditSpent("");
+  };
+
+  const handleCancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingCategory(null);
+    setEditBudget("");
+    setEditSpent("");
   };
 
   return (
@@ -622,17 +653,49 @@ const Budget = () => {
                                 />
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="text-sm font-medium">
-                                  {category.spent.toLocaleString()} $
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  / {Math.round(category.budget * 0.85).toLocaleString()} - {Math.round(category.budget * 1.15).toLocaleString()} $
-                                </div>
+                                {editingCategory === category.name ? (
+                                  <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Input
+                                      type="number"
+                                      value={editBudget}
+                                      onChange={(e) => setEditBudget(e.target.value)}
+                                      placeholder="Budget"
+                                      className="h-7 w-24 text-xs"
+                                    />
+                                    <Input
+                                      type="number"
+                                      value={editSpent}
+                                      onChange={(e) => setEditSpent(e.target.value)}
+                                      placeholder="Dépensé"
+                                      className="h-7 w-24 text-xs"
+                                    />
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="text-sm font-medium">
+                                      {category.spent.toLocaleString()} $
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      / {Math.round(category.budget * 0.85).toLocaleString()} - {Math.round(category.budget * 1.15).toLocaleString()} $
+                                    </div>
+                                  </>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
-                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
+                                {editingCategory === category.name ? (
+                                  <>
+                                    <Button variant="ghost" size="icon" onClick={(e) => handleSaveCategory(category.name, e)}>
+                                      <Save className="h-4 w-4 text-success" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
+                                      <span className="text-xs text-muted-foreground">✕</span>
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button variant="ghost" size="icon" onClick={(e) => handleEditCategory(category, e)}>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 {hasItems && (
                                   isExpanded ? (
                                     <ChevronUp className="h-4 w-4 text-muted-foreground" />

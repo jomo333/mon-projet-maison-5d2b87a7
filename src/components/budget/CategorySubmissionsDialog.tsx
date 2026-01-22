@@ -1127,9 +1127,9 @@ export function CategorySubmissionsDialog({
         selectedOptionIndex={selectedOptionIndex}
         onSelectSupplier={handleSelectSupplier}
         onSelectOption={handleSelectOption}
-        onConfirmSelection={() => {
-          setShowFullAnalysis(false);
-          handleSave(true); // Save with analysis summary
+        onConfirmSelection={async () => {
+          await handleSave(true); // Save with analysis summary first
+          setShowFullAnalysis(false); // Then close the full view
         }}
       />
     </Dialog>

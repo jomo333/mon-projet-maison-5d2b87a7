@@ -100,6 +100,11 @@ export function PlanAnalyzer({
   // Quality level state (shared between manual and plan modes)
   const [finishQuality, setFinishQuality] = useState<"economique" | "standard" | "haut-de-gamme">("standard");
   
+  // Manual mode reference images (to help the AI analysis)
+  const [manualReferenceImages, setManualReferenceImages] = useState<string[]>([]);
+  const [isUploadingManualImage, setIsUploadingManualImage] = useState(false);
+  const manualImageInputRef = useRef<HTMLInputElement>(null);
+  
   // Plan mode state - now supports multiple plans
   const [selectedPlanUrls, setSelectedPlanUrls] = useState<string[]>([]);
   // Used to avoid re-importing the same existing file (especially PDFs that we convert)
@@ -486,6 +491,8 @@ export function PlanAnalyzer({
             finishQuality,
             additionalNotes: additionalNotes || undefined,
             stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
+            // Include reference images from manual mode to help AI analysis
+            referenceImageUrls: manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
           }
         : {
             // Mode plan: SEULEMENT les plans - aucune donnée manuelle
@@ -706,6 +713,106 @@ export function PlanAnalyzer({
                   <p className="text-xs text-primary flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Pré-rempli depuis vos besoins définis à l'étape 1
+                  </p>
+                )}
+              </div>
+              
+              {/* Reference Images Upload for Manual Mode */}
+              <div className="space-y-3 sm:col-span-2 lg:col-span-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      Images de référence (optionnel)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ajoutez des photos ou croquis pour aider l'analyse (plans, inspiration, etc.)
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingManualImage}
+                    onClick={() => manualImageInputRef.current?.click()}
+                  >
+                    {isUploadingManualImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">Ajouter</span>
+                  </Button>
+                  <input
+                    ref={manualImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+                      
+                      setIsUploadingManualImage(true);
+                      try {
+                        for (const file of Array.from(files)) {
+                          const fileExt = file.name.split(".").pop();
+                          const fileName = `manual-reference/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                          
+                          const { error: uploadError } = await supabase.storage
+                            .from("task-attachments")
+                            .upload(fileName, file);
+                          
+                          if (uploadError) throw uploadError;
+                          
+                          const { data: urlData } = supabase.storage
+                            .from("task-attachments")
+                            .getPublicUrl(fileName);
+                          
+                          setManualReferenceImages(prev => [...prev, urlData.publicUrl]);
+                        }
+                        toast.success("Image(s) ajoutée(s) avec succès");
+                      } catch (error) {
+                        console.error("Upload error:", error);
+                        toast.error("Erreur lors du téléchargement");
+                      } finally {
+                        setIsUploadingManualImage(false);
+                        if (manualImageInputRef.current) {
+                          manualImageInputRef.current.value = "";
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                
+                {/* Display uploaded reference images */}
+                {manualReferenceImages.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {manualReferenceImages.map((url, index) => (
+                      <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
+                        <img
+                          src={url}
+                          alt={`Référence ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualReferenceImages(prev => prev.filter((_, i) => i !== index));
+                          }}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Supprimer l'image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {manualReferenceImages.length > 0 && (
+                  <p className="text-xs text-primary flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {manualReferenceImages.length} image(s) ajoutée(s) pour l'analyse
                   </p>
                 )}
               </div>

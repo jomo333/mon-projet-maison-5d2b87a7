@@ -289,8 +289,10 @@ const Budget = () => {
     setShowCategoryDialog(true);
   };
 
-  const handleSaveCategoryFromDialog = (budget: number, spent: number) => {
-    if (!editingCategory) return;
+  const handleSaveCategoryFromDialog = async (budget: number, spent: number) => {
+    if (!editingCategory || !selectedProjectId) return;
+    
+    // Update local state
     setBudgetCategories(prev => 
       prev.map(cat => 
         cat.name === editingCategory.name 
@@ -298,6 +300,45 @@ const Budget = () => {
           : cat
       )
     );
+    
+    // Immediately save to database
+    const updatedCategories = budgetCategories.map(cat => 
+      cat.name === editingCategory.name 
+        ? { ...cat, budget, spent }
+        : cat
+    );
+    
+    // Delete existing and insert updated
+    await supabase
+      .from("project_budgets")
+      .delete()
+      .eq("project_id", selectedProjectId);
+
+    const budgetData = updatedCategories.map(cat => ({
+      project_id: selectedProjectId,
+      category_name: cat.name,
+      budget: cat.name === editingCategory.name ? budget : cat.budget,
+      spent: cat.name === editingCategory.name ? spent : cat.spent,
+      color: cat.color,
+      description: cat.description || null,
+      items: JSON.parse(JSON.stringify(cat.items || [])) as Json,
+    }));
+
+    await supabase
+      .from("project_budgets")
+      .insert(budgetData);
+
+    // Update project total budget
+    const totalBudget = updatedCategories.reduce((acc, cat) => 
+      acc + (cat.name === editingCategory.name ? budget : cat.budget), 0
+    );
+    await supabase
+      .from("projects")
+      .update({ total_budget: totalBudget, updated_at: new Date().toISOString() })
+      .eq("id", selectedProjectId);
+
+    queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
+    
     setEditingCategory(null);
     setShowCategoryDialog(false);
   };

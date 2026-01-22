@@ -723,7 +723,7 @@ export const constructionSteps: Step[] = [
     phase: "finitions",
     phaseLabel: "Finitions",
     icon: "Sparkles",
-    duration: "1 semaine",
+    duration: "1-2 semaines",
     tasks: [
       {
         id: "portes-int",

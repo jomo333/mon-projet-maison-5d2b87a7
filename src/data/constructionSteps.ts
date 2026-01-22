@@ -694,6 +694,14 @@ export const constructionSteps: Step[] = [
         id: "escalier",
         title: "Escalier",
         description: "Finition de l'escalier (marches, contremarches, rampe).",
+      },
+      {
+        id: "peinture-finition",
+        title: "Peinture de finition",
+        description: "Application de la couche finale de peinture sur les murs après l'installation des travaux de finition.",
+        tips: [
+          "Cette étape permet de corriger les retouches nécessaires après la pose des moulures, portes et autres éléments de finition"
+        ]
       }
     ]
   },

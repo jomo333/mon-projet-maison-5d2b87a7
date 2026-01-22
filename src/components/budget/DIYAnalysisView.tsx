@@ -29,20 +29,33 @@ interface DIYAnalysisViewProps {
   onApplyEstimate?: (amount: number) => void;
 }
 
-// Parse amount from analysis result
+// Parse amount from analysis result - handles French formatting (1 234,56 $)
 const extractEstimatedTotal = (analysisResult: string): number | null => {
   // Multiple patterns to match total
   const patterns = [
-    /\*\*TOTAL ESTIMÉ\*\*[^$]*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i,
-    /TOTAL ESTIMÉ[^$]*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i,
-    /\|\s*\*?\*?TOTAL[^|]*\*?\*?\s*\|\s*\*?\*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$\*?\*?\s*\|/i,
+    /\*\*TOTAL ESTIMÉ\*\*[^$]*?([0-9\s,\.]+)\s*\$/i,
+    /TOTAL ESTIMÉ[^$]*?([0-9\s,\.]+)\s*\$/i,
+    /\|\s*\*?\*?TOTAL[^|]*\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/i,
   ];
   
   for (const pattern of patterns) {
     const match = analysisResult.match(pattern);
     if (match) {
-      const amount = parseFloat(match[1].replace(/[\s,]/g, ''));
-      if (amount > 0) return Math.round(amount);
+      // French format: spaces as thousands separator, comma as decimal
+      // e.g., "4 565,60" or "4565,60"
+      let rawValue = match[1].trim();
+      
+      // Remove spaces (thousands separator)
+      rawValue = rawValue.replace(/\s/g, '');
+      
+      // If there's a comma, it's likely the decimal separator (French format)
+      // Convert comma to period for parseFloat
+      if (rawValue.includes(',')) {
+        rawValue = rawValue.replace(',', '.');
+      }
+      
+      const amount = parseFloat(rawValue);
+      if (amount > 0 && !isNaN(amount)) return Math.round(amount * 100) / 100;
     }
   }
   return null;

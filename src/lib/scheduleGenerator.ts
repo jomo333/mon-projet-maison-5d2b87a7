@@ -49,7 +49,7 @@ const stepTradeMapping: Record<string, string> = {
 // Durées par défaut en jours ouvrables (utilisé si pas de données de référence)
 const defaultDurations: Record<string, number> = {
   planification: 5,
-  "plans-permis": 35,
+  "plans-permis": 40,
   soumissions: 5,
   financement: 15,
   "excavation-fondation": 10,

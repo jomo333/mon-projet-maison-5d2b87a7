@@ -114,6 +114,7 @@ export function CategorySubmissionsDialog({
   const [selectedAmount, setSelectedAmount] = useState("");
   const [showFullAnalysis, setShowFullAnalysis] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const [showScrollButtons, setShowScrollButtons] = useState({ up: false, down: false });
   
   // Sub-category state
@@ -122,34 +123,57 @@ export function CategorySubmissionsDialog({
   const [viewingSubCategory, setViewingSubCategory] = useState(false);
 
   // Handle scroll inside dialog
+  const getScrollViewport = () => {
+    if (scrollViewportRef.current) return scrollViewportRef.current;
+
+    const viewport = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    ) as HTMLDivElement | null;
+
+    if (viewport) scrollViewportRef.current = viewport;
+    return viewport;
+  };
+
   const handleDialogScroll = () => {
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        const { scrollTop, scrollHeight, clientHeight } = viewport;
-        setShowScrollButtons({
-          up: scrollTop > 100,
-          down: scrollTop + clientHeight < scrollHeight - 50
-        });
-      }
-    }
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = viewport;
+    setShowScrollButtons({
+      up: scrollTop > 100,
+      down: scrollTop + clientHeight < scrollHeight - 50,
+    });
   };
 
   const scrollToTop = () => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    viewport?.scrollTo({ top: 0, behavior: 'smooth' });
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    try {
+      viewport.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      viewport.scrollTop = 0;
+    }
   };
 
   const scrollToBottom = () => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (viewport) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    const top = viewport.scrollHeight;
+    try {
+      viewport.scrollTo({ top, behavior: "smooth" });
+    } catch {
+      viewport.scrollTop = top;
     }
   };
 
   useEffect(() => {
     if (open && scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      // Reset cached viewport when (re)opening
+      scrollViewportRef.current = null;
+
+      const viewport = getScrollViewport();
       if (viewport) {
         viewport.addEventListener('scroll', handleDialogScroll);
         handleDialogScroll(); // Initial check
@@ -1446,10 +1470,12 @@ export function CategorySubmissionsDialog({
         </ScrollArea>
           
           {/* Scroll buttons inside dialog - always visible for better UX */}
-          <div className="absolute right-6 bottom-4 flex flex-col gap-2 z-50">
+          {/* Right-side scroll band (like other pages) */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 rounded-full border bg-background/80 px-1 py-2 shadow-lg backdrop-blur">
             <Button
               variant="secondary"
               size="icon"
+              type="button"
               onClick={scrollToTop}
               className={`h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
                 showScrollButtons.up ? 'opacity-100' : 'opacity-40 hover:opacity-100'
@@ -1460,6 +1486,7 @@ export function CategorySubmissionsDialog({
             <Button
               variant="secondary"
               size="icon"
+              type="button"
               onClick={scrollToBottom}
               className={`h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
                 showScrollButtons.down ? 'opacity-100' : 'opacity-40 hover:opacity-100'

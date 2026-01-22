@@ -570,6 +570,45 @@ export const constructionSteps: Step[] = [
       }
     ]
   },
+  {
+    id: "exterieur",
+    title: "Revêtement extérieur",
+    description: "Finition de l'enveloppe extérieure de la maison.",
+    phase: "second-oeuvre",
+    phaseLabel: "Second œuvre",
+    icon: "Building",
+    duration: "1 semaine",
+    tasks: [
+      {
+        id: "revetement",
+        title: "Revêtement extérieur",
+        description: "Installation du parement (vinyle, fibrociment, brique, bois).",
+        tips: [
+          "Installez une membrane pare-air avant le revêtement et assurez-vous qu'il n'y a pas de perforation",
+          "Respectez les espacements de ventilation",
+          "Toujours prévoir une lame d'air derrière le revêtement pour assurer une bonne circulation. Ne jamais installer de fourrures de bois à l'horizontale, car elles bloquent l'écoulement de l'air et de l'eau."
+        ]
+      },
+      {
+        id: "fascia-soffite",
+        title: "Fascia et soffite",
+        description: "Installation des bordures de toit et de la ventilation du comble.",
+      },
+      {
+        id: "balcons-terrasses",
+        title: "Balcons et terrasses",
+        description: "Construction des balcons, galeries et terrasses.",
+        tips: [
+          "Toujours appliquer une membrane d'étanchéité autocicatrisante sur la lisse d'assise (ceinture du bâtiment). Prévoir un espace d'air entre la membrane et la structure du balcon pour permettre le séchage et éviter une détérioration prématurée."
+        ]
+      },
+      {
+        id: "amenagement",
+        title: "Aménagement paysager",
+        description: "Nivellement final, entrée de garage, gazon et plantations.",
+      }
+    ]
+  },
 
   // FINITIONS
   {
@@ -765,45 +804,6 @@ export const constructionSteps: Step[] = [
         tips: [
           "Prévoir un installateur spécialisé pour les écrans de bain et les portes de douche"
         ]
-      }
-    ]
-  },
-  {
-    id: "exterieur",
-    title: "Revêtement extérieur",
-    description: "Finition de l'enveloppe extérieure de la maison.",
-    phase: "finitions",
-    phaseLabel: "Finitions",
-    icon: "Building",
-    duration: "1 semaine",
-    tasks: [
-      {
-        id: "revetement",
-        title: "Revêtement extérieur",
-        description: "Installation du parement (vinyle, fibrociment, brique, bois).",
-        tips: [
-          "Installez une membrane pare-air avant le revêtement et assurez-vous qu'il n'y a pas de perforation",
-          "Respectez les espacements de ventilation",
-          "Toujours prévoir une lame d'air derrière le revêtement pour assurer une bonne circulation. Ne jamais installer de fourrures de bois à l'horizontale, car elles bloquent l'écoulement de l'air et de l'eau."
-        ]
-      },
-      {
-        id: "fascia-soffite",
-        title: "Fascia et soffite",
-        description: "Installation des bordures de toit et de la ventilation du comble.",
-      },
-      {
-        id: "balcons-terrasses",
-        title: "Balcons et terrasses",
-        description: "Construction des balcons, galeries et terrasses.",
-        tips: [
-          "Toujours appliquer une membrane d'étanchéité autocicatrisante sur la lisse d'assise (ceinture du bâtiment). Prévoir un espace d'air entre la membrane et la structure du balcon pour permettre le séchage et éviter une détérioration prématurée."
-        ]
-      },
-      {
-        id: "amenagement",
-        title: "Aménagement paysager",
-        description: "Nivellement final, entrée de garage, gazon et plantations.",
       }
     ]
   },

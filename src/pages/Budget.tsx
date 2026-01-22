@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2 } from "lucide-react";
 import { PlanAnalyzer } from "@/components/budget/PlanAnalyzer";
+import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,8 +20,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
-import { SoumissionsManager } from "@/components/guide/SoumissionsManager";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -97,10 +96,8 @@ const Budget = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projectFromUrl);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editBudget, setEditBudget] = useState<string>("");
-  const [editSpent, setEditSpent] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("analyse");
+  const [editingCategory, setEditingCategory] = useState<BudgetCategory | null>(null);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
@@ -288,30 +285,21 @@ const Budget = () => {
 
   const handleEditCategory = (category: BudgetCategory, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingCategory(category.name);
-    setEditBudget(category.budget.toString());
-    setEditSpent(category.spent.toString());
+    setEditingCategory(category);
+    setShowCategoryDialog(true);
   };
 
-  const handleSaveCategory = (categoryName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleSaveCategoryFromDialog = (budget: number, spent: number) => {
+    if (!editingCategory) return;
     setBudgetCategories(prev => 
       prev.map(cat => 
-        cat.name === categoryName 
-          ? { ...cat, budget: parseFloat(editBudget) || 0, spent: parseFloat(editSpent) || 0 }
+        cat.name === editingCategory.name 
+          ? { ...cat, budget, spent }
           : cat
       )
     );
     setEditingCategory(null);
-    setEditBudget("");
-    setEditSpent("");
-  };
-
-  const handleCancelEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingCategory(null);
-    setEditBudget("");
-    setEditSpent("");
+    setShowCategoryDialog(false);
   };
 
   return (
@@ -406,64 +394,20 @@ const Budget = () => {
             </Card>
           )}
 
-          {/* Tabs for Analysis and Submissions */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="analyse" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Analyse de budget
-              </TabsTrigger>
-              <TabsTrigger value="soumissions" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Soumissions
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="analyse">
-              {/* AI Plan Analyzer */}
-              <div ref={planAnalyzerRef}>
-                <PlanAnalyzer 
-                  onBudgetGenerated={handleBudgetGenerated} 
-                  projectId={selectedProjectId}
-                  autoSelectPlanTab={autoAnalyze && !autoManual}
-                  autoSelectManualTab={autoManual}
-                  onGenerateSchedule={() => setShowScheduleDialog(true)}
-                  besoinsNote={besoinsNoteFromUrl}
-                  prefillProjectType={prefillProjectType}
-                  prefillFloors={prefillFloors}
-                  prefillSquareFootage={prefillSquareFootage}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="soumissions">
-              {selectedProjectId ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="font-display flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Gestion des soumissions
-                    </CardTitle>
-                    <CardDescription>
-                      Téléchargez vos soumissions par corps de métier, analysez-les avec l'IA et sélectionnez vos fournisseurs. Les montants seront automatiquement synchronisés avec votre budget.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <SoumissionsManager projectId={selectedProjectId} />
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-warning/50 bg-warning/5">
-                  <CardContent className="py-8 text-center">
-                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      Veuillez d'abord sélectionner un projet pour gérer vos soumissions.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
+          {/* AI Plan Analyzer */}
+          <div ref={planAnalyzerRef}>
+            <PlanAnalyzer 
+              onBudgetGenerated={handleBudgetGenerated} 
+              projectId={selectedProjectId}
+              autoSelectPlanTab={autoAnalyze && !autoManual}
+              autoSelectManualTab={autoManual}
+              onGenerateSchedule={() => setShowScheduleDialog(true)}
+              besoinsNote={besoinsNoteFromUrl}
+              prefillProjectType={prefillProjectType}
+              prefillFloors={prefillFloors}
+              prefillSquareFootage={prefillSquareFootage}
+            />
+          </div>
 
           {/* Schedule Generation Dialog */}
           {selectedProjectId && (
@@ -700,49 +644,22 @@ const Budget = () => {
                                 />
                               </div>
                               <div className="text-right shrink-0">
-                                {editingCategory === category.name ? (
-                                  <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <Input
-                                      type="number"
-                                      value={editBudget}
-                                      onChange={(e) => setEditBudget(e.target.value)}
-                                      placeholder="Budget"
-                                      className="h-7 w-24 text-xs"
-                                    />
-                                    <Input
-                                      type="number"
-                                      value={editSpent}
-                                      onChange={(e) => setEditSpent(e.target.value)}
-                                      placeholder="Dépensé"
-                                      className="h-7 w-24 text-xs"
-                                    />
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="text-sm font-medium">
-                                      {category.spent.toLocaleString()} $
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      / {Math.round(category.budget * 0.85).toLocaleString()} - {Math.round(category.budget * 1.15).toLocaleString()} $
-                                    </div>
-                                  </>
-                                )}
+                                <div className="text-sm font-medium">
+                                  {category.spent.toLocaleString()} $
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  / {Math.round(category.budget * 0.85).toLocaleString()} - {Math.round(category.budget * 1.15).toLocaleString()} $
+                                </div>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
-                                {editingCategory === category.name ? (
-                                  <>
-                                    <Button variant="ghost" size="icon" onClick={(e) => handleSaveCategory(category.name, e)}>
-                                      <Save className="h-4 w-4 text-success" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
-                                      <span className="text-xs text-muted-foreground">✕</span>
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <Button variant="ghost" size="icon" onClick={(e) => handleEditCategory(category, e)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={(e) => handleEditCategory(category, e)}
+                                  title="Gérer budget et soumissions"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
                                 {hasItems && (
                                   isExpanded ? (
                                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -791,6 +708,23 @@ const Budget = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Category Submissions Dialog */}
+          {editingCategory && selectedProjectId && (
+            <CategorySubmissionsDialog
+              open={showCategoryDialog}
+              onOpenChange={(open) => {
+                setShowCategoryDialog(open);
+                if (!open) setEditingCategory(null);
+              }}
+              projectId={selectedProjectId}
+              categoryName={editingCategory.name}
+              categoryColor={editingCategory.color}
+              currentBudget={editingCategory.budget}
+              currentSpent={editingCategory.spent}
+              onSave={handleSaveCategoryFromDialog}
+            />
+          )}
         </div>
       </main>
       <Footer />

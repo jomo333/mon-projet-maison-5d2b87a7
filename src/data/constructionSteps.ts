@@ -338,7 +338,7 @@ export const constructionSteps: Step[] = [
     phase: "second-oeuvre",
     phaseLabel: "Second œuvre",
     icon: "Thermometer",
-    duration: "1 semaine",
+    duration: "1-2 semaines",
     tasks: [
       {
         id: "isolation-murs",

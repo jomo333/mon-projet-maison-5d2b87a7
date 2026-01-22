@@ -169,18 +169,28 @@ export function CategorySubmissionsDialog({
   };
 
   useEffect(() => {
-    if (open && scrollAreaRef.current) {
-      // Reset cached viewport when (re)opening
-      scrollViewportRef.current = null;
+    if (!open) return;
+    
+    // Reset cached viewport when (re)opening
+    scrollViewportRef.current = null;
 
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
       const viewport = getScrollViewport();
       if (viewport) {
-        viewport.addEventListener('scroll', handleDialogScroll);
+        viewport.addEventListener('scroll', handleDialogScroll, { passive: true });
         handleDialogScroll(); // Initial check
-        return () => viewport.removeEventListener('scroll', handleDialogScroll);
       }
-    }
-  }, [open, analysisResult, extractedSuppliers]);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      const viewport = scrollViewportRef.current;
+      if (viewport) {
+        viewport.removeEventListener('scroll', handleDialogScroll);
+      }
+    };
+  }, [open, analysisResult, extractedSuppliers, activeSubCategoryId]);
 
   const tradeId = categoryToTradeId[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-');
   
@@ -1031,8 +1041,8 @@ export function CategorySubmissionsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative flex-1">
-          <ScrollArea ref={scrollAreaRef} className="h-full max-h-[60vh] pr-4">
+        <div className="relative flex-1 min-h-0">
+          <ScrollArea ref={scrollAreaRef} className="h-full max-h-[60vh] pr-8">
           <div className="space-y-6">
             {/* Budget Section - Only show on main view */}
             {!viewingSubCategory && (
@@ -1469,30 +1479,39 @@ export function CategorySubmissionsDialog({
           </div>
         </ScrollArea>
           
-          {/* Scroll buttons inside dialog - always visible for better UX */}
           {/* Right-side scroll band (like other pages) */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 rounded-full border bg-background/80 px-1 py-2 shadow-lg backdrop-blur">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 rounded-full border bg-background/95 p-1.5 shadow-lg">
             <Button
-              variant="secondary"
+              variant="ghost"
               size="icon"
               type="button"
-              onClick={scrollToTop}
-              className={`h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
-                showScrollButtons.up ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                scrollToTop();
+              }}
+              className={`h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
+                showScrollButtons.up ? 'opacity-100' : 'opacity-30'
               }`}
+              aria-label="Remonter"
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-5 w-5" />
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="icon"
               type="button"
-              onClick={scrollToBottom}
-              className={`h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
-                showScrollButtons.down ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                scrollToBottom();
+              }}
+              className={`h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
+                showScrollButtons.down ? 'opacity-100' : 'opacity-30'
               }`}
+              aria-label="Descendre"
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-5 w-5" />
             </Button>
           </div>
         </div>

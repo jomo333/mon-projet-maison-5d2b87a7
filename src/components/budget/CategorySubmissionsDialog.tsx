@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
+import { DIYAnalysisView } from "./DIYAnalysisView";
 import { SubCategoryManager, type SubCategory } from "./SubCategoryManager";
 
 interface CategorySubmissionsDialogProps {
@@ -1260,56 +1261,29 @@ export function CategorySubmissionsDialog({
                     </div>
                   </div>
 
-                  {/* DIY Analysis Result */}
+                  {/* DIY Analysis Result - Preview Card */}
                   {diyAnalysisResult && (
-                    <div className="space-y-3">
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-4">
                       <div className="flex items-center justify-between">
-                        <h5 className="font-medium flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                          <CheckCircle2 className="h-4 w-4" />
-                          Résumé des matériaux
-                        </h5>
+                        <div>
+                          <h5 className="font-medium flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Analyse des matériaux terminée
+                          </h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Liste détaillée des matériaux avec prix Québec 2025
+                          </p>
+                        </div>
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
-                          onClick={() => setShowDIYAnalysis(!showDIYAnalysis)}
-                          className="gap-1 text-xs"
+                          onClick={() => setShowDIYAnalysis(true)}
+                          className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
                         >
-                          <Maximize2 className="h-3 w-3" />
-                          {showDIYAnalysis ? "Réduire" : "Voir détails"}
+                          <Maximize2 className="h-4 w-4" />
+                          Voir le résumé complet
                         </Button>
                       </div>
-                      
-                      {showDIYAnalysis && (
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-4 max-h-[400px] overflow-y-auto">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            {/* Simple markdown rendering */}
-                            {diyAnalysisResult.split('\n').map((line, i) => {
-                              if (line.startsWith('### ')) {
-                                return <h3 key={i} className="text-base font-semibold mt-4 mb-2 text-amber-800 dark:text-amber-300">{line.replace('### ', '')}</h3>;
-                              }
-                              if (line.startsWith('## ')) {
-                                return <h2 key={i} className="text-lg font-bold mt-4 mb-2 text-amber-900 dark:text-amber-200">{line.replace('## ', '')}</h2>;
-                              }
-                              if (line.startsWith('| ')) {
-                                return <p key={i} className="font-mono text-xs">{line}</p>;
-                              }
-                              if (line.startsWith('- ')) {
-                                return <li key={i} className="ml-4 list-disc">{line.replace('- ', '')}</li>;
-                              }
-                              if (line.startsWith('**') && line.endsWith('**')) {
-                                return <p key={i} className="font-bold">{line.replace(/\*\*/g, '')}</p>;
-                              }
-                              if (line.trim() === '---') {
-                                return <hr key={i} className="my-3 border-amber-200 dark:border-amber-800" />;
-                              }
-                              if (line.trim()) {
-                                return <p key={i} className="text-sm">{line}</p>;
-                              }
-                              return null;
-                            })}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                   
@@ -1842,6 +1816,34 @@ export function CategorySubmissionsDialog({
         onConfirmSelection={async () => {
           await handleSave(true, true); // Save with analysis summary, keep dialog open
           setShowFullAnalysis(false); // Close the full view, return to main dialog
+        }}
+      />
+
+      {/* DIY Analysis Full View */}
+      <DIYAnalysisView
+        open={showDIYAnalysis}
+        onOpenChange={setShowDIYAnalysis}
+        categoryName={categoryName}
+        subCategoryName={currentSubCategoryName || ''}
+        analysisResult={diyAnalysisResult || ''}
+        onApplyEstimate={(amount) => {
+          // Update the material cost
+          if (activeSubCategoryId) {
+            setSubCategories(prev => prev.map(sc =>
+              sc.id === activeSubCategoryId
+                ? { ...sc, materialCostOnly: amount, amount }
+                : sc
+            ));
+            
+            // Update total spent
+            const newTotalSpent = subCategories
+              .map(sc => sc.id === activeSubCategoryId ? amount : sc.amount)
+              .reduce((sum, amt) => sum + (amt || 0), 0);
+            setSpent(newTotalSpent.toString());
+            
+            toast.success(`Coût appliqué: ${amount.toLocaleString('fr-CA')} $`);
+          }
+          setShowDIYAnalysis(false);
         }}
       />
     </Dialog>

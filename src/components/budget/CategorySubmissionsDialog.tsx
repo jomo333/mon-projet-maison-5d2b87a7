@@ -26,11 +26,10 @@ import {
   User,
   DollarSign,
   Save,
-  X,
+  Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { AnalysisFullView } from "./AnalysisFullView";
 
 interface CategorySubmissionsDialogProps {
   open: boolean;
@@ -102,6 +101,7 @@ export function CategorySubmissionsDialog({
   const [supplierName, setSupplierName] = useState("");
   const [supplierPhone, setSupplierPhone] = useState("");
   const [selectedAmount, setSelectedAmount] = useState("");
+  const [showFullAnalysis, setShowFullAnalysis] = useState(false);
 
   const tradeId = categoryToTradeId[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-');
 
@@ -624,28 +624,38 @@ export function CategorySubmissionsDialog({
               )}
             </div>
 
-            {/* AI Analysis Result */}
+            {/* AI Analysis Result - Compact Preview */}
             {analysisResult && (
               <div className="space-y-3">
-                <h4 className="font-medium flex items-center gap-2 text-lg">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  Résultat de l'analyse
-                </h4>
-                <div className="rounded-lg border bg-background p-4 max-h-[400px] overflow-y-auto shadow-sm">
-                  <div className="prose prose-base dark:prose-invert max-w-none
-                    [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
-                    [&_th]:bg-muted [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground
-                    [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-3 [&_td]:text-foreground
-                    [&_tr:nth-child(even)]:bg-muted/50
-                    [&_tr:hover]:bg-accent/50
-                    [&_p]:text-base [&_p]:leading-relaxed
-                    [&_strong]:text-primary [&_strong]:font-semibold
-                    [&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_h3]:font-semibold
-                    [&_ul]:list-disc [&_ul]:pl-6 [&_li]:text-base
-                  ">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {analysisResult}
-                    </ReactMarkdown>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium flex items-center gap-2 text-lg">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Analyse terminée
+                  </h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFullAnalysis(true)}
+                    className="gap-2"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    Voir en grand
+                  </Button>
+                </div>
+                <div className="rounded-lg border bg-primary/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {extractedSuppliers.length} fournisseur(s) détecté(s)
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Cliquez sur "Voir en grand" pour consulter l'analyse complète et sélectionner votre fournisseur
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      IA
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -811,6 +821,24 @@ export function CategorySubmissionsDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Full Analysis View */}
+      <AnalysisFullView
+        open={showFullAnalysis}
+        onOpenChange={setShowFullAnalysis}
+        categoryName={categoryName}
+        categoryColor={categoryColor}
+        analysisResult={analysisResult || ''}
+        extractedSuppliers={extractedSuppliers}
+        selectedSupplierIndex={selectedSupplierIndex}
+        selectedOptionIndex={selectedOptionIndex}
+        onSelectSupplier={handleSelectSupplier}
+        onSelectOption={handleSelectOption}
+        onConfirmSelection={() => {
+          setShowFullAnalysis(false);
+          handleSave();
+        }}
+      />
     </Dialog>
   );
 }

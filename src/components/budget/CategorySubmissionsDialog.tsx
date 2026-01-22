@@ -161,7 +161,7 @@ export function CategorySubmissionsDialog({
     }
   }, [open, currentBudget, currentSpent]);
 
-  // Fetch existing documents for this category
+  // Fetch existing documents for this category (excluding analysis summaries)
   const { data: documents = [], isLoading: loadingDocs } = useQuery({
     queryKey: ['category-docs', projectId, tradeId],
     queryFn: async () => {
@@ -170,7 +170,8 @@ export function CategorySubmissionsDialog({
         .select('*')
         .eq('project_id', projectId)
         .eq('step_id', 'soumissions')
-        .eq('task_id', `soumission-${tradeId}`);
+        .eq('task_id', `soumission-${tradeId}`)
+        .neq('category', 'analyse'); // Exclude analysis summaries
       
       if (error) throw error;
       return data || [];

@@ -570,7 +570,9 @@ const Budget = () => {
             <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
               <CardHeader>
                 <CardTitle className="font-display">Détail par catégorie</CardTitle>
-                <CardDescription>Budget et dépenses par poste</CardDescription>
+                <CardDescription>
+                  Budget et dépenses par poste — Téléchargez vos soumissions pour ajuster votre budget réel
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-[500px] overflow-y-auto">

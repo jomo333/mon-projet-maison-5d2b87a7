@@ -615,7 +615,7 @@ export function CategorySubmissionsDialog({
   };
 
   // Save everything
-  const handleSave = async (saveAnalysis = false) => {
+  const handleSave = async (saveAnalysis = false, keepDialogOpen = false) => {
     const budgetValue = parseFloat(budget) || 0;
     const spentValue = parseFloat(spent) || parseFloat(selectedAmount) || 0;
     
@@ -671,10 +671,15 @@ export function CategorySubmissionsDialog({
     
     queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, tradeId] });
     queryClient.invalidateQueries({ queryKey: ['category-docs', projectId, tradeId] });
+    
     if (!saveAnalysis) {
       toast.success("Catégorie mise à jour");
     }
-    onOpenChange(false);
+    
+    // Only close dialog if not keeping it open
+    if (!keepDialogOpen) {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -1140,8 +1145,8 @@ export function CategorySubmissionsDialog({
         onSelectSupplier={handleSelectSupplier}
         onSelectOption={handleSelectOption}
         onConfirmSelection={async () => {
-          await handleSave(true); // Save with analysis summary first
-          setShowFullAnalysis(false); // Then close the full view
+          await handleSave(true, true); // Save with analysis summary, keep dialog open
+          setShowFullAnalysis(false); // Close the full view, return to main dialog
         }}
       />
     </Dialog>

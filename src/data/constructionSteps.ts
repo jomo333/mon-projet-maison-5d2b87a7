@@ -450,6 +450,15 @@ export const constructionSteps: Step[] = [
           "Prévoyez l'espace pour les portes coulissantes si désiré",
           "Assurez-vous de la bonne hauteur des ouvertures de porte selon l'épaisseur des revêtements de sol"
         ]
+      },
+      {
+        id: "construire-escalier",
+        title: "Construire escalier",
+        description: "Construction et installation des escaliers intérieurs.",
+        tips: [
+          "Respectez les normes du Code du bâtiment pour les dimensions des marches",
+          "Prévoyez un garde-corps temporaire pendant les travaux"
+        ]
       }
     ]
   },

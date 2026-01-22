@@ -315,22 +315,46 @@ export function CategorySubmissionsDialog({
     }
   };
 
-  // Parse contacts from AI analysis
+  // Parse contacts from AI analysis - supports new simplified format
   const parseExtractedContacts = (analysisResult: string): ExtractedContact[] => {
     const contacts: ExtractedContact[] = [];
     
-    const contactsMatch = analysisResult.match(/```contacts\n([\s\S]*?)```/);
-    if (contactsMatch) {
-      const lines = contactsMatch[1].split('\n').filter(line => line.trim() && line.includes('|'));
-      for (const line of lines) {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 4) {
-          contacts.push({
-            docName: parts[0],
-            supplierName: parts[1],
-            phone: parts[2],
-            amount: parts[3],
-          });
+    // Try to extract from the new emoji-based format
+    // Look for patterns like "🏢 Nom Entreprise" followed by "📞 Téléphone:" and "💰 Montant:"
+    const companyBlocks = analysisResult.split(/(?=\*\*🏢)/);
+    
+    for (const block of companyBlocks) {
+      if (!block.includes('🏢')) continue;
+      
+      const nameMatch = block.match(/🏢\s*\*?\*?([^*\n]+)/);
+      const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
+      const amountMatch = block.match(/💰\s*(?:Montant\s*:?\s*)?([0-9\s]+)\s*\$/);
+      
+      if (nameMatch) {
+        contacts.push({
+          docName: '',
+          supplierName: nameMatch[1].trim().replace(/\*+/g, ''),
+          phone: phoneMatch ? phoneMatch[1].trim() : '',
+          amount: amountMatch ? amountMatch[1].replace(/\s/g, '') : '',
+        });
+      }
+    }
+    
+    // Fallback: try old format with ```contacts block
+    if (contacts.length === 0) {
+      const contactsMatch = analysisResult.match(/```contacts\n([\s\S]*?)```/);
+      if (contactsMatch) {
+        const lines = contactsMatch[1].split('\n').filter(line => line.trim() && line.includes('|'));
+        for (const line of lines) {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length >= 4) {
+            contacts.push({
+              docName: parts[0],
+              supplierName: parts[1],
+              phone: parts[2],
+              amount: parts[3],
+            });
+          }
         }
       }
     }

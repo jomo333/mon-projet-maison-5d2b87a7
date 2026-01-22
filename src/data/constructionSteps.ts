@@ -84,7 +84,8 @@ export const constructionSteps: Step[] = [
         description: "Engagez un architecte ou technologue pour dessiner vos plans.",
         tips: [
           "Assurez-vous que les plans sont conformes au Code du bâtiment",
-          "Incluez les plans de structure et mécanique"
+          "Incluez les plans de structure et mécanique",
+          "Dès l'obtention de vos plans préliminaires, commencez à solliciter des soumissions pour accélérer la préparation du projet"
         ],
         documents: ["Plans d'architecture", "Plans de structure", "Plans mécaniques"]
       },

@@ -410,7 +410,7 @@ export function CategorySubmissionsDialog({
     }
   };
 
-  // Parse contacts from AI analysis - supports new simplified format
+  // Parse contacts from AI analysis - supports multiple formats
   const parseExtractedContacts = (analysisResult: string): ExtractedContact[] => {
     const contacts: ExtractedContact[] = [];
     
@@ -423,19 +423,37 @@ export function CategorySubmissionsDialog({
       
       const nameMatch = block.match(/🏢\s*\*?\*?([^*\n]+)/);
       const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
-      // Match both "💰 Montant avant taxes:" and "💰 Montant:"
-      const amountMatch = block.match(/💰\s*(?:Montant(?:\s*avant\s*taxes)?\s*:?\s*)?([0-9\s]+)\s*\$/);
+      
+      // Multiple patterns for amounts - more flexible matching
+      let amount = '';
+      
+      // Pattern 1: 💰 Montant avant taxes: X $
+      const amountMatch1 = block.match(/💰\s*(?:Montant(?:\s*avant\s*taxes)?\s*:?\s*)?([0-9\s,]+)\s*\$/);
+      // Pattern 2: Prix avant taxes: X $ 
+      const amountMatch2 = block.match(/Prix\s*(?:avant\s*taxes)?\s*:?\s*([0-9\s,]+)\s*\$/i);
+      // Pattern 3: Total avec taxes: X $ (fallback)
+      const amountMatch3 = block.match(/Total\s*(?:avec\s*taxes)?\s*:?\s*\*?\*?([0-9\s,]+)\s*\$/i);
+      // Pattern 4: Sous-total: X $
+      const amountMatch4 = block.match(/Sous-total\s*:?\s*([0-9\s,]+)\s*\$/i);
+      // Pattern 5: Just a large number with $ sign (X XXX $ or X,XXX $)
+      const amountMatch5 = block.match(/:\s*\*?\*?([0-9]{1,3}(?:[\s,][0-9]{3})*)\s*\$\*?\*?/);
+      
+      if (amountMatch1) amount = amountMatch1[1].replace(/[\s,]/g, '');
+      else if (amountMatch2) amount = amountMatch2[1].replace(/[\s,]/g, '');
+      else if (amountMatch4) amount = amountMatch4[1].replace(/[\s,]/g, '');
+      else if (amountMatch5) amount = amountMatch5[1].replace(/[\s,]/g, '');
+      else if (amountMatch3) amount = amountMatch3[1].replace(/[\s,]/g, '');
       
       if (nameMatch) {
         // Try to extract options from the block
         const options: SupplierOption[] = [];
         
         // Look for option patterns like "Option A: X $" or "Forfait Premium: X $"
-        const optionMatches = block.matchAll(/(?:Option|Forfait|Package)\s*([A-Za-zÀ-ÿ0-9\s]+)\s*:?\s*([0-9\s]+)\s*\$/gi);
+        const optionMatches = block.matchAll(/(?:Option|Forfait|Package)\s*([A-Za-zÀ-ÿ0-9\s]+)\s*:?\s*([0-9\s,]+)\s*\$/gi);
         for (const match of optionMatches) {
           options.push({
             name: match[1].trim(),
-            amount: match[2].replace(/\s/g, ''),
+            amount: match[2].replace(/[\s,]/g, ''),
           });
         }
         
@@ -443,28 +461,45 @@ export function CategorySubmissionsDialog({
           docName: '',
           supplierName: nameMatch[1].trim().replace(/\*+/g, ''),
           phone: phoneMatch ? phoneMatch[1].trim() : '',
-          amount: amountMatch ? amountMatch[1].replace(/\s/g, '') : '',
+          amount: amount,
           options: options.length > 0 ? options : undefined,
         });
       }
     }
     
-    // Also try to extract from comparison table
-    if (contacts.length === 0) {
-      // Look for table rows with company names and amounts
-      const tableRows = analysisResult.matchAll(/\|\s*([^|]+)\s*\|\s*([0-9\s]+)\s*\$\s*\|/g);
-      for (const row of tableRows) {
-        const name = row[1].trim();
-        const amount = row[2].replace(/\s/g, '');
-        // Skip header rows
-        if (name && !name.includes('Entreprise') && !name.includes('---') && amount) {
-          contacts.push({
-            docName: '',
-            supplierName: name,
-            phone: '',
-            amount: amount,
-          });
+    // Try to extract amounts from comparison table for suppliers without amounts
+    const tableAmounts: Record<string, string> = {};
+    const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,]+)\s*\$\*?\*?\s*\|/g);
+    for (const row of tableRows) {
+      const name = row[1].trim();
+      const amt = row[2].replace(/[\s,]/g, '');
+      if (name && !name.includes('Entreprise') && !name.includes('---') && !name.includes('Critère') && amt) {
+        tableAmounts[name.toLowerCase()] = amt;
+      }
+    }
+    
+    // Fill in missing amounts from table
+    for (const contact of contacts) {
+      if (!contact.amount) {
+        const key = contact.supplierName.toLowerCase();
+        for (const [tableName, tableAmt] of Object.entries(tableAmounts)) {
+          if (key.includes(tableName) || tableName.includes(key)) {
+            contact.amount = tableAmt;
+            break;
+          }
         }
+      }
+    }
+    
+    // If no contacts found, try to extract from comparison table directly
+    if (contacts.length === 0) {
+      for (const [name, amt] of Object.entries(tableAmounts)) {
+        contacts.push({
+          docName: '',
+          supplierName: name.charAt(0).toUpperCase() + name.slice(1),
+          phone: '',
+          amount: amt,
+        });
       }
     }
     
@@ -487,6 +522,7 @@ export function CategorySubmissionsDialog({
       }
     }
     
+    console.log("Extracted suppliers:", contacts);
     return contacts;
   };
 

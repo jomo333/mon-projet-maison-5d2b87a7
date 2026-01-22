@@ -788,6 +788,11 @@ export const constructionSteps: Step[] = [
         ]
       },
       {
+        id: "fascia-soffite",
+        title: "Fascia et soffite",
+        description: "Installation des bordures de toit et de la ventilation du comble.",
+      },
+      {
         id: "balcons-terrasses",
         title: "Balcons et terrasses",
         description: "Construction des balcons, galeries et terrasses.",
@@ -799,11 +804,6 @@ export const constructionSteps: Step[] = [
         id: "amenagement",
         title: "Aménagement paysager",
         description: "Nivellement final, entrée de garage, gazon et plantations.",
-      },
-      {
-        id: "fascia-soffite",
-        title: "Fascia et soffite",
-        description: "Installation des bordures de toit et de la ventilation du comble.",
       }
     ]
   },

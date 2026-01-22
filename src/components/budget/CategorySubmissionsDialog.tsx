@@ -114,6 +114,7 @@ export function CategorySubmissionsDialog({
   const [selectedAmount, setSelectedAmount] = useState("");
   const [showFullAnalysis, setShowFullAnalysis] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  // Direct ref to the Radix ScrollArea viewport (reliable programmatic scrolling)
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const [showScrollButtons, setShowScrollButtons] = useState({ up: false, down: false });
   
@@ -124,14 +125,7 @@ export function CategorySubmissionsDialog({
 
   // Handle scroll inside dialog
   const getScrollViewport = () => {
-    if (scrollViewportRef.current) return scrollViewportRef.current;
-
-    const viewport = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]"
-    ) as HTMLDivElement | null;
-
-    if (viewport) scrollViewportRef.current = viewport;
-    return viewport;
+    return scrollViewportRef.current;
   };
 
   const handleDialogScroll = () => {
@@ -149,51 +143,33 @@ export function CategorySubmissionsDialog({
     const viewport = getScrollViewport();
     if (!viewport) return;
 
-    try {
-      viewport.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      viewport.scrollTop = 0;
-    }
+    console.log("[soumissions] scrollToTop", {
+      scrollTop: viewport.scrollTop,
+      scrollHeight: viewport.scrollHeight,
+      clientHeight: viewport.clientHeight,
+    });
+
+    // Bulletproof scroll (avoid scrollTo + smooth issues inside Dialog)
+    viewport.scrollTop = 0;
   };
 
   const scrollToBottom = () => {
     const viewport = getScrollViewport();
     if (!viewport) return;
 
-    const top = viewport.scrollHeight;
-    try {
-      viewport.scrollTo({ top, behavior: "smooth" });
-    } catch {
-      viewport.scrollTop = top;
-    }
+    console.log("[soumissions] scrollToBottom", {
+      scrollTop: viewport.scrollTop,
+      scrollHeight: viewport.scrollHeight,
+      clientHeight: viewport.clientHeight,
+    });
+
+    viewport.scrollTop = viewport.scrollHeight;
   };
 
-  useEffect(() => {
-    if (!open) return;
-    
-    // Reset cached viewport when (re)opening
-    scrollViewportRef.current = null;
+  const tradeId =
+    categoryToTradeId[categoryName] ||
+    categoryName.toLowerCase().replace(/\s+/g, "-");
 
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      const viewport = getScrollViewport();
-      if (viewport) {
-        viewport.addEventListener('scroll', handleDialogScroll, { passive: true });
-        handleDialogScroll(); // Initial check
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-      const viewport = scrollViewportRef.current;
-      if (viewport) {
-        viewport.removeEventListener('scroll', handleDialogScroll);
-      }
-    };
-  }, [open, analysisResult, extractedSuppliers, activeSubCategoryId]);
-
-  const tradeId = categoryToTradeId[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-');
-  
   // Get the current task ID (main category or sub-category)
   const getCurrentTaskId = () => {
     if (activeSubCategoryId) {
@@ -201,8 +177,32 @@ export function CategorySubmissionsDialog({
     }
     return `soumission-${tradeId}`;
   };
-  
+
   const currentTaskId = getCurrentTaskId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    let raf = 0;
+    const attach = () => {
+      const viewport = getScrollViewport();
+      if (!viewport) {
+        raf = window.requestAnimationFrame(attach);
+        return;
+      }
+
+      viewport.addEventListener("scroll", handleDialogScroll, { passive: true });
+      handleDialogScroll();
+    };
+
+    raf = window.requestAnimationFrame(attach);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      const viewport = getScrollViewport();
+      viewport?.removeEventListener("scroll", handleDialogScroll);
+    };
+  }, [open, analysisResult, extractedSuppliers, activeSubCategoryId, currentTaskId]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -1042,7 +1042,13 @@ export function CategorySubmissionsDialog({
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0">
-          <ScrollArea ref={scrollAreaRef} className="h-full max-h-[60vh] pr-8">
+          <ScrollArea
+            ref={scrollAreaRef}
+            viewportRef={(node) => {
+              scrollViewportRef.current = node;
+            }}
+            className="h-full max-h-[60vh] pr-10"
+          >
           <div className="space-y-6">
             {/* Budget Section - Only show on main view */}
             {!viewingSubCategory && (
@@ -1479,40 +1485,42 @@ export function CategorySubmissionsDialog({
           </div>
         </ScrollArea>
           
-          {/* Right-side scroll band (like other pages) */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 rounded-full border bg-background/95 p-1.5 shadow-lg">
-            <Button
-              variant="ghost"
-              size="icon"
+          {/* Right-side scroll band */}
+          <div
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-50 h-36 w-11 overflow-hidden rounded-full border bg-background/95 shadow-lg"
+            aria-label="Bande de navigation"
+          >
+            <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 scrollToTop();
               }}
-              className={`h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
-                showScrollButtons.up ? 'opacity-100' : 'opacity-30'
-              }`}
+              className={
+                "flex h-1/2 w-full items-center justify-center transition-opacity " +
+                (showScrollButtons.up ? "opacity-100" : "opacity-35")
+              }
               aria-label="Remonter"
             >
-              <ChevronUp className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
+              <ChevronUp className="h-5 w-5 text-primary" />
+            </button>
+            <div className="mx-auto h-px w-6 bg-border" />
+            <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 scrollToBottom();
               }}
-              className={`h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-opacity ${
-                showScrollButtons.down ? 'opacity-100' : 'opacity-30'
-              }`}
+              className={
+                "flex h-1/2 w-full items-center justify-center transition-opacity " +
+                (showScrollButtons.down ? "opacity-100" : "opacity-35")
+              }
               aria-label="Descendre"
             >
-              <ChevronDown className="h-5 w-5" />
-            </Button>
+              <ChevronDown className="h-5 w-5 text-primary" />
+            </button>
           </div>
         </div>
 

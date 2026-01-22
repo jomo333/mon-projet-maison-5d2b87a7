@@ -747,7 +747,7 @@ export function CategorySubmissionsDialog({
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <RefreshCw className="h-4 w-4 mr-1" />
-                      Modifier
+                      Supprimer fournisseur
                     </Button>
                     <Badge className="bg-primary text-primary-foreground">
                       Sélectionné

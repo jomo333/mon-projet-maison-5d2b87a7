@@ -624,6 +624,42 @@ export function CategorySubmissionsDialog({
               )}
             </div>
 
+            {/* Selected Supplier Summary - Show when supplier is chosen */}
+            {supplierName && (
+              <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold flex items-center gap-2 text-lg text-primary">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Fournisseur retenu
+                  </h4>
+                  <Badge className="bg-primary text-primary-foreground">
+                    Sélectionné
+                  </Badge>
+                </div>
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Entreprise:</span>
+                    <span className="font-semibold">🏢 {supplierName}</span>
+                  </div>
+                  {supplierPhone && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Téléphone:</span>
+                      <span className="font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {supplierPhone}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-muted-foreground">Coût retenu:</span>
+                    <span className="font-bold text-xl text-primary">
+                      {parseInt(spent || selectedAmount || '0').toLocaleString('fr-CA')} $
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* AI Analysis Result - Compact Preview */}
             {analysisResult && (
               <div className="space-y-3">
@@ -649,7 +685,10 @@ export function CategorySubmissionsDialog({
                         {extractedSuppliers.length} fournisseur(s) détecté(s)
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Cliquez sur "Voir en grand" pour consulter l'analyse complète et sélectionner votre fournisseur
+                        {supplierName 
+                          ? "Fournisseur sélectionné. Cliquez sur 'Voir le résumé' pour modifier."
+                          : "Cliquez sur 'Voir le résumé' pour consulter l'analyse et sélectionner votre fournisseur"
+                        }
                       </p>
                     </div>
                     <Badge variant="secondary" className="bg-primary/10 text-primary">

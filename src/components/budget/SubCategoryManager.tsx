@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   Sparkles,
   DollarSign,
+  Hammer,
 } from "lucide-react";
 
 export interface SubCategory {
@@ -28,11 +30,13 @@ export interface SubCategory {
   supplierPhone?: string;
   hasDocuments?: boolean;
   hasAnalysis?: boolean;
+  isDIY?: boolean; // Fait par moi-même
+  materialCostOnly?: number; // Coût matériaux seulement
 }
 
 interface SubCategoryManagerProps {
   subCategories: SubCategory[];
-  onAddSubCategory: (name: string) => void;
+  onAddSubCategory: (name: string, isDIY?: boolean) => void;
   onRemoveSubCategory: (id: string) => void;
   onSelectSubCategory: (id: string) => void;
   activeSubCategoryId: string | null;
@@ -61,14 +65,16 @@ export function SubCategoryManager({
 }: SubCategoryManagerProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState("");
+  const [isDIYMode, setIsDIYMode] = useState(false);
 
   const suggestions = defaultSubCategorySuggestions[categoryName] || [];
   const totalAmount = subCategories.reduce((sum, sc) => sum + (sc.amount || 0), 0);
 
-  const handleAdd = (name: string) => {
+  const handleAdd = (name: string, diy?: boolean) => {
     if (name.trim()) {
-      onAddSubCategory(name.trim());
+      onAddSubCategory(name.trim(), diy ?? isDIYMode);
       setNewSubCategoryName("");
+      setIsDIYMode(false);
       setShowAddDialog(false);
     }
   };
@@ -113,14 +119,20 @@ export function SubCategoryManager({
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex flex-col min-w-0">
                   <span className="font-medium text-sm truncate">{subCat.name}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    {subCat.supplierName && (
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {subCat.isDIY && (
+                      <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 border-amber-300">
+                        <Hammer className="h-3 w-3 mr-1" />
+                        Fait par moi-même
+                      </Badge>
+                    )}
+                    {subCat.supplierName && !subCat.isDIY && (
                       <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         {subCat.supplierName}
                       </Badge>
                     )}
-                    {subCat.hasDocuments && !subCat.supplierName && (
+                    {subCat.hasDocuments && !subCat.supplierName && !subCat.isDIY && (
                       <Badge variant="outline" className="text-xs">
                         <FileText className="h-3 w-3 mr-1" />
                         Documents
@@ -130,6 +142,11 @@ export function SubCategoryManager({
                       <Badge variant="outline" className="text-xs text-primary border-primary/30">
                         <Sparkles className="h-3 w-3 mr-1" />
                         Analysé
+                      </Badge>
+                    )}
+                    {subCat.isDIY && subCat.materialCostOnly !== undefined && subCat.materialCostOnly > 0 && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        Matériaux: {subCat.materialCostOnly.toLocaleString("fr-CA")} $
                       </Badge>
                     )}
                   </div>
@@ -194,6 +211,27 @@ export function SubCategoryManager({
               />
             </div>
 
+            {/* DIY Option */}
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+              <Checkbox
+                id="diy-mode"
+                checked={isDIYMode}
+                onCheckedChange={(checked) => setIsDIYMode(checked === true)}
+              />
+              <div className="flex-1">
+                <Label 
+                  htmlFor="diy-mode" 
+                  className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                >
+                  <Hammer className="h-4 w-4 text-amber-600" />
+                  Fait par moi-même
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Analyse du coût des matériaux seulement (sans main-d'œuvre)
+                </p>
+              </div>
+            </div>
+
             {suggestions.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Suggestions:</Label>
@@ -205,7 +243,7 @@ export function SubCategoryManager({
                         key={suggestion}
                         variant="outline"
                         className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
-                        onClick={() => handleAdd(suggestion)}
+                        onClick={() => handleAdd(suggestion, isDIYMode)}
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         {suggestion}

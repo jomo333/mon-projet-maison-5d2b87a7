@@ -29,6 +29,7 @@ import {
   Maximize2,
   ArrowLeft,
   RefreshCw,
+  Hammer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
@@ -169,6 +170,8 @@ export function CategorySubmissionsDialog({
           supplierPhone: notes.supplierPhone,
           hasDocuments: false,
           hasAnalysis: notes.hasAnalysis || false,
+          isDIY: notes.isDIY || false,
+          materialCostOnly: notes.materialCostOnly ? parseFloat(notes.materialCostOnly) : 0,
         } as SubCategory;
       });
     },
@@ -408,7 +411,7 @@ export function CategorySubmissionsDialog({
   };
   
   // Sub-category handlers
-  const handleAddSubCategory = async (name: string) => {
+  const handleAddSubCategory = async (name: string, isDIY?: boolean) => {
     const id = Date.now().toString();
     const newSubCategory: SubCategory = {
       id,
@@ -416,12 +419,16 @@ export function CategorySubmissionsDialog({
       amount: 0,
       hasDocuments: false,
       hasAnalysis: false,
+      isDIY: isDIY || false,
+      materialCostOnly: 0,
     };
     
     // Save to database immediately
     const notes = JSON.stringify({
       subCategoryName: name,
       amount: "0",
+      isDIY: isDIY || false,
+      materialCostOnly: 0,
     });
     
     await supabase
@@ -440,7 +447,7 @@ export function CategorySubmissionsDialog({
     setActiveSubCategoryId(id);
     setViewingSubCategory(true);
     
-    toast.success(`Sous-catégorie "${name}" ajoutée`);
+    toast.success(`Sous-catégorie "${name}" ajoutée${isDIY ? ' (fait par moi-même)' : ''}`);
   };
   
   const handleRemoveSubCategory = async (id: string) => {
@@ -1024,6 +1031,115 @@ export function CategorySubmissionsDialog({
                 categoryName={categoryName}
               />
             )}
+
+            {/* DIY Mode Section - Show when viewing a DIY sub-category */}
+            {viewingSubCategory && activeSubCategoryId && (() => {
+              const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
+              if (!currentSubCat?.isDIY) return null;
+              
+              return (
+                <div className="rounded-xl border-2 border-amber-300 bg-amber-50/50 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold flex items-center gap-2 text-lg text-amber-700">
+                      <Hammer className="h-5 w-5" />
+                      Fait par moi-même
+                    </h4>
+                    <Badge className="bg-amber-100 text-amber-700 border-amber-300">
+                      Matériaux seulement
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">
+                    Téléchargez vos factures de matériaux pour analyser les coûts (sans main-d'œuvre).
+                  </p>
+                  
+                  {/* Material Cost Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="material-cost" className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-amber-600" />
+                      Coût total des matériaux
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="material-cost"
+                        type="number"
+                        value={currentSubCat.materialCostOnly || ''}
+                        onChange={async (e) => {
+                          const newCost = parseFloat(e.target.value) || 0;
+                          // Update local state
+                          setSubCategories(prev => prev.map(sc =>
+                            sc.id === activeSubCategoryId
+                              ? { ...sc, materialCostOnly: newCost, amount: newCost }
+                              : sc
+                          ));
+                        }}
+                        placeholder="0"
+                        className="max-w-[200px]"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
+                          if (!currentSubCat) return;
+                          
+                          const materialCost = currentSubCat.materialCostOnly || 0;
+                          
+                          // Save to database
+                          const existingNotes = supplierStatus || {};
+                          const updatedNotes = JSON.stringify({
+                            ...existingNotes,
+                            subCategoryName: currentSubCat.name,
+                            amount: materialCost.toString(),
+                            materialCostOnly: materialCost,
+                            isDIY: true,
+                          });
+                          
+                          await supabase
+                            .from('task_dates')
+                            .upsert({
+                              project_id: projectId,
+                              step_id: 'soumissions',
+                              task_id: currentTaskId,
+                              notes: updatedNotes,
+                            }, { onConflict: 'project_id,step_id,task_id' });
+                          
+                          // Update sub-category with amount
+                          setSubCategories(prev => prev.map(sc =>
+                            sc.id === activeSubCategoryId
+                              ? { ...sc, amount: materialCost }
+                              : sc
+                          ));
+                          
+                          // Update total spent
+                          const newTotalSpent = subCategories
+                            .map(sc => sc.id === activeSubCategoryId ? materialCost : sc.amount)
+                            .reduce((sum, amt) => sum + (amt || 0), 0);
+                          setSpent(newTotalSpent.toString());
+                          
+                          queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+                          queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
+                          
+                          toast.success("Coût des matériaux enregistré");
+                        }}
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        Enregistrer
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {currentSubCat.materialCostOnly && currentSubCat.materialCostOnly > 0 && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-amber-200">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700">
+                        Économie estimée: main-d'œuvre non facturée
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Documents Section */}
             <div className="space-y-3">

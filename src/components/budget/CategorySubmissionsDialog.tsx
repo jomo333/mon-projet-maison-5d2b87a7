@@ -390,7 +390,7 @@ export function CategorySubmissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div 
@@ -530,12 +530,22 @@ export function CategorySubmissionsDialog({
             {/* AI Analysis Result */}
             {analysisResult && (
               <div className="space-y-3">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  Analyse IA
+                <h4 className="font-medium flex items-center gap-2 text-lg">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Résultat de l'analyse
                 </h4>
-                <div className="rounded-lg border bg-muted/30 p-4 max-h-[300px] overflow-y-auto">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="rounded-lg border bg-background p-4 max-h-[400px] overflow-y-auto shadow-sm">
+                  <div className="prose prose-base dark:prose-invert max-w-none
+                    [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+                    [&_th]:bg-muted [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground
+                    [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-3 [&_td]:text-foreground
+                    [&_tr:nth-child(even)]:bg-muted/50
+                    [&_tr:hover]:bg-accent/50
+                    [&_p]:text-base [&_p]:leading-relaxed
+                    [&_strong]:text-primary [&_strong]:font-semibold
+                    [&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_h3]:font-semibold
+                    [&_ul]:list-disc [&_ul]:pl-6 [&_li]:text-base
+                  ">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {analysisResult}
                     </ReactMarkdown>

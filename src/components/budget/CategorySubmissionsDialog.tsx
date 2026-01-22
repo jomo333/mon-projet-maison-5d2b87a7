@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ import {
   DollarSign,
   Save,
   Maximize2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
@@ -102,6 +104,45 @@ export function CategorySubmissionsDialog({
   const [supplierPhone, setSupplierPhone] = useState("");
   const [selectedAmount, setSelectedAmount] = useState("");
   const [showFullAnalysis, setShowFullAnalysis] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [showScrollButtons, setShowScrollButtons] = useState({ up: false, down: false });
+
+  // Handle scroll inside dialog
+  const handleDialogScroll = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        const { scrollTop, scrollHeight, clientHeight } = viewport;
+        setShowScrollButtons({
+          up: scrollTop > 100,
+          down: scrollTop + clientHeight < scrollHeight - 50
+        });
+      }
+    }
+  };
+
+  const scrollToTop = () => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    viewport?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (open && scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.addEventListener('scroll', handleDialogScroll);
+        handleDialogScroll(); // Initial check
+        return () => viewport.removeEventListener('scroll', handleDialogScroll);
+      }
+    }
+  }, [open, analysisResult, extractedSuppliers]);
 
   const tradeId = categoryToTradeId[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-');
 
@@ -501,7 +542,8 @@ export function CategorySubmissionsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="relative flex-1">
+          <ScrollArea ref={scrollAreaRef} className="h-full max-h-[60vh] pr-4">
           <div className="space-y-6">
             {/* Budget Section */}
             <div className="space-y-3">
@@ -849,6 +891,33 @@ export function CategorySubmissionsDialog({
             </div>
           </div>
         </ScrollArea>
+          
+          {/* Scroll buttons inside dialog */}
+          {(showScrollButtons.up || showScrollButtons.down) && (
+            <div className="absolute right-6 bottom-4 flex flex-col gap-2 z-10">
+              {showScrollButtons.up && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={scrollToTop}
+                  className="h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+              )}
+              {showScrollButtons.down && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={scrollToBottom}
+                  className="h-9 w-9 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -27,8 +27,6 @@ import {
   DollarSign,
   Save,
   Maximize2,
-  ChevronUp,
-  ChevronDown,
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -113,43 +111,11 @@ export function CategorySubmissionsDialog({
   const [contactPersonPhone, setContactPersonPhone] = useState("");
   const [selectedAmount, setSelectedAmount] = useState("");
   const [showFullAnalysis, setShowFullAnalysis] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  // Direct ref to the Radix ScrollArea viewport (reliable programmatic scrolling)
-  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
-  const [showScrollButtons, setShowScrollButtons] = useState({ up: false, down: false });
   
   // Sub-category state
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [activeSubCategoryId, setActiveSubCategoryId] = useState<string | null>(null);
   const [viewingSubCategory, setViewingSubCategory] = useState(false);
-
-  // Handle scroll inside dialog
-  const getScrollViewport = () => {
-    return scrollViewportRef.current;
-  };
-
-  const handleDialogScroll = () => {
-    const viewport = getScrollViewport();
-    if (!viewport) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = viewport;
-    setShowScrollButtons({
-      up: scrollTop > 100,
-      down: scrollTop + clientHeight < scrollHeight - 50,
-    });
-  };
-
-  const scrollToTop = () => {
-    const viewport = getScrollViewport();
-    if (!viewport) return;
-    viewport.scrollTop = 0;
-  };
-
-  const scrollToBottom = () => {
-    const viewport = getScrollViewport();
-    if (!viewport) return;
-    viewport.scrollTop = viewport.scrollHeight;
-  };
 
   const tradeId =
     categoryToTradeId[categoryName] ||
@@ -164,30 +130,6 @@ export function CategorySubmissionsDialog({
   };
 
   const currentTaskId = getCurrentTaskId();
-
-  useEffect(() => {
-    if (!open) return;
-
-    let raf = 0;
-    const attach = () => {
-      const viewport = getScrollViewport();
-      if (!viewport) {
-        raf = window.requestAnimationFrame(attach);
-        return;
-      }
-
-      viewport.addEventListener("scroll", handleDialogScroll, { passive: true });
-      handleDialogScroll();
-    };
-
-    raf = window.requestAnimationFrame(attach);
-
-    return () => {
-      window.cancelAnimationFrame(raf);
-      const viewport = getScrollViewport();
-      viewport?.removeEventListener("scroll", handleDialogScroll);
-    };
-  }, [open, analysisResult, extractedSuppliers, activeSubCategoryId, currentTaskId]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -1027,14 +969,8 @@ export function CategorySubmissionsDialog({
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0">
-          <ScrollArea
-            ref={scrollAreaRef}
-            viewportRef={(node) => {
-              scrollViewportRef.current = node;
-            }}
-            className="h-[60vh] pr-10"
-          >
-          <div className="space-y-6">
+          <ScrollArea className="h-[60vh] pr-4">
+            <div className="space-y-6">
             {/* Budget Section - Only show on main view */}
             {!viewingSubCategory && (
               <div className="space-y-3">
@@ -1468,41 +1404,7 @@ export function CategorySubmissionsDialog({
               </div>
             </div>
           </div>
-        </ScrollArea>
-          
-          {/* Right-side scroll band (like other pages) */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                scrollToTop();
-              }}
-              className={
-                "h-10 w-10 rounded-full shadow-lg flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-all " +
-                (showScrollButtons.up ? "opacity-100" : "opacity-40")
-              }
-              aria-label="Remonter en haut"
-            >
-              <ChevronUp className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                scrollToBottom();
-              }}
-              className={
-                "h-10 w-10 rounded-full shadow-lg flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-all " +
-                (showScrollButtons.down ? "opacity-100" : "opacity-40")
-              }
-              aria-label="Descendre en bas"
-            >
-              <ChevronDown className="h-5 w-5" />
-            </button>
-          </div>
+          </ScrollArea>
         </div>
 
         <DialogFooter className="mt-4">

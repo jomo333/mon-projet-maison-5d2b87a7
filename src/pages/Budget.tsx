@@ -780,7 +780,8 @@ const Budget = () => {
           )}
         </div>
       </main>
-      <ScrollToTopBottom />
+      {/* Avoid showing page-level scroll buttons when the submissions dialog is open */}
+      {!showCategoryDialog && <ScrollToTopBottom />}
       <Footer />
     </div>
   );

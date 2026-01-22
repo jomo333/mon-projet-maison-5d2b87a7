@@ -45,20 +45,21 @@ interface BudgetCategory {
   items?: BudgetItem[];
 }
 
+// Categories aligned with construction guide steps (constructionSteps.ts)
 const defaultCategories: BudgetCategory[] = [
-  { name: "Excavation et fondation", budget: 0, spent: 0, color: "#3B82F6" },
-  { name: "Structure et charpente", budget: 0, spent: 0, color: "#F97316" },
-  { name: "Toiture", budget: 0, spent: 0, color: "#22C55E" },
-  { name: "Fenêtres et portes", budget: 0, spent: 0, color: "#EAB308" },
-  { name: "Isolation et pare-vapeur", budget: 0, spent: 0, color: "#8B5CF6" },
-  { name: "Plomberie", budget: 0, spent: 0, color: "#06B6D4" },
-  { name: "Électricité", budget: 0, spent: 0, color: "#EC4899" },
-  { name: "Chauffage et ventilation (HVAC)", budget: 0, spent: 0, color: "#14B8A6" },
-  { name: "Revêtement extérieur", budget: 0, spent: 0, color: "#A855F7" },
-  { name: "Gypse et peinture", budget: 0, spent: 0, color: "#475569" },
-  { name: "Revêtements de sol", budget: 0, spent: 0, color: "#F59E0B" },
-  { name: "Travaux ébénisterie (cuisine/SDB)", budget: 0, spent: 0, color: "#10B981" },
-  { name: "Finitions intérieures", budget: 0, spent: 0, color: "#EF4444" },
+  { name: "Excavation et fondation", budget: 0, spent: 0, color: "#3B82F6", description: "Implantation, excavation, coulage des fondations, drain et remblai" },
+  { name: "Structure et charpente", budget: 0, spent: 0, color: "#F97316", description: "Plancher, murs, étage, fermes de toit, pontage et étanchéité" },
+  { name: "Toiture", budget: 0, spent: 0, color: "#22C55E", description: "Membrane et bardeaux" },
+  { name: "Fenêtres et portes extérieures", budget: 0, spent: 0, color: "#EAB308", description: "Installation des fenêtres et portes extérieures" },
+  { name: "Isolation et pare-vapeur", budget: 0, spent: 0, color: "#8B5CF6", description: "Isolation murs/toit, pare-vapeur, fourrures de bois" },
+  { name: "Plomberie", budget: 0, spent: 0, color: "#06B6D4", description: "Rough-in (tuyauterie brute, chauffe-eau) + Finition (robinetterie, toilettes, douche)" },
+  { name: "Électricité", budget: 0, spent: 0, color: "#EC4899", description: "Rough-in (entrée électrique, filage) + Finition (prises, luminaires, appareils)" },
+  { name: "Chauffage et ventilation", budget: 0, spent: 0, color: "#14B8A6", description: "Système de chauffage, VRC (échangeur d'air), conduits de ventilation" },
+  { name: "Revêtement extérieur", budget: 0, spent: 0, color: "#A855F7", description: "Parement, fascia et soffite, balcons et terrasses, aménagement paysager" },
+  { name: "Gypse et peinture", budget: 0, spent: 0, color: "#475569", description: "Pose du gypse, tirage de joints, peinture" },
+  { name: "Revêtements de sol", budget: 0, spent: 0, color: "#F59E0B", description: "Plancher de bois/stratifié, céramique" },
+  { name: "Travaux ébénisterie", budget: 0, spent: 0, color: "#10B981", description: "Armoires de cuisine et vanités, comptoirs" },
+  { name: "Finitions intérieures", budget: 0, spent: 0, color: "#EF4444", description: "Portes intérieures, moulures et plinthes, escalier, peinture de finition" },
 ];
 
 // Couleurs vives et distinctes pour une meilleure lisibilité

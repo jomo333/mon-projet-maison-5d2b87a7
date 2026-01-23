@@ -81,30 +81,55 @@ const normalizeKey = (s: unknown) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ");
 
-// Analysis to step mapping for legacy AI categories
-const analysisToStepMap: Record<string, string[]> = {
-  "excavation": ["Excavation"],
-  "fondation": ["Fondation"],
-  "structure": ["Structure et charpente"],
-  "toiture": ["Toiture"],
-  "revetement exterieur": ["Revêtement extérieur"],
-  "revêtement extérieur": ["Revêtement extérieur"],
-  "fenetres et portes": ["Fenêtres et portes extérieures"],
-  "fenêtres et portes": ["Fenêtres et portes extérieures"],
-  "isolation et pare-air": ["Isolation et pare-vapeur"],
-  "isolation et pare air": ["Isolation et pare-vapeur"],
-  "electricite": ["Électricité"],
-  "électricité": ["Électricité"],
-  "plomberie": ["Plomberie"],
-  "chauffage/cvac": ["Chauffage et ventilation (HVAC)"],
-  "chauffage et cvac": ["Chauffage et ventilation (HVAC)"],
-  "chauffage": ["Chauffage et ventilation (HVAC)"],
-  // Split finishes across the main finishing steps (approximation)
-  "finition interieure": ["Gypse et peinture", "Revêtements de sol", "Finitions intérieures"],
-  "finition intérieure": ["Gypse et peinture", "Revêtements de sol", "Finitions intérieures"],
-  "cuisine": ["Travaux ébénisterie (Cuisine/SDB)"],
-  "salle de bain": ["Travaux ébénisterie (Cuisine/SDB)"],
-  "salles de bain": ["Travaux ébénisterie (Cuisine/SDB)"],
+type MappingTarget = { target: string; weight: number };
+
+// Analysis (12 catégories) -> Postes (17 étapes)
+// IMPORTANT: les `target` doivent correspondre EXACTEMENT aux titres des étapes (constructionSteps)
+// sinon le poste reste à 0$.
+const analysisToStepMap: Record<string, MappingTarget[]> = {
+  // Gros œuvre
+  "excavation": [{ target: "Excavation", weight: 1 }],
+
+  // Fondation: l'IA regroupe souvent sous un seul poste. On ventile vers les postes distincts.
+  // (Si l'analyse a déjà un poste Excavation, on ne lui ré-attribue pas ici.)
+  "fondation": [
+    { target: "Fondation", weight: 0.7 },
+    { target: "Plomberie sous dalle", weight: 0.1 },
+    { target: "Coulage de dalle du sous-sol", weight: 0.2 },
+  ],
+
+  // Structure: on ventile une portion vers les murs de division (charpente intérieure)
+  "structure": [
+    { target: "Structure et charpente", weight: 0.85 },
+    { target: "Murs de division", weight: 0.15 },
+  ],
+
+  "toiture": [{ target: "Toiture", weight: 1 }],
+  "fenetres et portes": [{ target: "Fenêtres et portes extérieures", weight: 1 }],
+
+  // Second œuvre
+  "isolation et pare-air": [{ target: "Isolation et pare-vapeur", weight: 1 }],
+  "isolation et pare air": [{ target: "Isolation et pare-vapeur", weight: 1 }],
+  "electricite": [{ target: "Électricité", weight: 1 }],
+  "plomberie": [{ target: "Plomberie", weight: 1 }],
+
+  // Le titre de l'étape est "Chauffage et ventilation" (pas "(HVAC)")
+  "chauffage/cvac": [{ target: "Chauffage et ventilation", weight: 1 }],
+  "chauffage et cvac": [{ target: "Chauffage et ventilation", weight: 1 }],
+  "chauffage": [{ target: "Chauffage et ventilation", weight: 1 }],
+
+  "revetement exterieur": [{ target: "Revêtement extérieur", weight: 1 }],
+
+  // Finitions
+  "finition interieure": [
+    { target: "Gypse et peinture", weight: 0.4 },
+    { target: "Revêtements de sol", weight: 0.25 },
+    { target: "Travaux ébénisterie", weight: 0.2 },
+    { target: "Finitions intérieures", weight: 0.15 },
+  ],
+  "cuisine": [{ target: "Travaux ébénisterie", weight: 1 }],
+  "salle de bain": [{ target: "Travaux ébénisterie", weight: 1 }],
+  "salles de bain": [{ target: "Travaux ébénisterie", weight: 1 }],
 };
 
 // Build merged categories
@@ -182,8 +207,12 @@ export const mapAnalysisToStepCategories = (
   }));
 
   const byName = new Map(mapped.map((c) => [c.name, c] as const));
+  const byNormalizedName = new Map(mapped.map((c) => [normalizeKey(c.name), c] as const));
 
   let extraAmount = 0; // taxes + contingence
+
+  const analysisKeys = new Set(analysisCategories.map((c) => normalizeKey(c.name)));
+  const hasExplicitExcavation = Array.from(analysisKeys).some((k) => k.includes("excav"));
 
   for (const cat of analysisCategories) {
     const key = normalizeKey(cat.name);
@@ -197,10 +226,11 @@ export const mapAnalysisToStepCategories = (
       continue;
     }
 
-    const targets = analysisToStepMap[key];
-    if (!targets || targets.length === 0) {
-      // Try direct match with step category name
-      const directMatch = byName.get(cat.name);
+    // Pick mapping rule (with a small dynamic tweak for excavation)
+    const rule = analysisToStepMap[key];
+    if (!rule || rule.length === 0) {
+      // Fallback: match by normalized name against step categories
+      const directMatch = byNormalizedName.get(key) ?? byName.get(cat.name);
       if (directMatch) {
         directMatch.budget += Number(cat.budget) || 0;
         if (cat.items?.length) {
@@ -210,17 +240,27 @@ export const mapAnalysisToStepCategories = (
       continue;
     }
 
-    const totalBudget = Number(cat.budget) || 0;
-    const perTargetBudget = targets.length > 0 ? totalBudget / targets.length : totalBudget;
+    // If excavation is missing in the analysis, we allow a small portion of "Fondation" to fill it.
+    const targets: MappingTarget[] =
+      key === "fondation" && !hasExplicitExcavation
+        ? [{ target: "Excavation", weight: 0.15 }, ...rule.map((r) => ({ ...r, weight: r.weight * 0.85 }))]
+        : rule;
 
-    for (const targetName of targets) {
-      const target = byName.get(targetName);
-      if (!target) continue;
-      target.budget += perTargetBudget;
-      if (cat.items?.length) {
+    const totalBudget = Number(cat.budget) || 0;
+    if (totalBudget <= 0) continue;
+
+    const weightSum = targets.reduce((s, t) => s + (Number(t.weight) || 0), 0) || 1;
+
+    targets.forEach((t, idx) => {
+      const target = byName.get(t.target);
+      if (!target) return;
+      target.budget += totalBudget * ((Number(t.weight) || 0) / weightSum);
+
+      // Avoid duplicating items across multiple postes
+      if (idx === 0 && cat.items?.length) {
         target.items = [...(target.items || []), ...cat.items];
       }
-    }
+    });
   }
 
   // Distribute extra (taxes/contingence) proportionally so totals match without adding extra categories

@@ -1119,7 +1119,7 @@ export function PlanAnalyzer({
                         <SelectItem value="pvc-standard">PVC standard</SelectItem>
                         <SelectItem value="pvc-triple">PVC triple vitrage</SelectItem>
                         <SelectItem value="aluminium">Aluminium</SelectItem>
-                        <SelectItem value="pvc-alu">PVC/Alu</SelectItem>
+                        <SelectItem value="pvc-alu">Hybride PVC/Alu</SelectItem>
                         <SelectItem value="bois">Bois massif</SelectItem>
                       </SelectContent>
                     </Select>

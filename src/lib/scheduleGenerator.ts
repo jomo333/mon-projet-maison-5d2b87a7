@@ -17,7 +17,8 @@ interface ReferenceDuration {
 }
 
 // Étapes de préparation (à planifier AVANT la date visée de début des travaux)
-const preparationSteps = ["planification", "financement", "plans-permis"];
+// Ordre: Planification → Plans et permis → Soumissions → Financement
+const preparationSteps = ["planification", "plans-permis", "soumissions", "financement"];
 
 // Mapping des étapes vers les métiers par défaut
 const stepTradeMapping: Record<string, string> = {

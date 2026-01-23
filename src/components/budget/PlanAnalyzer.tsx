@@ -1216,6 +1216,16 @@ export function PlanAnalyzer({
 
             <p className="text-muted-foreground">{analysis.projectSummary}</p>
 
+            {/* Important disclaimer note */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-200">
+              <p className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong>Note importante :</strong> Les estimations fournies par l'IA sont basées sur des coûts moyens du marché et servent à la planification. Elles aident à mieux estimer les coûts et à structurer le projet, mais ne remplacent pas les soumissions professionnelles, qui demeurent essentielles pour établir le coût réel de chaque étape des travaux.
+                </span>
+              </p>
+            </div>
+
             {/* Categories preview */}
             {(() => {
               const subTotal = orderedAnalysisCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);

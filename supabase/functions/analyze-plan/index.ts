@@ -1422,6 +1422,13 @@ function safeParseJsonFromModel(text: string): any | null {
     const jsonStart = clean.indexOf("{");
     if (jsonStart > 0) clean = clean.substring(jsonStart);
 
+    // If the model appended text after the JSON, keep only the last closing brace.
+    const jsonEnd = clean.lastIndexOf("}");
+    if (jsonEnd > 0) clean = clean.substring(0, jsonEnd + 1);
+
+    // Remove trailing commas (common model mistake): ", }" or ", ]"
+    clean = clean.replace(/,\s*([}\]])/g, "$1");
+
     try {
       return JSON.parse(clean);
     } catch {
@@ -1443,6 +1450,8 @@ function safeParseJsonFromModel(text: string): any | null {
         repaired += "}";
         braceCount--;
       }
+
+      repaired = repaired.replace(/,\s*([}\]])/g, "$1");
       return JSON.parse(repaired);
     }
   } catch {
@@ -1595,8 +1604,11 @@ ${agrandissementInstruction}
 - **CALCULER LE PÉRIMÈTRE** en pieds linéaires pour les fondations et murs
 ${isAgrandissement ? '- Pour un AGRANDISSEMENT, extrais SEULEMENT les éléments de la partie NOUVELLE (extension), pas le bâtiment existant.' : ''}
 ${hasManualContext ? '- PERSONNALISE les estimations selon les spécifications client.' : ''}
-- Si une catégorie n'est pas visible sur cette page, ne l\'invente pas
-- Retourne du JSON STRICT (sans texte autour), au format suivant:
+ - Si une catégorie n'est pas visible sur cette page, ne l\'invente pas
+ - IMPORTANT: limite la taille de la réponse pour éviter la troncature:
+   - Maximum 6 catégories
+   - Maximum 8 items par catégorie (si plus, regroupe en 1 item "Autres" avec total)
+ - Retourne du JSON STRICT (sans texte autour, pas de markdown), au format suivant:
 
 {
   "extraction": {
@@ -1642,7 +1654,7 @@ ${hasManualContext ? '- PERSONNALISE les estimations selon les spécifications c
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2500,
+      max_tokens: 2800,
       system: SYSTEM_PROMPT_EXTRACTION,
       messages: [
         {
@@ -2264,7 +2276,11 @@ Retourne le JSON structuré COMPLET.`;
           pageExtractions.push(extraction);
           console.log(`Image ${i + 1} analyzed (categories: ${extraction.categories.length})`);
         } else {
-          console.log(`Image ${i + 1} returned non-parseable JSON`);
+          const raw = String(pageText || "");
+          const clean = stripMarkdownCodeFences(raw);
+          const head = clean.slice(0, 180).replace(/\s+/g, " ");
+          const tail = clean.slice(-180).replace(/\s+/g, " ");
+          console.log(`Image ${i + 1} returned non-parseable JSON (len=${clean.length}) head="${head}" tail="${tail}"`);
         }
       }
 

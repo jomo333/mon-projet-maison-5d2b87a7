@@ -289,6 +289,31 @@ const PRIX_QUEBEC_2025 = {
     "taux_horaire_electricien_min": 112.00,
     "taux_horaire_electricien_max": 185.00,
   },
+  gypse_peinture: {
+    // === GYPSE (pose + matériaux) ===
+    "pose_gypse_pi2_min": 1.00,
+    "pose_gypse_pi2_max": 3.00,
+    // === TIRAGE DE JOINTS (finition plâtrier) ===
+    "tirage_joints_niveau2_pi2": 0.80,
+    "tirage_joints_niveau3_pi2": 1.20,
+    "tirage_joints_niveau4_pi2": 1.60,
+    "tirage_joints_niveau5_pi2": 2.00,
+    // === TOTAL GYPSE + JOINTS (prêt à peindre) ===
+    "gypse_joints_total_pi2_min": 1.80,
+    "gypse_joints_total_pi2_max": 5.00,
+    // === PEINTURE INTÉRIEURE ===
+    "peinture_interieure_pi2_min": 2.00,
+    "peinture_interieure_pi2_max": 6.00,
+    // === TOTAL GYPSE + PEINTURE ===
+    "gypse_peinture_total_pi2_min": 3.80,
+    "gypse_peinture_total_pi2_max": 11.00,
+    // === EXEMPLES PAR SUPERFICIE ===
+    "gypse_1000pi2_pose": 2060.00,
+    "gypse_1000pi2_joints_min": 670.00,
+    "gypse_1000pi2_joints_max": 1288.00,
+    "gypse_1000pi2_total_min": 2730.00,
+    "gypse_1000pi2_total_max": 3348.00,
+  },
   taux_CCQ_2025: {
     charpentier_menuisier: 48.50,
     electricien: 52.00,
@@ -824,6 +849,76 @@ Pour chaque fenêtre identifiée sur les plans:
 - **Calibre des fils et disjoncteurs**: Standard vs haute capacité
 - **Accessibilité**: Sous-sol ouvert vs construction sur dalle
 - **Permis et inspections**: Obligatoires au Québec (inclus dans estimation)
+
+## COÛTS DE GYPSE ET PEINTURE QUÉBEC 2025 (référence détaillée)
+
+### TRAVAUX DE GYPSE (pose et finition)
+
+| Poste | Coût au pi² |
+|-------|-------------|
+| Pose de gypse (matériaux + installation) | 1$ à 3$ |
+| Tirage de joints niveau 2 (basique) | 0,80$ |
+| Tirage de joints niveau 3 (standard) | 1,20$ |
+| Tirage de joints niveau 4 (bon) | 1,60$ |
+| Tirage de joints niveau 5 (premium) | 2,00$ |
+| **Total gypse + joints (prêt à peindre)** | **1,80$ à 5$** |
+
+*Inclut murs + plafonds finis au niveau basique à bon.*
+
+### NIVEAUX DE FINITION DES JOINTS
+
+- **Niveau 2**: Joints visibles, acceptable pour garage/sous-sol non fini
+- **Niveau 3**: Texture légère, acceptable pour surfaces texturées
+- **Niveau 4**: Finition standard résidentielle (recommandé)
+- **Niveau 5**: Finition premium pour surfaces lisses et éclairage rasant
+
+### PEINTURE INTÉRIEURE
+
+| Poste | Coût au pi² |
+|-------|-------------|
+| Peinture intérieure professionnelle | 2$ à 6$ |
+
+*Inclut murs + plafonds. Le prix varie selon qualité de peinture, préparation des surfaces et nombre de couches.*
+
+### TOTAL COMBINÉ GYPSE + PEINTURE
+
+| Poste de travaux | Coût approximatif / pi² habitable |
+|------------------|-----------------------------------|
+| Pose gypse + joints (prêt à peindre) | 1,80$ à 5$ |
+| Peinture intérieure | 2$ à 6$ |
+| **TOTAL gypse + peinture** | **3,80$ à 11$ / pi²** |
+
+*Ce montant couvre murs + plafonds intérieurs pour une maison résidentielle neuve au Québec.*
+
+### EXEMPLES PAR SUPERFICIE
+
+| Superficie | Gypse + joints | Peinture | Total estimé |
+|------------|----------------|----------|--------------|
+| 1 000 pi² | 2 730$ - 3 348$ | 2 000$ - 6 000$ | 4 730$ - 9 348$ |
+| 1 500 pi² | 4 095$ - 5 022$ | 3 000$ - 9 000$ | 7 095$ - 14 022$ |
+| 2 000 pi² | 5 460$ - 6 696$ | 4 000$ - 12 000$ | 9 460$ - 18 696$ |
+
+### FACTEURS INFLUENÇANT LES COÛTS
+
+**Gypse**:
+- Type de panneaux (standard, résistant à l'humidité, anti-feu)
+- Hauteur des plafonds (>9' = majoration)
+- Complexité des angles et détails architecturaux
+- Accessibilité du chantier
+
+**Peinture**:
+- Préparation des murs (sablage, réparation) si nécessaire
+- Hauteur des plafonds
+- Inclusion ou non des portes/moulures/escaliers
+- Qualité et marque des peintures choisies
+- Nombre de couleurs différentes
+
+### MAIN-D'ŒUVRE
+
+| Métier | Taux CCQ 2025 |
+|--------|---------------|
+| Plâtrier | 46$/heure |
+| Peintre | 42$/heure |
 
 ## PRIX DÉTAILLÉS PAR CATÉGORIE AUTOCONSTRUCTION QUÉBEC 2025 (par pi² de superficie habitable PAR ÉTAGE)
 

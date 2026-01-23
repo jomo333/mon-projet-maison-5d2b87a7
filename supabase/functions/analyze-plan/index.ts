@@ -1902,6 +1902,84 @@ serve(async (req) => {
     const body = await req.json();
     const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl } = body;
     
+    // Handle MERGE mode first (no API key needed - just data processing)
+    if (mode === "merge") {
+      console.log('Merge mode: combining batch results...');
+      const { batchResults, manualContext, totalImages } = body;
+      
+      if (!batchResults || !Array.isArray(batchResults) || batchResults.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'No batch results to merge' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Convert batch results to PageExtraction format for merging
+      const pageExtractions: PageExtraction[] = batchResults.map((batch: any) => {
+        const extraction = batch.extraction || batch;
+        return {
+          type_projet: extraction.type_projet,
+          superficie_nouvelle_pi2: extraction.superficie_nouvelle_pi2,
+          nombre_etages: extraction.nombre_etages,
+          categories: extraction.categories || [],
+          elements_manquants: extraction.elements_manquants || [],
+          ambiguites: extraction.ambiguites || [],
+          incoherences: extraction.incoherences || [],
+        };
+      });
+      
+      // Merge all batch results
+      const merged = mergePageExtractions(pageExtractions);
+      
+      // Use manual context as fallback
+      const sqftFallback = Number(manualContext?.squareFootage) || 0;
+      const sqft = merged.superficie || sqftFallback;
+      const etagesFallback = Number(manualContext?.numberOfFloors) || 1;
+      const etages = merged.etages || etagesFallback;
+      
+      // Complete missing categories
+      const completed = ensureAllMainCategoriesAndRecalc({
+        mergedCategories: merged.categories,
+        squareFootage: sqft,
+        finishQuality,
+      });
+      
+      // Generate summary
+      const typeProjetDisplay = (merged.typeProjet || manualContext?.projectType || 'Construction neuve')
+        .replace('_', ' ')
+        .toLowerCase()
+        .replace(/^\w/, (c: string) => c.toUpperCase());
+      
+      const resumeProjet = `Analyse fusionnée de ${totalImages} plan(s) - ${typeProjetDisplay} de ${sqft} pi² sur ${etages} étage(s)`;
+      
+      const mergedBudgetData = {
+        extraction: {
+          type_projet: merged.typeProjet,
+          superficie_nouvelle_pi2: sqft,
+          nombre_etages: etages,
+          plans_analyses: totalImages,
+          categories: completed.categories,
+          elements_manquants: merged.elements_manquants,
+          ambiguites: merged.ambiguites,
+          incoherences: merged.incoherences,
+        },
+        totaux: completed.totaux,
+        validation: completed.validation,
+        recommandations: [
+          `Analyse multi-lots: ${batchResults.length} lot(s) fusionnés pour ${totalImages} plan(s) total.`,
+        ],
+        resume_projet: resumeProjet,
+      };
+      
+      const transformedMerged = transformToLegacyFormat(mergedBudgetData, finishQuality);
+      console.log('Merge complete - categories:', transformedMerged.categories?.length || 0);
+      
+      return new Response(
+        JSON.stringify({ success: true, data: transformedMerged, rawAnalysis: mergedBudgetData }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicKey) {
       console.error('ANTHROPIC_API_KEY not configured');

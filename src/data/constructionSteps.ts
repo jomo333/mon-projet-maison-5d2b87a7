@@ -372,6 +372,16 @@ export const constructionSteps: Step[] = [
         ]
       },
       {
+        id: "insonorisation",
+        title: "Insonorisation",
+        description: "Installation de l'isolation acoustique entre les pièces et les étages.",
+        tips: [
+          "Priorisez les murs entre les chambres et les salles de bain",
+          "Utilisez de la laine acoustique ou des membranes spécialisées",
+          "L'insonorisation des planchers réduit significativement les bruits d'impact"
+        ]
+      },
+      {
         id: "pare-vapeur",
         title: "Pare-vapeur",
         description: "Installation du polyéthylène 6 mil sur le côté chaud de l'isolant.",

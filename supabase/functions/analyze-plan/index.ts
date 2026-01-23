@@ -2119,18 +2119,27 @@ Retourne le JSON structuré COMPLET.`;
     let finalContent: string;
 
     if (mode === 'plan' && imageUrls.length > 0) {
-      // IMPORTANT: Do NOT accumulate base64 images in memory (WORKER_LIMIT). Process sequentially.
-      console.log(`Starting sequential plan analysis for ${imageUrls.length} images...`);
+      // CRITICAL: Limit to MAX 3 images to avoid CPU time limit (WORKER_LIMIT error)
+      // Edge functions have strict CPU limits - processing more images causes timeout
+      const MAX_IMAGES = 3;
+      const imagesToProcess = imageUrls.slice(0, MAX_IMAGES);
+      const totalOriginal = imageUrls.length;
+      
+      if (totalOriginal > MAX_IMAGES) {
+        console.log(`⚠️ Limiting analysis to ${MAX_IMAGES} images (received ${totalOriginal}). Upload fewer plans or combine into single pages.`);
+      }
+      
+      console.log(`Starting sequential plan analysis for ${imagesToProcess.length} images...`);
 
-      const maxBytesPerImage = 2_800_000; // ~2.8MB to stay safe
+      const maxBytesPerImage = 2_000_000; // ~2MB to stay safe and reduce CPU usage
       const pageExtractions: PageExtraction[] = [];
       let skipped = 0;
 
       const finishQualityLabel = qualityDescriptions[finishQuality] || qualityDescriptions["standard"];
 
-      for (let i = 0; i < imageUrls.length; i++) {
-        const url = imageUrls[i];
-        console.log(`Processing image ${i + 1}/${imageUrls.length}...`);
+      for (let i = 0; i < imagesToProcess.length; i++) {
+        const url = imagesToProcess[i];
+        console.log(`Processing image ${i + 1}/${imagesToProcess.length}...`);
 
         const img = await fetchImageAsBase64(url, maxBytesPerImage);
         if (!img) {
@@ -2146,7 +2155,7 @@ Retourne le JSON structuré COMPLET.`;
           mediaType: img.mediaType,
           finishQualityLabel,
           pageNumber: i + 1,
-          totalPages: imageUrls.length,
+          totalPages: imagesToProcess.length,
           additionalNotes: manualContext.additionalNotes || body.additionalNotes,
           projectType: manualContext.projectType || body.projectType,
           manualContext: manualContext,
@@ -2192,9 +2201,10 @@ Retourne le JSON structuré COMPLET.`;
         .toLowerCase()
         .replace(/^\w/, (c: string) => c.toUpperCase());
       
-      const plansCount = imageUrls.length - skipped;
+      const plansCount = imagesToProcess.length - skipped;
       const hasManualNotes = manualCtx.additionalNotes ? ' (avec spécifications client)' : '';
-      const resumeProjet = `Analyse de ${plansCount} plan(s) - ${typeProjetDisplay} de ${sqft} pi² sur ${etages} étage(s)${hasManualNotes}`;
+      const limitNote = totalOriginal > MAX_IMAGES ? ` (limité à ${MAX_IMAGES} sur ${totalOriginal} plans)` : '';
+      const resumeProjet = `Analyse de ${plansCount} plan(s)${limitNote} - ${typeProjetDisplay} de ${sqft} pi² sur ${etages} étage(s)${hasManualNotes}`;
 
       const budgetData = {
         extraction: {

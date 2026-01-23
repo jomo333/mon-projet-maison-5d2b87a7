@@ -344,6 +344,36 @@ const PRIX_QUEBEC_2025 = {
     "accessoires_plinthes_transitions_pi2_min": 0.50,
     "accessoires_plinthes_transitions_pi2_max": 1.50,
   },
+  finitions_interieures: {
+    // === PORTES INTÉRIEURES ===
+    "porte_interieure_unite_min": 300.00,
+    "porte_interieure_unite_max": 800.00,
+    "portes_maison_complete_min": 2500.00,
+    "portes_maison_complete_max": 6000.00,
+    "portes_pi2_habitable_min": 3.50,
+    "portes_pi2_habitable_max": 7.00,
+    // === MOULURES ET PLINTHES ===
+    "plinthes_pied_lineaire_min": 6.00,
+    "plinthes_pied_lineaire_max": 10.00,
+    "moulures_plinthes_pi2_min": 1.50,
+    "moulures_plinthes_pi2_max": 3.00,
+    // === ESCALIERS ===
+    "escalier_droit_min": 1500.00,
+    "escalier_droit_max": 6000.00,
+    "escalier_L_min": 2500.00,
+    "escalier_L_max": 8000.00,
+    "escalier_U_min": 3000.00,
+    "escalier_U_max": 10000.00,
+    "escalier_colimacon_min": 5000.00,
+    "escalier_colimacon_max": 12000.00,
+    "escalier_flottant_design_min": 8000.00,
+    "escalier_flottant_design_max": 20000.00,
+    "escalier_pi2_habitable_min": 3.00,
+    "escalier_pi2_habitable_max": 6.00,
+    // === TOTAL FINITIONS INTÉRIEURES ===
+    "finitions_total_pi2_min": 8.00,
+    "finitions_total_pi2_max": 16.00,
+  },
   taux_CCQ_2025: {
     charpentier_menuisier: 48.50,
     electricien: 52.00,
@@ -357,6 +387,7 @@ const PRIX_QUEBEC_2025 = {
     vitrier_installateur: 45.00,
     poseur_plancher: 44.00,
     carreleur: 47.00,
+    menuisier_finition: 46.00,
   }
 };
 
@@ -1029,6 +1060,75 @@ Pour chaque fenêtre identifiée sur les plans:
 |--------|---------------|
 | Poseur de plancher | 44$/heure |
 | Carreleur | 47$/heure |
+
+## COÛTS FINITIONS INTÉRIEURES QUÉBEC 2025 (référence détaillée)
+
+### 1. PORTES INTÉRIEURES (achat + installation)
+
+| Poste | Coût |
+|-------|------|
+| Porte intérieure standard (battante, bloc pré-monté) | 300$ à 800$ par porte installée |
+| Maison complète (10-12 portes) | 2 500$ à 6 000$+ total |
+| **Par pi² habitable** | **3,50$ à 7$+** |
+
+*Inclut porte, cadre, quincaillerie et pose professionnelle.*
+
+### 2. MOULURES ET PLINTHES (trim & baseboards)
+
+| Poste | Coût |
+|-------|------|
+| Plinthes (matériaux + pose) | 6$ à 10$ par pied linéaire |
+| **Par pi² habitable** | **1,50$ à 3$** |
+
+*Varie selon style (MDF, PVC, bois dur) et finition.*
+
+**Exemple** : Maison 2 000 pi² = 300-400 pi linéaires de plinthes = 2 500$ à 4 000$ total
+
+### 3. ESCALIER INTÉRIEUR (structure + finition)
+
+| Type d'escalier | Coût installation incluse |
+|-----------------|---------------------------|
+| Escalier droit | 1 500$ à 6 000$ |
+| Escalier en L | 2 500$ à 8 000$ |
+| Escalier en U | 3 000$ à 10 000$ |
+| Escalier colimaçon | 5 000$ à 12 000$ |
+| Flottant / design haut de gamme | 8 000$ à 20 000$+ |
+
+*Inclut structure, marches, limons, rampes et main-courante.*
+
+| Répartition par pi² | Coût |
+|---------------------|------|
+| Escalier standard (6 000$) / 2 000 pi² | ≈ 3$/pi² |
+| Escalier haut de gamme (12 000$) / 2 000 pi² | ≈ 6$/pi² |
+
+### RÉSUMÉ FINITIONS INTÉRIEURES PAR PI² HABITABLE
+
+| Élément | Estimation moyenne |
+|---------|-------------------|
+| Portes intérieures | 3,50$ à 7$+ / pi² |
+| Moulures & plinthes | 1,50$ à 3$ / pi² |
+| Escalier (réparti) | 3$ à 6$ / pi² |
+| **TOTAL finitions intérieures** | **8$ à 16$ / pi²** |
+
+### CE QUI EST INCLUS
+
+✔ Portes intérieures standards avec cadres et quincaillerie
+✔ Moulures de base et plinthes (installation professionnelle)
+✔ Escalier complet standard (structure + finition)
+
+### CE QUI N'EST PAS INCLUS
+
+- Portes et moulures haut de gamme personnalisées
+- Rampes complexes en verre/métal
+- Travaux structurels ou modifications de cloisons
+- Peinture de finition (budgetée séparément)
+
+### MAIN-D'ŒUVRE FINITIONS
+
+| Métier | Taux CCQ 2025 |
+|--------|---------------|
+| Menuisier finition | 46$/heure |
+| Charpentier-menuisier | 48,50$/heure |
 
 ## PRIX DÉTAILLÉS PAR CATÉGORIE AUTOCONSTRUCTION QUÉBEC 2025 (par pi² de superficie habitable PAR ÉTAGE)
 

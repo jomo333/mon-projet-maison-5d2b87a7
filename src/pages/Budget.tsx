@@ -46,6 +46,49 @@ interface BudgetCategory {
   items?: BudgetItem[];
 }
 
+const normalizeBudgetItemName = (name: string) => {
+  // Remove plan-page suffixes that create artificial duplicates in the UI
+  // e.g. "Murs de fondation (Page 2)" -> "Murs de fondation"
+  return name
+    .replace(/\s*\(\s*page\s*\d+\s*\)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const aggregateBudgetItemsForDisplay = (items: BudgetItem[] = []): BudgetItem[] => {
+  const byKey = new Map<string, BudgetItem>();
+
+  for (const item of items) {
+    const normalizedName = normalizeBudgetItemName(item.name);
+    const unit = (item.unit || "").trim();
+    const key = `${normalizedName}__${unit.toLowerCase()}`;
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, {
+        ...item,
+        name: normalizedName,
+        unit,
+      });
+      continue;
+    }
+
+    // Sum costs
+    existing.cost = (Number(existing.cost) || 0) + (Number(item.cost) || 0);
+
+    // Sum quantities when numeric; otherwise keep the existing string to avoid weird merges
+    const q1 = Number(String(existing.quantity).replace(",", "."));
+    const q2 = Number(String(item.quantity).replace(",", "."));
+    if (Number.isFinite(q1) && Number.isFinite(q2)) {
+      const summed = q1 + q2;
+      existing.quantity = Number.isInteger(summed) ? String(Math.trunc(summed)) : String(summed);
+    }
+  }
+
+  // Keep a stable order based on first occurrence
+  return Array.from(byKey.values());
+};
+
 // Couleurs vives et distinctes pour une meilleure lisibilité
 const categoryColors = [
   "#3B82F6", // Bleu vif
@@ -774,13 +817,15 @@ const Budget = () => {
                     const isOverBudget = category.spent > category.budget;
                     const isNearLimit = percent > 80 && !isOverBudget;
                     const isExpanded = expandedCategories.includes(category.name);
-                    const hasItems = category.items && category.items.length > 0;
-                    const stepTasks = stepTasksByCategory[category.name] ?? [];
+                    const stepTasks = Array.from(new Set(stepTasksByCategory[category.name] ?? []));
                     const stepTasksText = stepTasks.join(", ");
                     const showAnalysisSummary =
                       !!category.description &&
                       category.description.trim().length > 0 &&
                       category.description.trim() !== stepTasksText.trim();
+
+                    const displayItems = aggregateBudgetItemsForDisplay(category.items || []);
+                    const hasItems = displayItems.length > 0;
 
                     return (
                       <Collapsible 
@@ -874,7 +919,7 @@ const Budget = () => {
                                     <div className="col-span-3 text-center">Quantité</div>
                                     <div className="col-span-4 text-right">Coût</div>
                                   </div>
-                                  {category.items!.map((item, idx) => (
+                                  {displayItems.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
                                       <div className="col-span-5 truncate">{item.name}</div>
                                       <div className="col-span-3 text-center text-muted-foreground">

@@ -73,8 +73,20 @@ Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les p
 - Ratio main-d'œuvre/matériaux: 35-50% selon le type de travail
 - TOUJOURS inclure TPS 5% + TVQ 9.975%
 - TOUJOURS ajouter contingence 5%
+- Les coûts sont calculés PAR ÉTAGE (superficie habitable par niveau)
 
-## PRIX DE RÉFÉRENCE QUÉBEC 2025 (par pi² de superficie habitable)
+## COÛT TOTAL DE CONSTRUCTION AU QUÉBEC 2025 (référence globale par pi² habitable)
+
+| Gamme | Coût global $/pi² | Description |
+|-------|-------------------|-------------|
+| Entrée de gamme | 180$ - 250$/pi² | Finis standards, matériaux économiques |
+| Gamme intermédiaire | 200$ - 325$/pi² | Bon rapport qualité-prix, finis moyens |
+| Haut de gamme | 300$ - 400$/pi²+ | Finis luxueux, personnalisation élevée |
+
+**Estimation typique Québec 2025**: 210$ à 275$/pi² pour une maison standard
+**Zones urbaines (Montréal, Laval)**: 250$ à 400$/pi² avec finitions de qualité
+
+## PRIX DÉTAILLÉS PAR CATÉGORIE QUÉBEC 2025 (par pi² de superficie habitable PAR ÉTAGE)
 
 | Catégorie | Économique | Standard | Haut de gamme |
 |-----------|------------|----------|---------------|
@@ -91,6 +103,10 @@ Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les p
 | Planchers | 8-15$ | 15-30$ | 30-60$ |
 | Cuisine | 8k-15k$ | 15k-35k$ | 35k-80k$ |
 | Salle de bain | 5k-10k$ | 10k-25k$ | 25k-50k$ |
+
+**NOTE IMPORTANTE**: Les coûts par catégorie sont basés sur la superficie HABITABLE par étage.
+Pour une maison de 2 étages de 1500 pi² par étage (3000 pi² total habitable), 
+le coût de Structure à 35$/pi² = 3000 x 35$ = 105 000$.
 
 ## FORMAT DE RÉPONSE JSON STRICT
 

@@ -1144,13 +1144,13 @@ export function PlanAnalyzer({
                     </div>
                   ))}
 
-                  {/* Contingence 5% */}
+                  {/* Budget imprévu 5% */}
                   <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center font-medium">
                         %
                       </span>
-                      <span className="font-medium text-amber-700 dark:text-amber-400">Contingence (5%)</span>
+                      <span className="font-medium text-amber-700 dark:text-amber-400">Budget imprévu (5%)</span>
                     </div>
                     <span className="text-amber-700 dark:text-amber-400 font-medium text-sm">
                       {Math.round(contingence * 0.90).toLocaleString()} $ - {Math.round(contingence * 1.10).toLocaleString()} $

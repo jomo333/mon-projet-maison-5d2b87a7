@@ -1005,12 +1005,12 @@ const Budget = () => {
                     );
                       })}
 
-                      {/* Contingence 5% */}
+                      {/* Budget imprévu 5% */}
                       <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded shrink-0 bg-amber-500" />
-                            <span className="font-medium text-amber-700 dark:text-amber-400">Contingence (5%)</span>
+                            <span className="font-medium text-amber-700 dark:text-amber-400">Budget imprévu (5%)</span>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-sm font-medium text-amber-700 dark:text-amber-400">

@@ -962,13 +962,13 @@ function transformToLegacyFormat(data: any, finishQuality: string): any {
     }))
   }));
 
-  // Add contingence and taxes as categories
+  // Add budget imprévu and taxes as categories
   if (totaux.contingence_5_pourcent) {
     categories.push({
-      name: "Contingence (5%)",
+      name: "Budget imprévu (5%)",
       budget: totaux.contingence_5_pourcent,
-      description: "Provision pour imprévus",
-      items: [{ name: "Contingence 5%", cost: totaux.contingence_5_pourcent, quantity: "1", unit: "forfait" }]
+      description: "Budget imprévu",
+      items: [{ name: "Budget imprévu 5%", cost: totaux.contingence_5_pourcent, quantity: "1", unit: "forfait" }]
     });
   }
 

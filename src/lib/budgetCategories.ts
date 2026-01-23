@@ -248,7 +248,7 @@ export const mapAnalysisToStepCategories = (
       extraAmount += Number(cat.budget) || 0;
       continue;
     }
-    if (key.includes("contingence")) {
+    if (key.includes("contingence") || key.includes("budget imprévu") || key.includes("budget imprevu")) {
       extraAmount += Number(cat.budget) || 0;
       continue;
     }

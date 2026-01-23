@@ -1457,6 +1457,17 @@ async function fetchImageAsBase64(url: string, maxBytes: number): Promise<{ base
       console.log(`fetchImageAsBase64: fetch failed (${resp.status}) for ${url}`);
       return null;
     }
+
+    // Early reject based on header when available (saves CPU/memory vs reading the whole body).
+    const contentLengthHeader = resp.headers.get('content-length');
+    if (contentLengthHeader) {
+      const contentLength = Number(contentLengthHeader);
+      if (!Number.isNaN(contentLength) && contentLength > maxBytes) {
+        console.log(`fetchImageAsBase64: content-length too large (${contentLength} bytes > ${maxBytes}) for ${url}`);
+        return null;
+      }
+    }
+
     const arrayBuffer = await resp.arrayBuffer();
     if (arrayBuffer.byteLength > maxBytes) {
       console.log(`fetchImageAsBase64: image too large (${arrayBuffer.byteLength} bytes > ${maxBytes}) for ${url}`);
@@ -2216,8 +2227,8 @@ Retourne le JSON structuré COMPLET.`;
       
       console.log(`Processing ${imagesToProcess.length} image...`);
 
-      // Accept slightly larger images; frontend now compresses to JPEG, but older stored files can be bigger.
-      const maxBytesPerImage = 18_000_000; // ~18MB (legacy PNGs can be huge)
+      // Keep a strict-ish limit: large images dramatically increase CPU (base64 + IA payload) and can trigger WORKER_LIMIT.
+      const maxBytesPerImage = 8_000_000; // ~8MB
       const pageExtractions: PageExtraction[] = [];
       let skipped = 0;
 

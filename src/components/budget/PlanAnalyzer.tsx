@@ -247,55 +247,56 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   });
 
   // Upload mutation
+  const uploadPlanFile = async (file: File, opts: { silent?: boolean } = {}) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `budget-plans/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("task-attachments")
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from("task-attachments")
+      .getPublicUrl(fileName);
+
+    const insertData: {
+      step_id: string;
+      task_id: string;
+      file_name: string;
+      file_url: string;
+      file_type: string;
+      file_size: number;
+      category: string;
+      project_id?: string;
+    } = {
+      step_id: "budget",
+      task_id: "plan-upload",
+      file_name: file.name,
+      file_url: urlData.publicUrl,
+      file_type: file.type,
+      file_size: file.size,
+      category: "plan",
+    };
+
+    if (projectId) insertData.project_id = projectId;
+
+    const { error: dbError } = await supabase.from("task_attachments").insert(insertData);
+    if (dbError) throw dbError;
+
+    if (!opts.silent) {
+      queryClient.invalidateQueries({ queryKey: ["project-plans", projectId] });
+      setSelectedPlanUrls((prev) => [...prev, urlData.publicUrl]);
+      toast.success("Plan téléversé avec succès!");
+    }
+
+    return urlData.publicUrl;
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `budget-plans/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("task-attachments")
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("task-attachments")
-        .getPublicUrl(fileName);
-
-      const insertData: {
-        step_id: string;
-        task_id: string;
-        file_name: string;
-        file_url: string;
-        file_type: string;
-        file_size: number;
-        category: string;
-        project_id?: string;
-      } = {
-        step_id: "budget",
-        task_id: "plan-upload",
-        file_name: file.name,
-        file_url: urlData.publicUrl,
-        file_type: file.type,
-        file_size: file.size,
-        category: "plan",
-      };
-
-      // Include project_id if available
-      if (projectId) {
-        insertData.project_id = projectId;
-      }
-
-      const { error: dbError } = await supabase.from("task_attachments").insert(insertData);
-
-      if (dbError) throw dbError;
-      
-      return urlData.publicUrl;
-    },
-    onSuccess: (publicUrl) => {
-      queryClient.invalidateQueries({ queryKey: ["project-plans", projectId] });
-      setSelectedPlanUrls(prev => [...prev, publicUrl]);
-      toast.success("Plan téléversé avec succès!");
+      return await uploadPlanFile(file);
     },
     onError: (error) => {
       console.error("Upload error:", error);
@@ -567,9 +568,72 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           throw new Error(data.error || "Échec de l'analyse");
         }
       } else {
+        // IMPORTANT: older plans already stored can be huge PNGs and will trigger backend WORKER_LIMIT.
+        // We re-download + recompress to JPEG, then analyze the optimized URLs.
+        const ensureOptimizedUrls = async (urls: string[]) => {
+          const optimized: string[] = [];
+          let changed = false;
+
+          for (const url of urls) {
+            try {
+              const isLikelyJpeg = /\.(jpe?g)(\?|#|$)/i.test(url);
+              // Cheap check with HEAD (if supported) to avoid downloading already-small JPEG.
+              let contentLength: number | null = null;
+              try {
+                const head = await fetch(url, { method: "HEAD" });
+                if (head.ok) {
+                  const len = head.headers.get("content-length");
+                  if (len) contentLength = Number(len);
+                }
+              } catch {
+                // ignore
+              }
+
+              if (isLikelyJpeg && contentLength !== null && contentLength > 0 && contentLength <= 3_000_000) {
+                optimized.push(url);
+                continue;
+              }
+
+              const res = await fetch(url);
+              if (!res.ok) {
+                optimized.push(url);
+                continue;
+              }
+              const blob = await res.blob();
+
+              const mime = blob.type || "image/png";
+              const needsCompression = !mime.includes("jpeg") || blob.size > 3_000_000;
+              if (!needsCompression) {
+                optimized.push(url);
+                continue;
+              }
+
+              const baseName = url.split("/").pop()?.split("?")[0]?.split("#")[0] || "plan";
+              const file = new File([blob], baseName, { type: mime });
+              const compressed = await compressImageFileToJpeg(file);
+              const newUrl = await uploadPlanFile(compressed, { silent: true });
+              optimized.push(newUrl);
+              changed = true;
+            } catch (e) {
+              console.warn("Plan optimization failed, keeping original:", url, e);
+              optimized.push(url);
+            }
+          }
+
+          return { optimized, changed };
+        };
+
+        toast.info("Optimisation des plans (compression JPEG) avant analyse...");
+        const { optimized: planUrlsForAnalysis, changed } = await ensureOptimizedUrls(selectedPlanUrls);
+        if (changed) {
+          // Update selection so next runs are faster and stable.
+          setSelectedPlanUrls(planUrlsForAnalysis);
+          toast.success("Plans optimisés. Lancement de l'analyse...");
+        }
+
         // Mode plan: analyse par lots de 1 image pour éviter timeout CPU (WORKER_LIMIT)
         const BATCH_SIZE = 1;
-        const totalImages = selectedPlanUrls.length;
+        const totalImages = planUrlsForAnalysis.length;
         const totalBatches = Math.ceil(totalImages / BATCH_SIZE);
         
         // Collecter les résultats bruts de chaque batch pour fusion côté serveur
@@ -578,7 +642,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
           const startIdx = batchIndex * BATCH_SIZE;
           const endIdx = Math.min(startIdx + BATCH_SIZE, totalImages);
-          const batchUrls = selectedPlanUrls.slice(startIdx, endIdx);
+          const batchUrls = planUrlsForAnalysis.slice(startIdx, endIdx);
           
           setBatchProgress({
             current: batchIndex + 1,

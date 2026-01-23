@@ -498,6 +498,9 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     }
   };
 
+  // State for batch progress
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; completed: number } | null>(null);
+
   const handleAnalyze = async () => {
     if (analysisMode === "plan" && selectedPlanUrls.length === 0) {
       toast.error("Veuillez sélectionner ou téléverser au moins un plan");
@@ -506,14 +509,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
     setIsAnalyzing(true);
     setAnalysis(null);
+    setBatchProgress(null);
 
     try {
       // Get style photo URLs to include in analysis
       const stylePhotoUrls = stylePhotos.map((p: any) => p.file_url);
-      
-      // NOUVELLE LOGIQUE: Combiner TOUTES les données disponibles pour une analyse plus précise
-      // Les plans sont la source principale, mais les données manuelles fournissent un contexte précieux
-      const hasPlansSelected = selectedPlanUrls.length > 0;
       
       // Données manuelles enrichies (toujours incluses pour contexte)
       const manualData = {
@@ -532,7 +532,6 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         floorSqftDetails: floorSqftDetails.filter(s => s).map(s => parseInt(s)),
         finishQuality,
         additionalNotes: additionalNotes || undefined,
-        // Matériaux et finitions spécifiques (non visibles sur les plans)
         materialChoices: {
           exteriorSiding: exteriorSiding || undefined,
           roofingType: roofingType || undefined,
@@ -545,44 +544,154 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         },
       };
       
-      const body = hasPlansSelected
-        ? {
-            // Mode plan ENRICHI: plans + données manuelles complémentaires
+      const hasPlansSelected = selectedPlanUrls.length > 0;
+      
+      if (!hasPlansSelected) {
+        // Mode manuel pur
+        const body = {
+          mode: "manual",
+          ...manualData,
+          stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
+          referenceImageUrls: manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
+        };
+
+        const { data, error } = await supabase.functions.invoke('analyze-plan', { body });
+        if (error) throw error;
+        if (data.success && data.data) {
+          setAnalysis(data.data);
+          toast.success("Analyse terminée avec succès!");
+        } else {
+          throw new Error(data.error || "Échec de l'analyse");
+        }
+      } else {
+        // Mode plan: analyse par lots de 3 images max pour éviter timeout CPU
+        const BATCH_SIZE = 3;
+        const totalImages = selectedPlanUrls.length;
+        const totalBatches = Math.ceil(totalImages / BATCH_SIZE);
+        
+        // Collecter les résultats bruts de chaque batch pour fusion côté serveur
+        const batchResults: any[] = [];
+        
+        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+          const startIdx = batchIndex * BATCH_SIZE;
+          const endIdx = Math.min(startIdx + BATCH_SIZE, totalImages);
+          const batchUrls = selectedPlanUrls.slice(startIdx, endIdx);
+          
+          setBatchProgress({
+            current: batchIndex + 1,
+            total: totalBatches,
+            completed: startIdx,
+          });
+          
+          toast.info(`Analyse du lot ${batchIndex + 1}/${totalBatches} (plans ${startIdx + 1}-${endIdx})...`);
+          
+          const body = {
             mode: "plan",
-            imageUrls: selectedPlanUrls,
+            imageUrls: batchUrls,
             finishQuality,
-            // NOUVEAU: Inclure les données manuelles comme contexte complémentaire
-            // L'IA utilisera les plans comme source principale mais les données manuelles
-            // aident à préciser le contexte (type de projet, notes spécifiques, etc.)
             manualContext: manualData,
-            stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
-            referenceImageUrls: manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
-          }
-        : {
-            // Mode manuel pur: utiliser toutes les données entrées par l'utilisateur
-            mode: "manual",
-            ...manualData,
-            stylePhotoUrls: stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
-            referenceImageUrls: manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
+            stylePhotoUrls: batchIndex === 0 && stylePhotoUrls.length > 0 ? stylePhotoUrls : undefined,
+            referenceImageUrls: batchIndex === 0 && manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
+            // Indiquer au serveur qu'il s'agit d'un lot partiel
+            batchInfo: {
+              batchIndex,
+              totalBatches,
+              totalImages,
+              isPartialBatch: totalBatches > 1,
+            },
           };
 
-      const { data, error } = await supabase.functions.invoke('analyze-plan', {
-        body,
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.data) {
-        setAnalysis(data.data);
-        toast.success("Analyse terminée avec succès!");
-      } else {
-        throw new Error(data.error || "Échec de l'analyse");
+          const { data, error } = await supabase.functions.invoke('analyze-plan', { body });
+          
+          if (error) {
+            console.error(`Batch ${batchIndex + 1} error:`, error);
+            toast.error(`Erreur sur le lot ${batchIndex + 1}: ${error.message}`);
+            // Continue avec les autres lots
+            continue;
+          }
+          
+          if (data.success && data.rawAnalysis) {
+            batchResults.push(data.rawAnalysis);
+          } else if (data.success && data.data) {
+            // Fallback si rawAnalysis n'est pas disponible
+            batchResults.push({ categories: data.data.categories, extraction: data.data });
+          }
+        }
+        
+        setBatchProgress(null);
+        
+        if (batchResults.length === 0) {
+          throw new Error("Aucun lot n'a pu être analysé avec succès");
+        }
+        
+        // Si un seul lot, utiliser directement le résultat
+        if (batchResults.length === 1 && totalBatches === 1) {
+          const singleResult = batchResults[0];
+          // Appeler le serveur pour obtenir le format final
+          const { data: finalData } = await supabase.functions.invoke('analyze-plan', {
+            body: {
+              mode: "merge",
+              batchResults,
+              finishQuality,
+              manualContext: manualData,
+              totalImages,
+            },
+          });
+          
+          if (finalData?.success && finalData?.data) {
+            setAnalysis(finalData.data);
+          } else {
+            // Utiliser le résultat brut transformé localement
+            const categories = singleResult.extraction?.categories || singleResult.categories || [];
+            setAnalysis({
+              projectSummary: singleResult.resume_projet || `Analyse de ${totalImages} plan(s)`,
+              estimatedTotal: singleResult.totaux?.total_ttc || 0,
+              categories: categories.map((cat: any) => ({
+                name: cat.nom || cat.name,
+                budget: cat.sous_total_categorie || cat.budget || 0,
+                description: `${cat.items?.length || 0} items`,
+                items: (cat.items || []).map((item: any) => ({
+                  name: item.description || item.name,
+                  cost: item.total || item.cost || 0,
+                  quantity: String(item.quantite || item.quantity || ''),
+                  unit: item.unite || item.unit || ''
+                }))
+              })),
+              recommendations: singleResult.recommandations || [],
+              warnings: singleResult.warnings || [],
+            });
+          }
+        } else {
+          // Plusieurs lots: envoyer tous les résultats au serveur pour fusion
+          toast.info("Fusion des résultats de tous les lots...");
+          
+          const { data: mergedData, error: mergeError } = await supabase.functions.invoke('analyze-plan', {
+            body: {
+              mode: "merge",
+              batchResults,
+              finishQuality,
+              manualContext: manualData,
+              totalImages,
+            },
+          });
+          
+          if (mergeError) throw mergeError;
+          
+          if (mergedData?.success && mergedData?.data) {
+            setAnalysis(mergedData.data);
+          } else {
+            throw new Error(mergedData?.error || "Échec de la fusion des résultats");
+          }
+        }
+        
+        toast.success(`Analyse complète de ${totalImages} plan(s) terminée!`);
       }
     } catch (error) {
       console.error("Analysis error:", error);
       toast.error("Erreur lors de l'analyse du plan");
     } finally {
       setIsAnalyzing(false);
+      setBatchProgress(null);
     }
   };
 
@@ -1316,7 +1425,9 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             {isAnalyzing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Analyse en cours...
+                {batchProgress 
+                  ? `Lot ${batchProgress.current}/${batchProgress.total}...` 
+                  : "Analyse en cours..."}
               </>
             ) : (
               <>
@@ -1327,9 +1438,25 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           </Button>
           
           {isAnalyzing && (
-            <p className="text-sm text-muted-foreground animate-pulse">
-              ⏳ L'analyse peut prendre quelques minutes selon la complexité des plans...
-            </p>
+            <div className="space-y-2">
+              {batchProgress && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Analyse par lots ({batchProgress.current}/{batchProgress.total})</span>
+                    <span>{Math.round((batchProgress.current / batchProgress.total) * 100)}%</span>
+                  </div>
+                  <Progress value={(batchProgress.current / batchProgress.total) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Plans {batchProgress.completed + 1} à {Math.min(batchProgress.completed + 3, selectedPlanUrls.length)} sur {selectedPlanUrls.length}
+                  </p>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground animate-pulse">
+                ⏳ {batchProgress 
+                  ? `Analyse de ${selectedPlanUrls.length} plans en ${batchProgress.total} lot(s) pour éviter les timeouts...`
+                  : "L'analyse peut prendre quelques minutes selon la complexité des plans..."}
+              </p>
+            </div>
           )}
         </div>
 

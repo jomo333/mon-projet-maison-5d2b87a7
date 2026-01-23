@@ -22,6 +22,7 @@ import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import { constructionSteps } from "@/data/constructionSteps";
+import { groupItemsByTask } from "@/lib/budgetTaskMapping";
 import {
   Select,
   SelectContent,
@@ -825,7 +826,6 @@ const Budget = () => {
                       category.description.trim() !== stepTasksText.trim();
 
                     const displayItems = aggregateBudgetItemsForDisplay(category.items || []);
-                    const hasItems = displayItems.length > 0;
 
                     return (
                       <Collapsible 
@@ -888,52 +888,73 @@ const Budget = () => {
                           
                           <CollapsibleContent>
                             <div className="px-4 pb-3 pt-3 border-t bg-muted/30 space-y-4">
-                              {/* Tasks coming from the construction guide (always visible) */}
-                              {stepTasks.length > 0 && (
-                                <div>
-                                  <div className="text-xs font-medium text-muted-foreground mb-2">
-                                    Tâches incluses (étapes du guide)
-                                  </div>
-                                  <ul className="list-disc pl-5 space-y-1 text-sm">
-                                    {stepTasks.map((t) => (
-                                      <li key={t} className="text-muted-foreground">
-                                        {t}
-                                      </li>
+                              {/* Group items by task */}
+                              {(() => {
+                                const groupedByTask = groupItemsByTask(category.name, displayItems);
+                                const taskEntries = Array.from(groupedByTask.entries());
+
+                                // If no items at all, show tasks from the guide without items
+                                if (taskEntries.length === 0) {
+                                  return (
+                                    <>
+                                      {stepTasks.length > 0 && (
+                                        <div>
+                                          <div className="text-xs font-medium text-muted-foreground mb-2">
+                                            Tâches incluses (étapes du guide)
+                                          </div>
+                                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                                            {stepTasks.map((t) => (
+                                              <li key={t} className="text-muted-foreground">
+                                                {t}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      <div className="text-sm text-muted-foreground italic">
+                                        Aucun élément analysé pour cette catégorie pour l'instant.
+                                      </div>
+                                    </>
+                                  );
+                                }
+
+                                // Display items grouped under their task headings
+                                return (
+                                  <div className="space-y-4">
+                                    {taskEntries.map(([taskTitle, items]) => (
+                                      <div key={taskTitle}>
+                                        <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                                          {taskTitle}
+                                        </div>
+                                        <div className="ml-6 space-y-1">
+                                          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
+                                            <div className="col-span-5">Élément</div>
+                                            <div className="col-span-3 text-center">Quantité</div>
+                                            <div className="col-span-4 text-right">Coût</div>
+                                          </div>
+                                          {items.map((item, idx) => (
+                                            <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
+                                              <div className="col-span-5 truncate text-muted-foreground">{item.name}</div>
+                                              <div className="col-span-3 text-center text-muted-foreground">
+                                                {item.quantity} {item.unit}
+                                              </div>
+                                              <div className="col-span-4 text-right font-medium">
+                                                {item.cost.toLocaleString()} $
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
                                     ))}
-                                  </ul>
-                                </div>
-                              )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Analysis summary (if present) */}
                               {showAnalysisSummary && (
                                 <div className="text-sm text-muted-foreground">
                                   <span className="font-medium">Analyse:</span> {category.description}
-                                </div>
-                              )}
-
-                              {/* Itemized analysis (if available) */}
-                              {hasItems ? (
-                                <div className="space-y-2">
-                                  <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
-                                    <div className="col-span-5">Élément</div>
-                                    <div className="col-span-3 text-center">Quantité</div>
-                                    <div className="col-span-4 text-right">Coût</div>
-                                  </div>
-                                  {displayItems.map((item, idx) => (
-                                    <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
-                                      <div className="col-span-5 truncate">{item.name}</div>
-                                      <div className="col-span-3 text-center text-muted-foreground">
-                                        {item.quantity} {item.unit}
-                                      </div>
-                                      <div className="col-span-4 text-right font-medium">
-                                        {item.cost.toLocaleString()} $
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground italic">
-                                  Aucun élément analysé pour cette catégorie pour l’instant.
                                 </div>
                               )}
                             </div>

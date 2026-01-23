@@ -376,6 +376,7 @@ export const constructionSteps: Step[] = [
         title: "Insonorisation",
         description: "Installation de l'isolation acoustique entre les pièces et les étages.",
         tips: [
+          "Une bonne insonorisation des chambres et des salles de bain améliore le confort et l'intimité en réduisant les bruits aériens grâce à une isolation acoustique et des techniques de pose adaptées",
           "Priorisez les murs entre les chambres et les salles de bain",
           "Utilisez de la laine acoustique ou des membranes spécialisées",
           "L'insonorisation des planchers réduit significativement les bruits d'impact"

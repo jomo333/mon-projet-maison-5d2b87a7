@@ -68,23 +68,75 @@ const categoryColors = [
 ];
 
 // Generate default categories from construction steps (physical work steps only: 5-22, excluding inspections)
+// Merge Plomberie and Électricité rough-in + finition into single categories
 const physicalWorkSteps = constructionSteps.filter(
   step => (step.phase === "gros-oeuvre" || step.phase === "second-oeuvre" || step.phase === "finitions") 
     && step.id !== "inspections-finales"
 );
 
-const defaultCategories: BudgetCategory[] = physicalWorkSteps.map((step, index) => {
-  // Build description from task titles
-  const taskTitles = step.tasks.map(t => t.title).join(", ");
-  
-  return {
-    name: step.title,
-    budget: 0,
-    spent: 0,
-    color: categoryColors[index % categoryColors.length],
-    description: taskTitles,
-  };
-});
+// IDs to merge (rough-in + finition become one category)
+const mergeMap: Record<string, string> = {
+  "plomberie-roughin": "Plomberie",
+  "plomberie-finition": "Plomberie",
+  "electricite-roughin": "Électricité",
+  "electricite-finition": "Électricité",
+};
+
+// Build merged categories
+const buildDefaultCategories = (): BudgetCategory[] => {
+  const result: BudgetCategory[] = [];
+  const mergedCategories: Record<string, { tasks: string[]; color: string }> = {};
+  let colorIndex = 0;
+
+  for (const step of physicalWorkSteps) {
+    const mergedName = mergeMap[step.id];
+    
+    if (mergedName) {
+      // This step should be merged
+      if (!mergedCategories[mergedName]) {
+        mergedCategories[mergedName] = {
+          tasks: [],
+          color: categoryColors[colorIndex % categoryColors.length],
+        };
+        colorIndex++;
+        // Add placeholder to maintain order (will be replaced)
+        result.push({
+          name: mergedName,
+          budget: 0,
+          spent: 0,
+          color: mergedCategories[mergedName].color,
+          description: "",
+        });
+      }
+      // Accumulate tasks from both phases
+      mergedCategories[mergedName].tasks.push(...step.tasks.map(t => t.title));
+    } else {
+      // Regular step
+      const taskTitles = step.tasks.map(t => t.title).join(", ");
+      result.push({
+        name: step.title,
+        budget: 0,
+        spent: 0,
+        color: categoryColors[colorIndex % categoryColors.length],
+        description: taskTitles,
+      });
+      colorIndex++;
+    }
+  }
+
+  // Update merged categories with accumulated task descriptions
+  return result.map(cat => {
+    if (mergedCategories[cat.name]) {
+      return {
+        ...cat,
+        description: mergedCategories[cat.name].tasks.join(", "),
+      };
+    }
+    return cat;
+  });
+};
+
+const defaultCategories: BudgetCategory[] = buildDefaultCategories();
 
 const Budget = () => {
   const { user } = useAuth();

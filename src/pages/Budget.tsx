@@ -238,19 +238,9 @@ const Budget = () => {
         };
       });
 
-      // Keep any legacy categories not present in the current step list (append at the end).
-      const extras: BudgetCategory[] = savedBudget
-        .filter((row) => !defaultNames.has(row.category_name))
-        .map((row, index) => ({
-          name: row.category_name,
-          budget: Number(row.budget) || 0,
-          spent: Number(row.spent) || 0,
-          color: row.color || categoryColors[index % categoryColors.length],
-          description: row.description || undefined,
-          items: (row.items as unknown as BudgetItem[]) || [],
-        }));
-
-      setBudgetCategories([...ordered, ...extras]);
+      // Exclude legacy categories that no longer match the 18-step structure
+      // These will be ignored (not displayed) - only current step categories are shown
+      setBudgetCategories(ordered);
     } else if (selectedProjectId) {
       // Reset to default if no budget saved
       setBudgetCategories(defaultCategories);

@@ -497,6 +497,9 @@ function shouldExcludeFromCategory(categoryName: string, itemName: string): bool
       "fermes de toit", "ferme de toit", "préfabriquées", "contreplaqué toiture",
       "pontage", "5/8\" toit"
     ],
+    "Fenêtres et portes extérieures": [
+      "fenêtres sous-sol", "fenêtre sous-sol", "sous-sol estimé"
+    ],
   };
   
   const exclusions = exclusionRules[categoryName];

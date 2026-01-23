@@ -32,6 +32,25 @@ const PRIX_QUEBEC_2025 = {
     "ciment_portland_30kg": 12.50,
     "beton_30MPa_m3": 165.00,
   },
+  fondation: {
+    // Coûts par pi² selon le type de fondation
+    "beton_coule_pi2_min": 14.00,
+    "beton_coule_pi2_max": 20.00,
+    "blocs_beton_pi2_min": 10.00,
+    "blocs_beton_pi2_max": 15.00,
+    "dalle_sur_sol_pi2_min": 6.50,
+    "dalle_sur_sol_pi2_max": 11.00,
+    "vide_sanitaire_pi2_min": 12.00,
+    "vide_sanitaire_pi2_max": 18.00,
+    "sous_sol_complet_pi2_min": 18.00,
+    "sous_sol_complet_pi2_max": 25.00,
+    // Coffrage et béton coulé détaillé
+    "coffrage_beton_coule_pi2_min": 14.42,
+    "coffrage_beton_coule_pi2_max": 20.60,
+    // Semelles de fondation (par pied linéaire)
+    "semelles_pi_lineaire_min": 10.00,
+    "semelles_pi_lineaire_max": 15.00, // Inclut excavation, béton et armature acier
+  },
   excavation: {
     // Coûts au m³ incluant opérateur, transport et matériel de remblai
     "standard_m3": 200.00, // Moyenne pour agrandissement standard
@@ -152,7 +171,25 @@ Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les p
 - Volume = Superficie x 0.75m (profondeur moyenne creusée)
 - Coût excavation = Volume m³ x 200$/m³ (ajuster selon type de sol)
 
-## PRIX DÉTAILLÉS PAR CATÉGORIE AUTOCONSTRUCTION QUÉBEC 2025 (par pi² de superficie habitable PAR ÉTAGE)
+## COÛTS DE FONDATION QUÉBEC 2025 (référence détaillée)
+
+| Type de fondation | Coût par pi² | Notes |
+|-------------------|--------------|-------|
+| Dalle sur sol | 6,50$ - 11$ | Option la plus économique |
+| Blocs de béton | 10$ - 15$ | Construction traditionnelle |
+| Vide sanitaire | 12$ - 18$ | Accès aux services mécaniques |
+| Béton coulé standard | 14$ - 20$ | Le plus courant au Québec |
+| Coffrage et béton coulé | 14,42$ - 20,60$ | Précision détaillée |
+| Sous-sol complet | 18$ - 25$ | Espace habitable additionnel |
+
+**Semelles de fondation**: 10$ à 15$ par pied linéaire
+- Inclut: excavation locale, béton coulé et armature en acier
+
+**Calcul typique pour fondation béton coulé**:
+- Coût = Périmètre (pi linéaires) x Hauteur mur (pi) x 17$/pi² (moyenne)
+- OU = Superficie fondation (pi²) x 17$/pi² (méthode simplifiée)
+
+
 
 | Catégorie | Économique | Standard | Haut de gamme |
 |-----------|------------|----------|---------------|

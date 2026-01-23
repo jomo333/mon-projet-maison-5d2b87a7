@@ -493,6 +493,10 @@ function shouldExcludeFromCategory(categoryName: string, itemName: string): bool
       "poutre de soutien acier", "colonnes d'acier", "colonne d'acier", "acier sous poutre",
       "solives de plancher rdc", "sous-plancher osb", "garage"
     ],
+    "Toiture": [
+      "fermes de toit", "ferme de toit", "préfabriquées", "contreplaqué toiture",
+      "pontage", "5/8\" toit"
+    ],
   };
   
   const exclusions = exclusionRules[categoryName];

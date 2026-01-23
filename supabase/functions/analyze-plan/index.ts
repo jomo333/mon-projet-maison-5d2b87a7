@@ -2197,19 +2197,20 @@ Retourne le JSON structuré COMPLET.`;
     let finalContent: string;
 
     if (mode === 'plan' && imageUrls.length > 0) {
-      // CRITICAL: Limit to MAX 3 images to avoid CPU time limit (WORKER_LIMIT error)
-      // Edge functions have strict CPU limits - processing more images causes timeout
-      const MAX_IMAGES = 3;
+      // CRITICAL: Limit to MAX 1 image to avoid CPU time limit (WORKER_LIMIT error)
+      // Edge functions have strict CPU limits - processing even 2-3 images causes timeout
+      // Frontend handles batching - each call should only have 1 image
+      const MAX_IMAGES = 1;
       const imagesToProcess = imageUrls.slice(0, MAX_IMAGES);
       const totalOriginal = imageUrls.length;
       
       if (totalOriginal > MAX_IMAGES) {
-        console.log(`⚠️ Limiting analysis to ${MAX_IMAGES} images (received ${totalOriginal}). Upload fewer plans or combine into single pages.`);
+        console.log(`⚠️ Processing only ${MAX_IMAGES} image (received ${totalOriginal}). Frontend should batch calls.`);
       }
       
-      console.log(`Starting sequential plan analysis for ${imagesToProcess.length} images...`);
+      console.log(`Processing ${imagesToProcess.length} image...`);
 
-      const maxBytesPerImage = 2_000_000; // ~2MB to stay safe and reduce CPU usage
+      const maxBytesPerImage = 1_500_000; // ~1.5MB to stay safe and reduce CPU usage
       const pageExtractions: PageExtraction[] = [];
       let skipped = 0;
 

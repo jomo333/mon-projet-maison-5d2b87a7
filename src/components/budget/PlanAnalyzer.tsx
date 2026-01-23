@@ -564,8 +564,8 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           throw new Error(data.error || "Échec de l'analyse");
         }
       } else {
-        // Mode plan: analyse par lots de 3 images max pour éviter timeout CPU
-        const BATCH_SIZE = 3;
+        // Mode plan: analyse par lots de 1 image pour éviter timeout CPU (WORKER_LIMIT)
+        const BATCH_SIZE = 1;
         const totalImages = selectedPlanUrls.length;
         const totalBatches = Math.ceil(totalImages / BATCH_SIZE);
         

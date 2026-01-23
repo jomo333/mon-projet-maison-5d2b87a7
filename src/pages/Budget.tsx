@@ -789,9 +789,9 @@ const Budget = () => {
                 {hasAnalyzedBudget ? (
                   <>
                     <div className="text-xl font-bold font-display">
-                      {Math.round(displayBudget * 0.85).toLocaleString()} $ à {Math.round(displayBudget * 1.15).toLocaleString()} $
+                      {Math.round(displayBudget * 0.90).toLocaleString()} $ à {Math.round(displayBudget * 1.10).toLocaleString()} $
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Fourchette ±15%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Fourchette ±10%</p>
                   </>
                 ) : (
                   <>
@@ -830,7 +830,7 @@ const Budget = () => {
               <CardContent>
                 {hasAnalyzedBudget ? (
                   <div className="text-xl font-bold font-display text-success">
-                    {Math.round(displayRemaining * 0.85).toLocaleString()} $ à {Math.round(displayRemaining * 1.15).toLocaleString()} $
+                    {Math.round(displayRemaining * 0.90).toLocaleString()} $ à {Math.round(displayRemaining * 1.10).toLocaleString()} $
                   </div>
                 ) : (
                   <div className="text-2xl font-bold font-display text-muted-foreground">0 $</div>
@@ -1010,7 +1010,7 @@ const Budget = () => {
                                   {category.spent.toLocaleString()} $
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  / {Math.round(category.budget * 0.85).toLocaleString()} - {Math.round(category.budget * 1.15).toLocaleString()} $
+                                  / {Math.round(category.budget * 0.90).toLocaleString()} - {Math.round(category.budget * 1.10).toLocaleString()} $
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">

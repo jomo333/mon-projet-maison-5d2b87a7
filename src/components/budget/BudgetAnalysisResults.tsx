@@ -268,12 +268,12 @@ export function BudgetAnalysisResults({
               {analysis.plansAnalyzed === 1 && !analysis.totauxDetails?.total_materiaux ? (
                 <>
                   <CardTitle className="text-2xl flex items-baseline gap-2 flex-wrap">
-                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 0.85))}</span>
+                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 0.90))}</span>
                     <span className="text-muted-foreground text-lg">à</span>
-                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 1.15))}</span>
+                    <span className="text-primary">{formatCurrency(Math.round(analysis.estimatedTotal * 1.10))}</span>
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">±15%</Badge>
+                    <Badge variant="outline" className="text-xs">±10%</Badge>
                     Estimation préliminaire • {analysis.projectSummary}
                   </CardDescription>
                 </>

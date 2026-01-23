@@ -128,8 +128,8 @@ export const ProjectSummary = ({
           
           // Si pas de fourchette explicite, appliquer ±15% (budget basé sur peu d'info)
           if (!hasExplicitRange && totalBudget > 0) {
-            minBudget = Math.round(totalBudget * 0.85);
-            maxBudget = Math.round(totalBudget * 1.15);
+            minBudget = Math.round(totalBudget * 0.90);
+            maxBudget = Math.round(totalBudget * 1.10);
           }
           
           setBudgetSummary({

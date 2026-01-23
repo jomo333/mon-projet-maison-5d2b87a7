@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw } from "lucide-react";
 import { PlanAnalyzer } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
@@ -397,6 +397,52 @@ const Budget = () => {
     },
   });
 
+  // Reset budget mutation
+  const resetBudgetMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedProjectId || !user?.id) {
+        throw new Error("Aucun projet sélectionné");
+      }
+
+      // Delete all budget categories for this project
+      const { error: deleteError } = await supabase
+        .from("project_budgets")
+        .delete()
+        .eq("project_id", selectedProjectId);
+
+      if (deleteError) throw deleteError;
+
+      // Reset project total budget to 0
+      const { error: updateError } = await supabase
+        .from("projects")
+        .update({ total_budget: 0, updated_at: new Date().toISOString() })
+        .eq("id", selectedProjectId);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      setBudgetCategories(defaultCategories);
+      queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: ["user-projects"] });
+      toast.success("Budget réinitialisé avec succès!");
+    },
+    onError: (error) => {
+      console.error("Reset error:", error);
+      toast.error("Erreur lors de la réinitialisation du budget");
+    },
+  });
+
+  const handleResetBudget = () => {
+    if (!selectedProjectId) {
+      toast.error("Aucun projet sélectionné");
+      return;
+    }
+    
+    if (window.confirm("Êtes-vous sûr de vouloir réinitialiser tout le budget ? Cette action supprimera toutes les catégories analysées.")) {
+      resetBudgetMutation.mutate();
+    }
+  };
+
   // Check if budget has been analyzed (not just default categories)
   const hasAnalyzedBudget = savedBudget && savedBudget.length > 0;
   
@@ -526,7 +572,18 @@ const Budget = () => {
                 Gérez et suivez vos dépenses de construction
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {selectedProjectId && hasAnalyzedBudget && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleResetBudget}
+                  disabled={resetBudgetMutation.isPending}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {resetBudgetMutation.isPending ? "Réinitialisation..." : "Réinitialiser"}
+                </Button>
+              )}
               {selectedProjectId && (
                 <Button 
                   variant="default" 

@@ -489,6 +489,10 @@ function shouldExcludeFromCategory(categoryName: string, itemName: string): bool
       "membrane", "goudron", "delta", "8 pouces", "8\"", "périmètre principal",
       "mur fondation", "ml"
     ],
+    "Structure et charpente": [
+      "poutre de soutien acier", "colonnes d'acier", "colonne d'acier", "acier sous poutre",
+      "solives de plancher rdc", "sous-plancher osb", "garage"
+    ],
   };
   
   const exclusions = exclusionRules[categoryName];

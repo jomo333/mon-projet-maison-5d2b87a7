@@ -74,21 +74,16 @@ const physicalWorkSteps = constructionSteps.filter(
     && step.id !== "inspections-finales"
 );
 
-// IDs to merge (rough-in + finition become one category)
-// Also merge foundation-related steps together
+// IDs to merge (ONLY plumbing and electrical rough-in + finition phases)
 const mergeMap: Record<string, string> = {
   "plomberie-roughin": "Plomberie",
   "plomberie-finition": "Plomberie",
   "electricite-roughin": "Électricité",
   "electricite-finition": "Électricité",
-  // Foundation-related steps merged into one "Fondation" category
-  "fondation": "Fondation",
-  "dalle-sous-sol": "Fondation",
-  "plomberie-sous-dalle": "Fondation",
 };
 
 // Legacy category names that should be excluded from display
-// These come from old AI analyses and don't match the current 16-step structure
+// These come from old AI analyses and don't match the current step structure
 const legacyCategoryNames = new Set([
   "Structure",
   "Cuisine",

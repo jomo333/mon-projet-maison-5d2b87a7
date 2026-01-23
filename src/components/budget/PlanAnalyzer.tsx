@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePdfToImage } from "@/hooks/use-pdf-to-image";
+import { mapAnalysisToStepCategories } from "@/lib/budgetCategories";
 
 interface BudgetCategory {
   name: string;
@@ -116,6 +117,20 @@ export function PlanAnalyzer({
   
   // PDF conversion hook
   const { convertPdfToImages, isPdf, isConverting, progress } = usePdfToImage();
+
+  // Always show the analysis result in the same ordered structure as "Détail par catégorie"
+  // (includes all step-based postes like "Excavation" even if the AI didn't output them explicitly)
+  const orderedAnalysisCategories = useMemo(() => {
+    if (!analysis?.categories) return [];
+    return mapAnalysisToStepCategories(
+      analysis.categories.map((cat) => ({
+        name: cat.name,
+        budget: cat.budget,
+        description: cat.description,
+        items: cat.items || [],
+      }))
+    );
+  }, [analysis]);
   
   // Update additionalNotes when besoinsNote prop changes
   useEffect(() => {
@@ -1104,7 +1119,7 @@ export function PlanAnalyzer({
 
             {/* Categories preview */}
             <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-2">
-              {analysis.categories.map((cat, index) => (
+              {orderedAnalysisCategories.map((cat, index) => (
                 <div 
                   key={index}
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
@@ -1122,7 +1137,7 @@ export function PlanAnalyzer({
               ))}
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              {analysis.categories.length} catégorie(s) • Estimation préliminaire ±6%
+              {orderedAnalysisCategories.length} poste(s) • Fourchette ±10%
             </p>
 
             {/* Warnings */}

@@ -75,12 +75,32 @@ const physicalWorkSteps = constructionSteps.filter(
 );
 
 // IDs to merge (rough-in + finition become one category)
+// Also merge foundation-related steps together
 const mergeMap: Record<string, string> = {
   "plomberie-roughin": "Plomberie",
   "plomberie-finition": "Plomberie",
   "electricite-roughin": "Électricité",
   "electricite-finition": "Électricité",
+  // Foundation-related steps merged into one "Fondation" category
+  "fondation": "Fondation",
+  "dalle-sous-sol": "Fondation",
+  "plomberie-sous-dalle": "Fondation",
 };
+
+// Legacy category names that should be excluded from display
+// These come from old AI analyses and don't match the current 16-step structure
+const legacyCategoryNames = new Set([
+  "Structure",
+  "Cuisine",
+  "Escalier",
+  "Salle de bain",
+  "Finition intérieure",
+  "Isolation et pare-air",
+  "Chauffage/CVAC",
+  "Fenêtres et portes",
+  "Contingence (5%)",
+  "Taxes",
+]);
 
 // Build a stable mapping of category -> tasks (based on the guide steps),
 // so we can always display the tasks even if the budget analysis didn't produce items.

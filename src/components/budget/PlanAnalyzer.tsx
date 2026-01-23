@@ -101,6 +101,16 @@ export function PlanAnalyzer({
   // Quality level state (shared between manual and plan modes)
   const [finishQuality, setFinishQuality] = useState<"economique" | "standard" | "haut-de-gamme">("standard");
   
+  // Material/finish selections (details not shown on plans)
+  const [exteriorSiding, setExteriorSiding] = useState("");
+  const [roofingType, setRoofingType] = useState("");
+  const [flooringType, setFlooringType] = useState("");
+  const [cabinetType, setCabinetType] = useState("");
+  const [countertopType, setCountertopType] = useState("");
+  const [heatingType, setHeatingType] = useState("");
+  const [windowType, setWindowType] = useState("");
+  const [insulationType, setInsulationType] = useState("");
+  
   // Manual mode reference images (to help the AI analysis)
   const [manualReferenceImages, setManualReferenceImages] = useState<string[]>([]);
   const [isUploadingManualImage, setIsUploadingManualImage] = useState(false);
@@ -507,6 +517,17 @@ export function PlanAnalyzer({
         floorSqftDetails: floorSqftDetails.filter(s => s).map(s => parseInt(s)),
         finishQuality,
         additionalNotes: additionalNotes || undefined,
+        // Matériaux et finitions spécifiques (non visibles sur les plans)
+        materialChoices: {
+          exteriorSiding: exteriorSiding || undefined,
+          roofingType: roofingType || undefined,
+          flooringType: flooringType || undefined,
+          cabinetType: cabinetType || undefined,
+          countertopType: countertopType || undefined,
+          heatingType: heatingType || undefined,
+          windowType: windowType || undefined,
+          insulationType: insulationType || undefined,
+        },
       };
       
       const body = hasPlansSelected
@@ -1025,63 +1046,20 @@ export function PlanAnalyzer({
                 )}
               </div>
 
-              {/* Section 2: Informations complémentaires */}
+              {/* Section 2: Choix de matériaux et finitions */}
               <div className="space-y-3 p-4 rounded-lg border bg-card">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">2</Badge>
-                  <Label className="text-base font-semibold">Informations complémentaires (recommandé)</Label>
+                  <Label className="text-base font-semibold">Choix de matériaux et finitions (recommandé)</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ces informations aident l'IA à affiner l'analyse des plans pour un budget plus précis.
+                  Ces détails ne sont généralement pas visibles sur les plans. Précisez-les pour une estimation plus réaliste.
                 </p>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Qualité générale */}
                   <div className="space-y-2">
-                    <Label>Type de projet</Label>
-                    <Select value={projectType} onValueChange={setProjectType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="maison-unifamiliale">Maison unifamiliale</SelectItem>
-                        <SelectItem value="bungalow">Bungalow</SelectItem>
-                        <SelectItem value="cottage">Cottage</SelectItem>
-                        <SelectItem value="jumelee">Maison jumelée</SelectItem>
-                        <SelectItem value="agrandissement">Agrandissement</SelectItem>
-                        <SelectItem value="garage">Garage détaché</SelectItem>
-                        <SelectItem value="garage-etage">Garage avec étage</SelectItem>
-                        <SelectItem value="renovation">Rénovation majeure</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Superficie estimée (pi²)</Label>
-                    <Input
-                      type="number"
-                      value={squareFootage}
-                      onChange={(e) => setSquareFootage(e.target.value)}
-                      placeholder="Ex: 1500"
-                    />
-                    <p className="text-xs text-muted-foreground">L'IA vérifiera avec les plans</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Nombre d'étages</Label>
-                    <Select value={numberOfFloors} onValueChange={setNumberOfFloors}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 étage</SelectItem>
-                        <SelectItem value="2">2 étages</SelectItem>
-                        <SelectItem value="3">3 étages</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Qualité des finitions</Label>
+                    <Label>Qualité générale des finitions</Label>
                     <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
                       <SelectTrigger>
                         <SelectValue />
@@ -1094,16 +1072,151 @@ export function PlanAnalyzer({
                     </Select>
                   </div>
 
+                  {/* Revêtement extérieur */}
                   <div className="space-y-2">
-                    <Label>Superficie fondation (pi²)</Label>
-                    <Input
-                      type="number"
-                      value={foundationSqft}
-                      onChange={(e) => setFoundationSqft(e.target.value)}
-                      placeholder="Ex: 1200"
-                    />
+                    <Label>Revêtement extérieur</Label>
+                    <Select value={exteriorSiding} onValueChange={setExteriorSiding}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vinyle">Vinyle</SelectItem>
+                        <SelectItem value="canexel">Canexel / Fibrociment</SelectItem>
+                        <SelectItem value="bois">Bois naturel</SelectItem>
+                        <SelectItem value="brique">Brique</SelectItem>
+                        <SelectItem value="pierre">Pierre / Placage de pierre</SelectItem>
+                        <SelectItem value="aluminium">Aluminium</SelectItem>
+                        <SelectItem value="mixte">Mixte (plusieurs matériaux)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
+                  {/* Toiture */}
+                  <div className="space-y-2">
+                    <Label>Type de toiture</Label>
+                    <Select value={roofingType} onValueChange={setRoofingType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bardeau-asphalte">Bardeau d'asphalte</SelectItem>
+                        <SelectItem value="bardeau-architectural">Bardeau architectural</SelectItem>
+                        <SelectItem value="metal">Tôle / Métal</SelectItem>
+                        <SelectItem value="elastomere">Membrane élastomère (toit plat)</SelectItem>
+                        <SelectItem value="tpo-epdm">TPO / EPDM (toit plat)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Fenêtres */}
+                  <div className="space-y-2">
+                    <Label>Type de fenêtres</Label>
+                    <Select value={windowType} onValueChange={setWindowType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pvc-standard">PVC standard</SelectItem>
+                        <SelectItem value="pvc-triple">PVC triple vitrage</SelectItem>
+                        <SelectItem value="aluminium">Aluminium</SelectItem>
+                        <SelectItem value="hybride">Hybride (bois/alu)</SelectItem>
+                        <SelectItem value="bois">Bois massif</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Isolation */}
+                  <div className="space-y-2">
+                    <Label>Type d'isolation</Label>
+                    <Select value={insulationType} onValueChange={setInsulationType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="laine-standard">Laine isolante standard</SelectItem>
+                        <SelectItem value="laine-haute-densite">Laine haute densité</SelectItem>
+                        <SelectItem value="polyurethane">Polyuréthane giclé</SelectItem>
+                        <SelectItem value="cellulose">Cellulose soufflée</SelectItem>
+                        <SelectItem value="panneau-rigide">Panneaux rigides (SIP)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Chauffage / CVAC */}
+                  <div className="space-y-2">
+                    <Label>Système de chauffage</Label>
+                    <Select value={heatingType} onValueChange={setHeatingType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="plinthes">Plinthes électriques</SelectItem>
+                        <SelectItem value="thermopompe-murale">Thermopompe murale</SelectItem>
+                        <SelectItem value="thermopompe-centrale">Thermopompe centrale</SelectItem>
+                        <SelectItem value="plancher-radiant">Plancher radiant électrique</SelectItem>
+                        <SelectItem value="plancher-radiant-hydro">Plancher radiant hydronique</SelectItem>
+                        <SelectItem value="bi-energie">Bi-énergie (fournaise + thermopompe)</SelectItem>
+                        <SelectItem value="geothermie">Géothermie</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Planchers */}
+                  <div className="space-y-2">
+                    <Label>Type de plancher principal</Label>
+                    <Select value={flooringType} onValueChange={setFlooringType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flottant-stratifie">Flottant stratifié</SelectItem>
+                        <SelectItem value="vinyle-luxe">Vinyle de luxe (LVP)</SelectItem>
+                        <SelectItem value="bois-ingenierie">Bois d'ingénierie</SelectItem>
+                        <SelectItem value="bois-franc">Bois franc massif</SelectItem>
+                        <SelectItem value="ceramique">Céramique / Porcelaine</SelectItem>
+                        <SelectItem value="beton-poli">Béton poli</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Armoires */}
+                  <div className="space-y-2">
+                    <Label>Type d'armoires cuisine</Label>
+                    <Select value={cabinetType} onValueChange={setCabinetType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="melamine">Mélamine</SelectItem>
+                        <SelectItem value="polyester">Polymère / Polyester</SelectItem>
+                        <SelectItem value="thermoplastique">Thermoplastique</SelectItem>
+                        <SelectItem value="laque">Laque / Acrylique</SelectItem>
+                        <SelectItem value="bois-massif">Bois massif</SelectItem>
+                        <SelectItem value="sur-mesure-haut-gamme">Sur mesure haut de gamme</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Comptoirs */}
+                  <div className="space-y-2">
+                    <Label>Type de comptoirs</Label>
+                    <Select value={countertopType} onValueChange={setCountertopType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="stratifie">Stratifié</SelectItem>
+                        <SelectItem value="quartz">Quartz</SelectItem>
+                        <SelectItem value="granit">Granit</SelectItem>
+                        <SelectItem value="marbre">Marbre</SelectItem>
+                        <SelectItem value="bois-boucher">Bloc de boucher (bois)</SelectItem>
+                        <SelectItem value="beton">Béton</SelectItem>
+                        <SelectItem value="dekton">Dekton / Ultra-compact</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Garage checkbox */}
                   <div className="space-y-2 flex items-end">
                     <div className="flex items-center space-x-2 h-10">
                       <Checkbox

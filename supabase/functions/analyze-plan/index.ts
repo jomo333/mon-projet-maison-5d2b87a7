@@ -1891,20 +1891,110 @@ INSTRUCTION CRITIQUE - AGRANDISSEMENT:
       // Mode plan ENRICHI: plans comme source principale + données manuelles comme contexte
       // Les données manuelles aident à préciser le type de projet et les spécifications
       const manualContext = body.manualContext || {};
+      const materialChoices = manualContext.materialChoices || {};
       const hasManualContext = manualContext.projectType || manualContext.squareFootage || manualContext.additionalNotes;
+      const hasMaterialChoices = Object.values(materialChoices).some(v => v);
       
-      const contextSection = hasManualContext ? `
+      // Material choice labels for the prompt
+      const materialLabels: Record<string, Record<string, string>> = {
+        exteriorSiding: {
+          "vinyle": "Revêtement vinyle",
+          "canexel": "Canexel / Fibrociment",
+          "bois": "Bois naturel",
+          "brique": "Brique",
+          "pierre": "Pierre / Placage de pierre",
+          "aluminium": "Aluminium",
+          "mixte": "Mixte (plusieurs matériaux)"
+        },
+        roofingType: {
+          "bardeau-asphalte": "Bardeau d'asphalte standard",
+          "bardeau-architectural": "Bardeau architectural",
+          "metal": "Tôle / Métal",
+          "elastomere": "Membrane élastomère (toit plat)",
+          "tpo-epdm": "TPO / EPDM (toit plat)"
+        },
+        windowType: {
+          "pvc-standard": "Fenêtres PVC standard double vitrage",
+          "pvc-triple": "Fenêtres PVC triple vitrage",
+          "aluminium": "Fenêtres aluminium",
+          "hybride": "Fenêtres hybrides (bois/alu)",
+          "bois": "Fenêtres bois massif"
+        },
+        insulationType: {
+          "laine-standard": "Laine isolante standard",
+          "laine-haute-densite": "Laine haute densité",
+          "polyurethane": "Polyuréthane giclé",
+          "cellulose": "Cellulose soufflée",
+          "panneau-rigide": "Panneaux rigides (SIP)"
+        },
+        heatingType: {
+          "plinthes": "Chauffage par plinthes électriques",
+          "thermopompe-murale": "Thermopompe murale",
+          "thermopompe-centrale": "Thermopompe centrale",
+          "plancher-radiant": "Plancher radiant électrique",
+          "plancher-radiant-hydro": "Plancher radiant hydronique",
+          "bi-energie": "Bi-énergie (fournaise + thermopompe)",
+          "geothermie": "Géothermie"
+        },
+        flooringType: {
+          "flottant-stratifie": "Plancher flottant stratifié",
+          "vinyle-luxe": "Vinyle de luxe (LVP)",
+          "bois-ingenierie": "Bois d'ingénierie",
+          "bois-franc": "Bois franc massif",
+          "ceramique": "Céramique / Porcelaine",
+          "beton-poli": "Béton poli"
+        },
+        cabinetType: {
+          "melamine": "Armoires mélamine",
+          "polyester": "Armoires polymère / polyester",
+          "thermoplastique": "Armoires thermoplastique",
+          "laque": "Armoires laque / acrylique",
+          "bois-massif": "Armoires bois massif",
+          "sur-mesure-haut-gamme": "Armoires sur mesure haut de gamme"
+        },
+        countertopType: {
+          "stratifie": "Comptoirs stratifiés",
+          "quartz": "Comptoirs quartz",
+          "granit": "Comptoirs granit",
+          "marbre": "Comptoirs marbre",
+          "bois-boucher": "Comptoirs bloc de boucher (bois)",
+          "beton": "Comptoirs béton",
+          "dekton": "Comptoirs Dekton / Ultra-compact"
+        }
+      };
+
+      const getMaterialLabel = (category: string, value: string | undefined): string | null => {
+        if (!value) return null;
+        return materialLabels[category]?.[value] || value;
+      };
+
+      const materialChoicesSection = hasMaterialChoices ? `
+## CHOIX DE MATÉRIAUX SPÉCIFIÉS PAR LE CLIENT
+${getMaterialLabel('exteriorSiding', materialChoices.exteriorSiding) ? `- REVÊTEMENT EXTÉRIEUR: ${getMaterialLabel('exteriorSiding', materialChoices.exteriorSiding)}` : ''}
+${getMaterialLabel('roofingType', materialChoices.roofingType) ? `- TOITURE: ${getMaterialLabel('roofingType', materialChoices.roofingType)}` : ''}
+${getMaterialLabel('windowType', materialChoices.windowType) ? `- FENÊTRES: ${getMaterialLabel('windowType', materialChoices.windowType)}` : ''}
+${getMaterialLabel('insulationType', materialChoices.insulationType) ? `- ISOLATION: ${getMaterialLabel('insulationType', materialChoices.insulationType)}` : ''}
+${getMaterialLabel('heatingType', materialChoices.heatingType) ? `- CHAUFFAGE/CVAC: ${getMaterialLabel('heatingType', materialChoices.heatingType)}` : ''}
+${getMaterialLabel('flooringType', materialChoices.flooringType) ? `- PLANCHER: ${getMaterialLabel('flooringType', materialChoices.flooringType)}` : ''}
+${getMaterialLabel('cabinetType', materialChoices.cabinetType) ? `- ARMOIRES CUISINE: ${getMaterialLabel('cabinetType', materialChoices.cabinetType)}` : ''}
+${getMaterialLabel('countertopType', materialChoices.countertopType) ? `- COMPTOIRS: ${getMaterialLabel('countertopType', materialChoices.countertopType)}` : ''}
+
+IMPORTANT: Utilise CES matériaux spécifiques pour l'estimation des coûts correspondants.
+` : '';
+      
+      const contextSection = hasManualContext || hasMaterialChoices ? `
 ## CONTEXTE COMPLÉMENTAIRE FOURNI PAR LE CLIENT
 ${manualContext.projectType ? `- TYPE DE PROJET INDIQUÉ: ${manualContext.projectType}` : ''}
 ${manualContext.squareFootage ? `- SUPERFICIE ESTIMÉE: ${manualContext.squareFootage} pi² (à vérifier avec les plans)` : ''}
 ${manualContext.numberOfFloors ? `- NOMBRE D'ÉTAGES: ${manualContext.numberOfFloors}` : ''}
 ${manualContext.foundationSqft ? `- SUPERFICIE FONDATION: ${manualContext.foundationSqft} pi²` : ''}
 ${manualContext.hasGarage ? `- GARAGE: Inclus dans le projet` : ''}
+${materialChoicesSection}
 ${manualContext.additionalNotes ? `
-## NOTES ET SPÉCIFICATIONS DU CLIENT
+## NOTES ET SPÉCIFICATIONS ADDITIONNELLES
 ${manualContext.additionalNotes}
 
-IMPORTANT: Utilise ces notes pour affiner ton estimation (matériaux spécifiques, équipements, finitions demandées).
+IMPORTANT: Utilise ces notes pour affiner ton estimation (équipements, finitions spéciales).
 ` : ''}
 ` : '';
 
@@ -1917,12 +2007,12 @@ INSTRUCTIONS CRITIQUES:
 1. Examine TOUTES les pages/images fournies ensemble
 2. EXTRAIS les dimensions, superficies et quantités DIRECTEMENT des plans (source de vérité)
 3. COMPARE avec le contexte client et SIGNALE toute incohérence
-4. ${hasManualContext ? 'Utilise les notes du client pour PRÉCISER les matériaux, équipements et finitions' : 'DÉDUIS le type de projet et le nombre d\'étages à partir des plans'}
+4. ${hasMaterialChoices ? 'UTILISE LES MATÉRIAUX SPÉCIFIÉS par le client pour calculer les coûts (revêtement, toiture, plancher, armoires, etc.)' : (hasManualContext ? 'Utilise les notes du client pour PRÉCISER les matériaux, équipements et finitions' : 'DÉDUIS le type de projet et le nombre d\'étages à partir des plans')}
 ${isAgrandissement ? '5. Pour un AGRANDISSEMENT: analyse SEULEMENT la partie NOUVELLE, ignore le bâtiment existant' : ''}
 6. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie EXTRAITE + les spécifications client
 7. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
 8. Applique les prix du marché Québec 2025
-9. ${hasManualContext ? 'PERSONNALISE l\'estimation selon les notes (ex: si le client mentionne "plancher chauffant", inclus-le dans Plomberie)' : ''}
+9. ${hasMaterialChoices ? 'Les matériaux du client REMPLACENT les valeurs par défaut - utilise les prix correspondants' : (hasManualContext ? 'PERSONNALISE l\'estimation selon les notes' : '')}
 
 Retourne le JSON structuré COMPLET avec TOUTES les catégories.`;
     } else {

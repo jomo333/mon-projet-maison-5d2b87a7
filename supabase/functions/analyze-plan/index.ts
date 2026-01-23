@@ -32,6 +32,22 @@ const PRIX_QUEBEC_2025 = {
     "ciment_portland_30kg": 12.50,
     "beton_30MPa_m3": 165.00,
   },
+  excavation: {
+    // Coûts au m³ incluant opérateur, transport et matériel de remblai
+    "standard_m3": 200.00, // Moyenne pour agrandissement standard
+    "sol_mou_argileux_m3_min": 125.00,
+    "sol_rocailleux_m3_max": 500.00,
+    "disposition_terre_m3_min": 25.00,
+    "disposition_terre_m3_max": 75.00,
+    "gestion_eaux_souterraines_m3": 75.00, // 50-100$ moyenne
+    // Tarifs horaires
+    "taux_horaire_pelle_standard": 160.00,
+    "taux_horaire_marteau_piqueur": 250.00,
+    // Coûts supplémentaires
+    "dynamitage_roc_forfait_min": 5000.00,
+    "dynamitage_roc_forfait_max": 10000.00,
+    "majoration_hiver_pourcent": 40, // 30-50% moyenne
+  },
   taux_CCQ_2025: {
     charpentier_menuisier: 48.50,
     electricien: 52.00,
@@ -41,6 +57,7 @@ const PRIX_QUEBEC_2025 = {
     briqueteur_macon: 49.00,
     platrier: 46.00,
     peintre: 42.00,
+    operateur_pelle: 55.00, // Ajouté pour excavation
   }
 };
 
@@ -60,18 +77,19 @@ Cette estimation est pour un autoconstructeur qui:
 
 Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les plans ne montrent pas tous les détails:
 
-1. **Fondation** - Semelles, murs de fondation, dalle de béton, imperméabilisation
-2. **Structure** - Charpente, solives, colombages, poutres, poutrelles
-3. **Toiture** - Fermes de toit, couverture, bardeaux, soffites, fascias
-4. **Revêtement extérieur** - Parement, briques, pierre, vinyle
-5. **Fenêtres et portes** - Toutes fenêtres, portes extérieures, portes intérieures
-6. **Isolation et pare-air** - Isolation murs, plafonds, pare-vapeur, Tyvek
-7. **Électricité** - Panneau, filage, prises, interrupteurs, luminaires
-8. **Plomberie** - Tuyauterie, drains, robinetterie, chauffe-eau
-9. **Chauffage/CVAC** - Système de chauffage, ventilation, climatisation
-10. **Finition intérieure** - Gypse, peinture, moulures, planchers
-11. **Cuisine** - Armoires, comptoirs, électroménagers
-12. **Salle(s) de bain** - Vanités, toilettes, douches/bains
+1. **Excavation** - Creusage, excavation du sol, nivellement, disposition de la terre, gestion des eaux souterraines
+2. **Fondation** - Semelles, murs de fondation, dalle de béton, imperméabilisation
+3. **Structure** - Charpente, solives, colombages, poutres, poutrelles
+4. **Toiture** - Fermes de toit, couverture, bardeaux, soffites, fascias
+5. **Revêtement extérieur** - Parement, briques, pierre, vinyle
+6. **Fenêtres et portes** - Toutes fenêtres, portes extérieures, portes intérieures
+7. **Isolation et pare-air** - Isolation murs, plafonds, pare-vapeur, Tyvek
+8. **Électricité** - Panneau, filage, prises, interrupteurs, luminaires
+9. **Plomberie** - Tuyauterie, drains, robinetterie, chauffe-eau
+10. **Chauffage/CVAC** - Système de chauffage, ventilation, climatisation
+11. **Finition intérieure** - Gypse, peinture, moulures, planchers
+12. **Cuisine** - Armoires, comptoirs, électroménagers
+13. **Salle(s) de bain** - Vanités, toilettes, douches/bains
 
 ## RÈGLES CRITIQUES
 
@@ -108,10 +126,31 @@ Tu DOIS produire des estimations pour CHAQUE catégorie suivante, même si les p
 
 ❌ NON INCLUS (à ajouter séparément si applicable):
 - Achat du terrain
-- Excavation / nivellement du terrain
 - Raccordements aux services publics (eau, égouts, électricité)
 - Aménagement paysager
 - Permis et inspections
+
+## COÛTS D'EXCAVATION QUÉBEC 2025 (référence détaillée)
+
+| Type d'excavation | Coût par m³ | Notes |
+|-------------------|-------------|-------|
+| Sol mou/argileux | 125$ - 175$ | Moins cher à excaver |
+| Standard (agrandissement) | 175$ - 225$ | Moyenne 200$/m³ |
+| Sol rocailleux | 300$ - 500$ | Équipement spécialisé requis |
+| Disposition terre excavée | 25$ - 75$/m³ | Transport inclus |
+| Gestion eaux souterraines | 50$ - 100$/m³ | Si nappe phréatique |
+
+**Tarifs horaires excavation**:
+- Pelle mécanique standard: 160$/heure
+- Équipement avec marteau piqueur: 250$/heure+
+
+**Coûts supplémentaires**:
+- Dynamitage si présence de roc: 5 000$ à 10 000$ forfaitaire
+- Majoration travaux d'hiver: +30% à +50% (gel du sol)
+
+**Calcul typique**: Pour une fondation standard de 8' de profondeur:
+- Volume = Superficie x 0.75m (profondeur moyenne creusée)
+- Coût excavation = Volume m³ x 200$/m³ (ajuster selon type de sol)
 
 ## PRIX DÉTAILLÉS PAR CATÉGORIE AUTOCONSTRUCTION QUÉBEC 2025 (par pi² de superficie habitable PAR ÉTAGE)
 

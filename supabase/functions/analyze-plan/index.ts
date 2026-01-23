@@ -225,6 +225,7 @@ async function analyzeOnePageWithClaude({
   pageNumber,
   totalPages,
   additionalNotes,
+  projectType,
 }: {
   apiKey: string;
   imageBase64: string;
@@ -233,15 +234,30 @@ async function analyzeOnePageWithClaude({
   pageNumber: number;
   totalPages: number;
   additionalNotes?: string;
+  projectType?: string;
 }): Promise<string | null> {
+  // Build special instruction for "agrandissement" projects
+  const isAgrandissement = projectType?.toLowerCase().includes('agrandissement');
+  const agrandissementInstruction = isAgrandissement 
+    ? `
+INSTRUCTION CRITIQUE - AGRANDISSEMENT:
+- Ce projet est un AGRANDISSEMENT (extension). 
+- IGNORE COMPLÈTEMENT le bâtiment existant sur les plans.
+- Analyse et estime UNIQUEMENT la partie NOUVELLE de la construction (l'extension).
+- Ne prends PAS en compte les dimensions, superficies ou éléments de la maison existante.
+- La "superficie_nouvelle_pi2" doit correspondre UNIQUEMENT à la superficie de l'agrandissement.
+` 
+    : '';
+
   const pagePrompt = `Tu analyses la PAGE ${pageNumber}/${totalPages} d'un ensemble de plans de construction au Québec.
 
 QUALITÉ DE FINITION: ${finishQualityLabel}
 ${additionalNotes ? `NOTES CLIENT: ${additionalNotes}` : ''}
-
+${agrandissementInstruction}
 OBJECTIF:
 - Extraire UNIQUEMENT ce qui est visible sur cette page (dimensions, quantités, matériaux).
-- Si une catégorie n'est pas visible sur cette page, ne l'invente pas.
+${isAgrandissement ? '- Pour un AGRANDISSEMENT, extrais SEULEMENT les éléments de la partie NOUVELLE (extension), pas le bâtiment existant.' : ''}
+- Si une catégorie n'est pas visible sur cette page, ne l\'invente pas.
 - Retourne du JSON STRICT (sans texte autour), au format suivant:
 
 {
@@ -601,20 +617,34 @@ serve(async (req) => {
     // Build the prompt
     let extractionPrompt: string;
     
+    // Check if project is an "agrandissement"
+    const isAgrandissement = body.projectType?.toLowerCase().includes('agrandissement');
+    const agrandissementInstruction = isAgrandissement
+      ? `
+INSTRUCTION CRITIQUE - AGRANDISSEMENT:
+- Ce projet est un AGRANDISSEMENT (extension).
+- IGNORE COMPLÈTEMENT le bâtiment existant sur les plans.
+- Analyse et estime UNIQUEMENT la partie NOUVELLE de la construction (l'extension).
+- Ne prends PAS en compte les dimensions, superficies ou éléments de la maison existante.
+- La superficie doit correspondre UNIQUEMENT à la superficie de l'agrandissement.
+`
+      : '';
+    
     if (mode === "plan") {
       // Mode plan: AUCUNE donnée manuelle - seulement les plans
       // Les données manuelles peuvent être obsolètes par rapport aux plans
       extractionPrompt = `Analyse ${imageUrls.length > 1 ? 'ces ' + imageUrls.length + ' plans' : 'ce plan'} de construction pour un projet AU QUÉBEC.
 
 QUALITÉ DE FINITION: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
-
+${agrandissementInstruction}
 INSTRUCTIONS CRITIQUES:
 1. Examine TOUTES les pages/images fournies ensemble
 2. EXTRAIS les dimensions, superficies et quantités DIRECTEMENT des plans
 3. DÉDUIS le type de projet et le nombre d'étages à partir des plans
-4. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie EXTRAITE des plans
-5. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
-6. Applique les prix du marché Québec 2025
+${isAgrandissement ? '4. Pour un AGRANDISSEMENT: analyse SEULEMENT la partie NOUVELLE, ignore le bâtiment existant' : ''}
+5. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie EXTRAITE des plans
+6. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
+7. Applique les prix du marché Québec 2025
 
 Retourne le JSON structuré COMPLET avec TOUTES les catégories.`;
     } else {
@@ -632,6 +662,11 @@ ${floorSqftDetails?.length ? `- DÉTAIL ÉTAGES: ${floorSqftDetails.join(', ')} 
 - GARAGE: ${hasGarage ? 'Oui (attaché)' : 'Non'}
 - QUALITÉ: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
 ${additionalNotes ? `- NOTES CLIENT: ${additionalNotes}` : ''}
+${isAgrandissement ? `
+INSTRUCTION CRITIQUE - AGRANDISSEMENT:
+- Ce projet est un AGRANDISSEMENT. La superficie indiquée est celle de l'extension UNIQUEMENT.
+- NE PAS estimer de coûts pour le bâtiment existant.
+` : ''}
 
 INSTRUCTIONS CRITIQUES:
 1. Tu DOIS retourner TOUTES les 12 catégories principales
@@ -673,6 +708,7 @@ Retourne le JSON structuré COMPLET.`;
           pageNumber: i + 1,
           totalPages: imageUrls.length,
           additionalNotes: body.additionalNotes,
+          projectType: body.projectType,
         });
 
         const parsed = pageText ? safeParseJsonFromModel(pageText) : null;

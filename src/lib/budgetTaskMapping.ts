@@ -279,7 +279,8 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "solive", "solives", "plancher", "sous-plancher", "poutre", "poteau", "poteaux",
         "ferme", "fermes", "toit", "contreplaqué", "osb", "2x10", "2x12", "lvl", 
         "i-joist", "tji", "sablière", "lisse haute", "plafond", "5/8", "3/4",
-        "charpente murale", "murs extérieurs", "mur extérieur", "périmètre", "2x6"
+        "charpente murale", "murs extérieurs", "mur extérieur", "périmètre", "2x6",
+        "charpente mur", "préfabriqué", "préfabriquées", "toiture", "pontage"
       ]
     },
     {

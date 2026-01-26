@@ -1877,6 +1877,8 @@ function ensureAllMainCategoriesAndRecalc({
 function mergePageExtractions(pageExtractions: PageExtraction[]) {
   const normalizeKey = (s: unknown) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
+  // Track category totals per page to detect duplicates vs truly additive items
+  const catPageTotals = new Map<string, number[]>(); // key -> array of totals per page
   const catMap = new Map<string, any>();
   const missing = new Set<string>();
   const ambiguites = new Set<string>();
@@ -1885,6 +1887,27 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
   let typeProjet: string | undefined;
   let superficie: number | undefined;
   let etages: number | undefined;
+
+  // First pass: collect totals per category per page to detect duplication pattern
+  for (const ex of pageExtractions) {
+    for (const cat of ex.categories || []) {
+      const nom = cat.nom || cat.name || 'Autre';
+      const key = normalizeKey(nom);
+      const catTotal = (Number(cat.sous_total_main_oeuvre) || 0) + (Number(cat.sous_total_materiaux) || 0);
+      if (!catPageTotals.has(key)) catPageTotals.set(key, []);
+      if (catTotal > 0) catPageTotals.get(key)!.push(catTotal);
+    }
+  }
+
+  // Determine merge strategy per category:
+  // If multiple pages have similar totals (within 50%), they're likely showing the same thing -> use MAX
+  // If totals are very different, they might be additive (e.g., different floors) -> still use MAX to be safe
+  const shouldUseMax = (key: string): boolean => {
+    const totals = catPageTotals.get(key) || [];
+    if (totals.length <= 1) return false;
+    // Always use MAX for structural categories that appear on multiple plan types
+    return true; // Conservative: always use MAX to prevent duplication
+  };
 
   for (const ex of pageExtractions) {
     typeProjet = typeProjet || ex.type_projet;
@@ -1898,6 +1921,8 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
     for (const cat of ex.categories || []) {
       const nom = cat.nom || cat.name || 'Autre';
       const key = normalizeKey(nom);
+      const useMax = shouldUseMax(key);
+      
       const existing = catMap.get(key) || {
         nom,
         items: [],
@@ -1907,12 +1932,24 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
         taux_horaire_CCQ: Number(cat.taux_horaire_CCQ) || 0,
       };
 
-      existing.heures_main_oeuvre += Number(cat.heures_main_oeuvre) || 0;
-      existing.sous_total_main_oeuvre += Number(cat.sous_total_main_oeuvre) || 0;
-      existing.sous_total_materiaux += Number(cat.sous_total_materiaux) || 0;
+      const newHeures = Number(cat.heures_main_oeuvre) || 0;
+      const newMO = Number(cat.sous_total_main_oeuvre) || 0;
+      const newMat = Number(cat.sous_total_materiaux) || 0;
+
+      if (useMax) {
+        // Use MAX values to avoid duplication across plan pages
+        existing.heures_main_oeuvre = Math.max(existing.heures_main_oeuvre, newHeures);
+        existing.sous_total_main_oeuvre = Math.max(existing.sous_total_main_oeuvre, newMO);
+        existing.sous_total_materiaux = Math.max(existing.sous_total_materiaux, newMat);
+      } else {
+        // Additive for single-page categories
+        existing.heures_main_oeuvre += newHeures;
+        existing.sous_total_main_oeuvre += newMO;
+        existing.sous_total_materiaux += newMat;
+      }
       existing.taux_horaire_CCQ = existing.taux_horaire_CCQ || Number(cat.taux_horaire_CCQ) || 0;
 
-      // Merge items by description+unit+dimension
+      // Merge items by description+unit+dimension - use MAX for duplicates
       const itemMap = new Map<string, any>();
       for (const it of existing.items) {
         const k = `${normalizeKey(it.description)}|${normalizeKey(it.unite)}|${normalizeKey(it.dimension)}`;
@@ -1930,8 +1967,9 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
 
         const prev = itemMap.get(k);
         if (prev) {
-          prev.quantite = (Number(prev.quantite) || 0) + quantite;
-          prev.total = (Number(prev.total) || 0) + total;
+          // Use MAX instead of SUM to prevent duplication
+          prev.quantite = Math.max(Number(prev.quantite) || 0, quantite);
+          prev.total = Math.max(Number(prev.total) || 0, total);
           prev.prix_unitaire = Math.max(Number(prev.prix_unitaire) || 0, prix);
           prev.source = prev.source || it.source;
           itemMap.set(k, prev);

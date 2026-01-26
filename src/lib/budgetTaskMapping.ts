@@ -10,6 +10,7 @@
 export interface TaskKeywordMapping {
   taskTitle: string;
   keywords: string[];
+  exclusions?: string[]; // Keywords that should NOT match this task even if main keywords match
 }
 
 export type CategoryTaskMappings = Record<string, TaskKeywordMapping[]>;
@@ -62,6 +63,8 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "armature", "acier", "fer", "drain français", "drain", "remblai", "pierre nette", 
         "gravier drainage", "drainage", "géotextile", "rigole", "pompe puisard", "puisard"
       ],
+      // Exclude dalle-related items - they go to "Coulage de dalle du sous-sol"
+      exclusions: ["dalle", "sous-sol", "garage béton", "plancher béton"]
     },
     {
       taskTitle: "Imperméabilisation",
@@ -573,7 +576,13 @@ export function groupItemsByTask(
         const matches = mapping.keywords.some((kw) =>
           itemNameLower.includes(kw.toLowerCase())
         );
-        if (matches) {
+        
+        // Check exclusions - if item matches any exclusion keyword, skip this task
+        const excluded = mapping.exclusions?.some((ex) =>
+          itemNameLower.includes(ex.toLowerCase())
+        ) ?? false;
+        
+        if (matches && !excluded) {
           grouped.get(mapping.taskTitle)!.push(item);
           matched = true;
           break; // Only assign to first matching task

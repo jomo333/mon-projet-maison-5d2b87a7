@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
+  Tooltip as RadixTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   AlertTriangle,
   CheckCircle2,
   Download,
@@ -38,7 +44,8 @@ import {
   BarChart3,
   AlertCircle,
   Info,
-  Wrench
+  Wrench,
+  HelpCircle
 } from "lucide-react";
 import {
   PieChart as RechartsPieChart,
@@ -279,19 +286,50 @@ export function BudgetAnalysisResults({
                     <span className="text-primary">{formatCurrency(Math.round(calculatedGrandTotal * 0.90))}</span>
                     <span className="text-muted-foreground text-lg">à</span>
                     <span className="text-primary">{formatCurrency(Math.round(calculatedGrandTotal * 1.10))}</span>
+                    <TooltipProvider>
+                      <RadixTooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[280px]">
+                          <p className="font-medium mb-1">Ce total inclut:</p>
+                          <ul className="text-xs space-y-1">
+                            <li>• Tous les travaux de construction</li>
+                            <li>• Contingence (5% pour imprévus)</li>
+                            <li>• TPS (5%) + TVQ (9,975%)</li>
+                          </ul>
+                        </TooltipContent>
+                      </RadixTooltip>
+                    </TooltipProvider>
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs">±10%</Badge>
-                    Estimation préliminaire • {analysis.projectSummary}
+                    Estimation préliminaire • Inclut taxes et contingence • {analysis.projectSummary}
                   </CardDescription>
                 </>
               ) : (
                 <>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className="text-2xl flex items-center gap-2">
                     {formatCurrency(calculatedGrandTotal)}
+                    <TooltipProvider>
+                      <RadixTooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[280px]">
+                          <p className="font-medium mb-1">Ce total inclut:</p>
+                          <ul className="text-xs space-y-1">
+                            <li>• Tous les travaux de construction</li>
+                            <li>• Contingence (5% pour imprévus)</li>
+                            <li>• TPS (5%) + TVQ (9,975%)</li>
+                          </ul>
+                        </TooltipContent>
+                      </RadixTooltip>
+                    </TooltipProvider>
                   </CardTitle>
-                  <CardDescription>
-                    {analysis.projectSummary}
+                  <CardDescription className="flex items-center gap-1">
+                    <Badge variant="outline" className="text-xs mr-1">TTC</Badge>
+                    Inclut taxes et contingence • {analysis.projectSummary}
                   </CardDescription>
                 </>
               )}
@@ -467,6 +505,7 @@ export function BudgetAnalysisResults({
                           <span className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</span>
                         </div>
                         <p className="text-lg font-bold">{formatCurrency(cat.budget)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Avant taxes</p>
                         <Progress value={percentage} className="h-1 mt-2" />
                       </Card>
                     );
@@ -476,17 +515,44 @@ export function BudgetAnalysisResults({
                 {/* Budget breakdown summary */}
                 <Card className="mt-4">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Récapitulatif du budget</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Récapitulatif du budget
+                      <TooltipProvider>
+                        <RadixTooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[300px]">
+                            <p className="text-xs">
+                              Ce récapitulatif montre la ventilation complète: travaux, contingence (5% pour imprévus) et taxes applicables au Québec (TPS + TVQ).
+                            </p>
+                          </TooltipContent>
+                        </RadixTooltip>
+                      </TooltipProvider>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Sous-total travaux</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Sous-total travaux</span>
+                        <Badge variant="outline" className="text-xs">Avant taxes</Badge>
+                      </div>
                       <span className="font-semibold">{formatCurrency(subTotalBeforeTaxes)}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-b">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center font-medium">%</span>
                         <span className="text-amber-700 dark:text-amber-400">Budget imprévu (5%)</span>
+                        <TooltipProvider>
+                          <RadixTooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[250px]">
+                              <p className="text-xs">Réserve recommandée pour couvrir les imprévus et modifications pendant la construction.</p>
+                            </TooltipContent>
+                          </RadixTooltip>
+                        </TooltipProvider>
                       </div>
                       <span className="font-semibold text-amber-700 dark:text-amber-400">{formatCurrency(contingence)}</span>
                     </div>
@@ -494,6 +560,16 @@ export function BudgetAnalysisResults({
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs flex items-center justify-center font-medium">$</span>
                         <span className="text-blue-700 dark:text-blue-400">TPS (5%)</span>
+                        <TooltipProvider>
+                          <RadixTooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">Taxe sur les produits et services (fédérale)</p>
+                            </TooltipContent>
+                          </RadixTooltip>
+                        </TooltipProvider>
                       </div>
                       <span className="font-semibold text-blue-700 dark:text-blue-400">{formatCurrency(tps)}</span>
                     </div>
@@ -501,13 +577,29 @@ export function BudgetAnalysisResults({
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs flex items-center justify-center font-medium">$</span>
                         <span className="text-blue-700 dark:text-blue-400">TVQ (9,975%)</span>
+                        <TooltipProvider>
+                          <RadixTooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">Taxe de vente du Québec (provinciale)</p>
+                            </TooltipContent>
+                          </RadixTooltip>
+                        </TooltipProvider>
                       </div>
                       <span className="font-semibold text-blue-700 dark:text-blue-400">{formatCurrency(tvq)}</span>
                     </div>
                     <div className="flex items-center justify-between py-3 bg-primary/5 rounded-lg px-3 -mx-3">
-                      <span className="font-bold text-lg">TOTAL ESTIMÉ</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">TOTAL ESTIMÉ</span>
+                        <Badge variant="default" className="text-xs">TTC</Badge>
+                      </div>
                       <span className="font-bold text-lg text-primary">{formatCurrency(subTotalBeforeTaxes + contingence + taxes)}</span>
                     </div>
+                    <p className="text-xs text-muted-foreground text-center pt-2">
+                      Total incluant: travaux + contingence (5%) + taxes (TPS 5% + TVQ 9,975%)
+                    </p>
                   </CardContent>
                 </Card>
               </>
@@ -565,7 +657,7 @@ export function BudgetAnalysisResults({
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg">{formatCurrency(cat.budget)}</p>
-                        <p className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</p>
+                        <p className="text-xs text-muted-foreground">Avant taxes • {percentage.toFixed(1)}%</p>
                       </div>
                     </div>
                     <Progress value={percentage} className="h-2 mt-3" />
@@ -712,7 +804,21 @@ export function BudgetAnalysisResults({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Catégorie</TableHead>
-                    <TableHead className="text-right">Budget</TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        Budget
+                        <TooltipProvider>
+                          <RadixTooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Montant avant taxes et contingence</p>
+                            </TooltipContent>
+                          </RadixTooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">% du total</TableHead>
                     <TableHead>Description</TableHead>
                   </TableRow>
@@ -746,34 +852,44 @@ export function BudgetAnalysisResults({
                           );
                         })}
                         <TableRow className="bg-muted/30">
-                          <TableCell className="font-medium">Sous-total travaux</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              Sous-total travaux
+                              <Badge variant="outline" className="text-xs">Avant taxes</Badge>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right font-mono font-semibold">{formatCurrency(subTotalBeforeTaxes)}</TableCell>
                           <TableCell className="text-right">—</TableCell>
-                          <TableCell></TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Montant hors taxes et contingence</TableCell>
                         </TableRow>
                         <TableRow className="bg-amber-50 dark:bg-amber-950/30">
                           <TableCell className="font-medium text-amber-700 dark:text-amber-400">Budget imprévu (5%)</TableCell>
                           <TableCell className="text-right font-mono text-amber-700 dark:text-amber-400">{formatCurrency(contingence)}</TableCell>
                           <TableCell className="text-right">—</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">Contingence recommandée</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Réserve pour imprévus et modifications</TableCell>
                         </TableRow>
                         <TableRow className="bg-blue-50 dark:bg-blue-950/30">
                           <TableCell className="font-medium text-blue-700 dark:text-blue-400">TPS (5%)</TableCell>
                           <TableCell className="text-right font-mono text-blue-700 dark:text-blue-400">{formatCurrency(tps)}</TableCell>
                           <TableCell className="text-right">—</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">Taxe fédérale</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Taxe fédérale sur produits et services</TableCell>
                         </TableRow>
                         <TableRow className="bg-blue-50 dark:bg-blue-950/30">
                           <TableCell className="font-medium text-blue-700 dark:text-blue-400">TVQ (9,975%)</TableCell>
                           <TableCell className="text-right font-mono text-blue-700 dark:text-blue-400">{formatCurrency(tvq)}</TableCell>
                           <TableCell className="text-right">—</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">Taxe provinciale</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Taxe de vente du Québec</TableCell>
                         </TableRow>
                         <TableRow className="bg-primary/10 font-bold">
-                          <TableCell className="text-primary">TOTAL ESTIMÉ</TableCell>
+                          <TableCell className="text-primary">
+                            <div className="flex items-center gap-2">
+                              TOTAL ESTIMÉ
+                              <Badge variant="default" className="text-xs">TTC</Badge>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right font-mono text-primary">{formatCurrency(grandTotal)}</TableCell>
                           <TableCell className="text-right">100%</TableCell>
-                          <TableCell></TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Travaux + contingence + taxes</TableCell>
                         </TableRow>
                       </>
                     );

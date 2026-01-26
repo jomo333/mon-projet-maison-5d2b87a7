@@ -137,11 +137,15 @@ export const categoryTaskMappings: CategoryTaskMappings = {
       taskTitle: "Membrane et bardeaux",
       keywords: [
         "membrane", "bardeau", "asphalte", "solin", "ventilation toit",
-        "couverture", "shingle", "bardeaux", "évent toit",
+        "shingle", "bardeaux", "évent toit",
         "noue", "faîtière"
       ],
       // Exclude structural elements and exterior finish items
-      exclusions: ["contreplaqué", "osb", "pontage", "plywood", "decking", "ferme", "fermes", "truss", "fascia", "soffite", "soffit", "gouttière", "descente"]
+      exclusions: [
+        "contreplaqué", "osb", "pontage", "plywood", "decking", "ferme", "fermes", "truss",
+        "fascia", "soffite", "soffit", "gouttière", "gouttières", "descente", "descentes",
+        "7/16", "5/8", "couverture osb", "aluminium"
+      ]
     },
   ],
 

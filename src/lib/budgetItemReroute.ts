@@ -41,49 +41,100 @@ const isSlab = (name: string) => {
   return hasDalle || has4in || hasCoffrageFinition || (has25mpa && (hasDalle || has4in || hasSousSol));
 };
 
+// Items that should move from Toiture to Structure et charpente
+const isRoofStructure = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("contreplaque") ||
+    n.includes("osb") ||
+    n.includes("pontage") ||
+    n.includes("plywood") ||
+    n.includes("decking") ||
+    n.includes("7/16") ||
+    n.includes("5/8")
+  );
+};
+
+// Items that should move from Toiture to Revêtement extérieur
+const isExteriorFinish = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("fascia") ||
+    n.includes("soffite") ||
+    n.includes("soffit") ||
+    n.includes("gouttiere") ||
+    n.includes("descente")
+  );
+};
+
 /**
  * Moves misclassified items OUT of "Fondation" into:
  * - "Excavation" for drain/remblai items
  * - "Coulage de dalle du sous-sol" for slab/dalle items
  *
+ * And OUT of "Toiture" into:
+ * - "Structure et charpente" for OSB/contreplaqué items
+ * - "Revêtement extérieur" for fascia/soffite/gouttières items
+ *
  * Budgets are left unchanged; this only reroutes the item lists.
  */
 export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categories: T[]): T[] {
-  const byName = new Map(categories.map((c) => [c.name, c] as const));
-  const fondation = byName.get("Fondation");
-  if (!fondation || !Array.isArray(fondation.items) || fondation.items.length === 0) {
-    return categories;
-  }
-
-  const excavation = byName.get("Excavation");
-  const dalle = byName.get("Coulage de dalle du sous-sol");
-  if (!excavation || !dalle) return categories;
-
-  const next = categories.map((c) => ({ ...c })) as T[];
+  let next = categories.map((c) => ({ ...c })) as T[];
   const nextByName = new Map(next.map((c) => [c.name, c] as const));
-  const nextFondation = nextByName.get("Fondation")!;
-  const nextExcavation = nextByName.get("Excavation")!;
-  const nextDalle = nextByName.get("Coulage de dalle du sous-sol")!;
 
-  const toExcavation: ReroutableBudgetItem[] = [];
-  const toDalle: ReroutableBudgetItem[] = [];
-  const keepInFondation: ReroutableBudgetItem[] = [];
+  // === FONDATION REROUTING ===
+  const fondation = nextByName.get("Fondation");
+  const excavation = nextByName.get("Excavation");
+  const dalle = nextByName.get("Coulage de dalle du sous-sol");
 
-  for (const item of nextFondation.items as ReroutableBudgetItem[]) {
-    if (isDrainRemblai(item.name)) {
-      toExcavation.push(item);
-      continue;
+  if (fondation && Array.isArray(fondation.items) && fondation.items.length > 0 && excavation && dalle) {
+    const toExcavation: ReroutableBudgetItem[] = [];
+    const toDalle: ReroutableBudgetItem[] = [];
+    const keepInFondation: ReroutableBudgetItem[] = [];
+
+    for (const item of fondation.items as ReroutableBudgetItem[]) {
+      if (isDrainRemblai(item.name)) {
+        toExcavation.push(item);
+        continue;
+      }
+      if (isSlab(item.name)) {
+        toDalle.push(item);
+        continue;
+      }
+      keepInFondation.push(item);
     }
-    if (isSlab(item.name)) {
-      toDalle.push(item);
-      continue;
-    }
-    keepInFondation.push(item);
+
+    fondation.items = keepInFondation as any;
+    excavation.items = ([...((excavation.items as any) || []), ...toExcavation] as any) as any;
+    dalle.items = ([...((dalle.items as any) || []), ...toDalle] as any) as any;
   }
 
-  nextFondation.items = keepInFondation as any;
-  nextExcavation.items = ([...((nextExcavation.items as any) || []), ...toExcavation] as any) as any;
-  nextDalle.items = ([...((nextDalle.items as any) || []), ...toDalle] as any) as any;
+  // === TOITURE REROUTING ===
+  const toiture = nextByName.get("Toiture");
+  const structure = nextByName.get("Structure et charpente");
+  const revetement = nextByName.get("Revêtement extérieur");
+
+  if (toiture && Array.isArray(toiture.items) && toiture.items.length > 0 && structure && revetement) {
+    const toStructure: ReroutableBudgetItem[] = [];
+    const toRevetement: ReroutableBudgetItem[] = [];
+    const keepInToiture: ReroutableBudgetItem[] = [];
+
+    for (const item of toiture.items as ReroutableBudgetItem[]) {
+      if (isRoofStructure(item.name)) {
+        toStructure.push(item);
+        continue;
+      }
+      if (isExteriorFinish(item.name)) {
+        toRevetement.push(item);
+        continue;
+      }
+      keepInToiture.push(item);
+    }
+
+    toiture.items = keepInToiture as any;
+    structure.items = ([...((structure.items as any) || []), ...toStructure] as any) as any;
+    revetement.items = ([...((revetement.items as any) || []), ...toRevetement] as any) as any;
+  }
 
   return next;
 }

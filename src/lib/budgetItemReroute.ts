@@ -97,7 +97,21 @@ const isStructuralItem = (name: string) => {
     n.includes("2x6") ||
     n.includes("2x10") ||
     n.includes("2x12") ||
+    n.includes("tyvek") ||
+    n.includes("papier construction") ||
     n.includes("autres elements")
+  );
+};
+
+// Items that should be moved TO Structure et charpente (Tyvek, etc.)
+const isTyvekItem = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("tyvek") ||
+    n.includes("papier construction") ||
+    n.includes("pare-air") ||
+    n.includes("pare air") ||
+    n.includes("housewrap")
   );
 };
 
@@ -255,6 +269,47 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
 
     structureUpdated.items = keepInStructure as any;
     mursDivision.items = ([...((mursDivision.items as any) || []), ...toMursDivision] as any) as any;
+  }
+
+  // === REVÊTEMENT EXTÉRIEUR → STRUCTURE (Tyvek) ===
+  const revetementUpdated = nextByName.get("Revêtement extérieur");
+  const structureForTyvek = nextByName.get("Structure et charpente");
+  if (revetementUpdated && Array.isArray(revetementUpdated.items) && revetementUpdated.items.length > 0 && structureForTyvek) {
+    const tyvekToStructure: ReroutableBudgetItem[] = [];
+    const keepInRevetement: ReroutableBudgetItem[] = [];
+
+    for (const item of revetementUpdated.items as ReroutableBudgetItem[]) {
+      if (isTyvekItem(item.name)) {
+        tyvekToStructure.push(item);
+        continue;
+      }
+      keepInRevetement.push(item);
+    }
+
+    revetementUpdated.items = keepInRevetement as any;
+    if (tyvekToStructure.length > 0) {
+      structureForTyvek.items = ([...((structureForTyvek.items as any) || []), ...tyvekToStructure] as any) as any;
+    }
+  }
+
+  // === ISOLATION → STRUCTURE (Tyvek) ===
+  const isolation = nextByName.get("Isolation et pare-vapeur");
+  if (isolation && Array.isArray(isolation.items) && isolation.items.length > 0 && structureForTyvek) {
+    const tyvekFromIsolation: ReroutableBudgetItem[] = [];
+    const keepInIsolation: ReroutableBudgetItem[] = [];
+
+    for (const item of isolation.items as ReroutableBudgetItem[]) {
+      if (isTyvekItem(item.name)) {
+        tyvekFromIsolation.push(item);
+        continue;
+      }
+      keepInIsolation.push(item);
+    }
+
+    isolation.items = keepInIsolation as any;
+    if (tyvekFromIsolation.length > 0) {
+      structureForTyvek.items = ([...((structureForTyvek.items as any) || []), ...tyvekFromIsolation] as any) as any;
+    }
   }
 
   // === MURS DE DIVISION CLEANUP - Remove structural items that don't belong ===

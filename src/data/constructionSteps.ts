@@ -156,6 +156,7 @@ export const constructionSteps: Step[] = [
           "L'assurance chantier couvre les dommages pendant la construction",
           "Vérifiez que la couverture inclut le vol, le vandalisme et les intempéries",
           "Demandez une preuve d'assurance responsabilité civile à tous vos entrepreneurs",
+          "En cas de blessure sur le chantier, c'est le propriétaire-constructeur qui est tenu responsable — une assurance responsabilité civile est essentielle",
           "Comparez plusieurs courtiers pour obtenir le meilleur tarif",
           "Assurez-vous que la couverture débute avant le premier coup de pelle"
         ],

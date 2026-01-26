@@ -77,6 +77,69 @@ const isInteriorPartition = (name: string) => {
   );
 };
 
+// Items that should be EXCLUDED from Murs de division (structural items)
+const isStructuralItem = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("solive") ||
+    n.includes("ferme") ||
+    n.includes("contreplaque") ||
+    n.includes("osb") ||
+    n.includes("charpente mur") ||
+    n.includes("murs exterieurs") ||
+    n.includes("mur exterieur") ||
+    n.includes("perimetre") ||
+    n.includes("prefabrique") ||
+    n.includes("toiture") ||
+    n.includes("pontage") ||
+    n.includes("plancher") ||
+    n.includes("5/8") ||
+    n.includes("2x6") ||
+    n.includes("2x10") ||
+    n.includes("2x12") ||
+    n.includes("autres elements")
+  );
+};
+
+// Items that should be EXCLUDED from Plomberie sous dalle (concrete/foundation/structural)
+const isNotPlumbing = (name: string) => {
+  const n = normalize(name);
+  return (
+    // Concrete/slab items
+    n.includes("beton") ||
+    n.includes("dalle") ||
+    n.includes("coffrage") ||
+    n.includes("finition") ||
+    n.includes("25 mpa") ||
+    n.includes("4 pouces") ||
+    n.includes("4\"") ||
+    n.includes("4 po") ||
+    // Foundation items
+    n.includes("semelle") ||
+    n.includes("fondation") ||
+    n.includes("mur de fondation") ||
+    n.includes("murs fondation") ||
+    n.includes("footing") ||
+    n.includes("solage") ||
+    n.includes("8' hauteur") ||
+    n.includes("8 pieds") ||
+    n.includes("perimetre") ||
+    n.includes("impermeabilisation") ||
+    // Structural items
+    n.includes("solive") ||
+    n.includes("ferme") ||
+    n.includes("contreplaque") ||
+    n.includes("osb") ||
+    n.includes("charpente") ||
+    n.includes("murs exterieurs") ||
+    n.includes("pontage") ||
+    n.includes("plancher") ||
+    n.includes("5/8") ||
+    n.includes("2x6") ||
+    n.includes("autres elements")
+  );
+};
+
 /**
  * Moves misclassified items OUT of "Fondation" into:
  * - "Excavation" for drain/remblai items
@@ -164,6 +227,46 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
 
     structureUpdated.items = keepInStructure as any;
     mursDivision.items = ([...((mursDivision.items as any) || []), ...toMursDivision] as any) as any;
+  }
+
+  // === MURS DE DIVISION CLEANUP - Remove structural items that don't belong ===
+  const mursDivisionFinal = nextByName.get("Murs de division");
+  if (mursDivisionFinal && Array.isArray(mursDivisionFinal.items) && mursDivisionFinal.items.length > 0) {
+    const structureFinal = nextByName.get("Structure et charpente");
+    const cleanedItems: ReroutableBudgetItem[] = [];
+    const movedToStructure: ReroutableBudgetItem[] = [];
+
+    for (const item of mursDivisionFinal.items as ReroutableBudgetItem[]) {
+      if (isStructuralItem(item.name)) {
+        // Move structural items back to Structure et charpente
+        if (structureFinal) {
+          movedToStructure.push(item);
+        }
+        continue;
+      }
+      cleanedItems.push(item);
+    }
+
+    mursDivisionFinal.items = cleanedItems as any;
+    if (structureFinal && movedToStructure.length > 0) {
+      structureFinal.items = ([...((structureFinal.items as any) || []), ...movedToStructure] as any) as any;
+    }
+  }
+
+  // === PLOMBERIE SOUS DALLE CLEANUP - Remove non-plumbing items ===
+  const plomberieSousDalle = nextByName.get("Plomberie sous dalle");
+  if (plomberieSousDalle && Array.isArray(plomberieSousDalle.items) && plomberieSousDalle.items.length > 0) {
+    const cleanedPlomberie: ReroutableBudgetItem[] = [];
+
+    for (const item of plomberieSousDalle.items as ReroutableBudgetItem[]) {
+      if (isNotPlumbing(item.name)) {
+        // Simply remove these items - they belong elsewhere
+        continue;
+      }
+      cleanedPlomberie.push(item);
+    }
+
+    plomberieSousDalle.items = cleanedPlomberie as any;
   }
 
   return next;

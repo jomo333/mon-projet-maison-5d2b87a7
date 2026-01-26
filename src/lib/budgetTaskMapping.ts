@@ -44,21 +44,30 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // FONDATION - matches step "fondation"
+  // Simplified to 3 main categories: Semelle, Fondation, Imperméabilisation
   "Fondation": [
     {
-      taskTitle: "Coulage des fondations",
+      taskTitle: "Semelle",
       keywords: [
-        "semelle", "mur de fondation", "mur fondation", "murs de fondation", "fondation", "béton coulé", 
-        "coffrage", "coulage fondation", "imperméabilisation", "membrane fondation", "delta", "goudron", 
-        "armature", "acier", "fer", "forme", "fondations", "solage", "m3", "mètre cube",
-        "8 pouces", "8\"", "10\"", "périmètre", "ml fondation"
+        "semelle", "footing", "semelles", "coffrage semelle", "béton semelle", 
+        "armature semelle", "acier semelle", "fer semelle"
       ],
     },
     {
-      taskTitle: "Drain et remblai",
+      taskTitle: "Fondation",
       keywords: [
-        "drain français", "drain", "remblai", "pierre nette", "gravier drainage",
-        "drainage", "géotextile", "rigole", "pompe puisard", "puisard"
+        "mur de fondation", "mur fondation", "murs de fondation", "fondation", "béton coulé", 
+        "coffrage", "coulage fondation", "coffrage mur", "forme", "fondations", "solage", 
+        "m3", "mètre cube", "8 pouces", "8\"", "10\"", "périmètre", "ml fondation",
+        "armature", "acier", "fer", "drain français", "drain", "remblai", "pierre nette", 
+        "gravier drainage", "drainage", "géotextile", "rigole", "pompe puisard", "puisard"
+      ],
+    },
+    {
+      taskTitle: "Imperméabilisation",
+      keywords: [
+        "imperméabilisation", "membrane fondation", "delta", "goudron", "membrane",
+        "étanchéité fondation", "protection fondation", "bitume", "delta-ms"
       ],
     },
   ],

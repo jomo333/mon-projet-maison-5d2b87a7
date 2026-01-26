@@ -83,7 +83,7 @@ export function StepDetail({
   });
   
   // Utiliser directement useProjectSchedule pour synchroniser avec l'échéancier
-  const { schedules, updateScheduleAndRecalculate, isUpdating } = useProjectSchedule(projectId || null);
+  const { schedules, updateScheduleAndRecalculate, updateScheduleAsync, isUpdating } = useProjectSchedule(projectId || null);
   
   // Hook pour les notes des tâches
   const { getTaskDate, upsertTaskDateAsync } = useTaskDates(projectId || null);
@@ -234,9 +234,18 @@ export function StepDetail({
     
     try {
       const newValue = !currentSchedule.is_manual_date;
-      await updateScheduleAndRecalculate(currentSchedule.id, {
-        is_manual_date: newValue,
-      });
+      
+      // Verrouiller = simple update sans recalcul (rapide)
+      // Déverrouiller = recalcul nécessaire car les dates peuvent changer
+      if (newValue) {
+        // Verrouillage simple - pas besoin de recalculer
+        await updateScheduleAsync({ id: currentSchedule.id, is_manual_date: true });
+      } else {
+        // Déverrouillage - recalcul potentiel des dates
+        await updateScheduleAndRecalculate(currentSchedule.id, {
+          is_manual_date: false,
+        });
+      }
       
       toast({
         title: newValue ? "🔒 Date verrouillée" : "🔓 Date déverrouillée",

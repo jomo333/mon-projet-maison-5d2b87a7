@@ -1534,35 +1534,51 @@ async function analyzeOnePageWithClaude({
 
 Ce projet est un **AGRANDISSEMENT** (extension d'un bâtiment existant).
 
-### CE QUE TU DOIS FAIRE:
-1. **Identifier visuellement** sur les plans ce qui est NOUVEAU vs. EXISTANT:
-   - Lignes pointillées = généralement existant
-   - Lignes pleines avec annotations "nouveau" ou "proposé" = à construire
-   - Zones hachurées ou colorées différemment = souvent l'extension
-   - Notes indiquant "existant", "à démolir", "nouveau"
+### ÉTAPE 1: ANALYSER LA LÉGENDE DU PLAN
+AVANT tout calcul, cherche et lis la **légende** ou **nomenclature** qui indique:
+- Comment l'architecte distingue "existant" de "nouveau"
+- Les conventions de traits utilisées (pointillé, tiret-point, hachures)
+- Les codes de couleur s'il y en a
 
-2. **Calculer UNIQUEMENT pour la partie NOUVELLE**:
-   - Périmètre de l'agrandissement (pas de la maison complète)
-   - Superficie de l'extension seulement
-   - Fondations pour la nouvelle partie uniquement
-   - Nouveaux murs, fenêtres, portes ajoutés
+### ÉTAPE 2: CONVENTIONS GRAPHIQUES QUÉBÉCOISES COURANTES
+Identifie visuellement ce qui est NOUVEAU vs. EXISTANT selon ces conventions:
+- **EXISTANT à conserver**: lignes pointillées (----), trait fin, mention "exist.", "conservé", "E", grisé/hachuré
+- **EXISTANT à démolir**: lignes avec X, mention "à démolir", "démol.", hachuré diagonal
+- **NOUVEAU/PROPOSÉ**: lignes pleines épaisses, trait fort, mention "nouveau", "proposé", "N", "proj.", zone colorée
+- **Mur mitoyen** (jonction existant-nouveau): souvent hachuré des deux côtés
 
-3. **IGNORER COMPLÈTEMENT**:
-   - Les dimensions du bâtiment existant
-   - Les pièces existantes qui ne sont pas modifiées
-   - Les éléments structuraux existants qui restent en place
+### ÉTAPE 3: CALCULER UNIQUEMENT LA PARTIE NOUVELLE
+Pour CHAQUE catégorie budgétaire:
+1. **Fondations**: Seulement le périmètre NEUF (exclure le mur mitoyen contre l'existant)
+2. **Structure/Charpente**: Seulement les murs et toit NEUFS
+3. **Fenêtres**: Compter uniquement les NOUVELLES fenêtres dans les murs neufs
+4. **Toiture**: Surface de toiture NOUVELLE seulement
+5. **Superficie**: Extension seulement = "superficie_nouvelle_pi2"
 
-4. **Éléments spécifiques aux agrandissements**:
-   - Jonction entre l'existant et le nouveau (travaux de raccordement)
-   - Ouvertures dans les murs existants
-   - Raccordements électrique/plomberie à l'existant
+### ÉTAPE 4: IGNORER COMPLÈTEMENT
+- Toutes les dimensions du bâtiment existant
+- Les pièces existantes non modifiées
+- Les fenêtres/portes existantes qui restent
+- La toiture existante
 
-### EXEMPLE:
-Si le plan montre une maison de 1500 pi² avec un agrandissement de 400 pi²:
-- "superficie_nouvelle_pi2" = 400 (PAS 1900)
-- Le périmètre pour les fondations = périmètre de l'extension seulement (moins le mur mitoyen)
+### ÉTAPE 5: ÉLÉMENTS SPÉCIFIQUES AUX AGRANDISSEMENTS
+Inclure les coûts pour:
+- Jonction structurale (poutre de raccordement, linteau pour ouverture)
+- Ouverture dans le mur existant (découpe, renforcement)
+- Raccordements électrique/plomberie/CVAC à l'existant
+- Harmonisation des finitions (plancher, peinture)
 
-LIS ATTENTIVEMENT TOUTES LES NOTES sur les plans qui indiquent ce qui est nouveau!
+### EXEMPLE CONCRET:
+Plan montrant une maison de 1500 pi² + extension de 400 pi²:
+✅ "superficie_nouvelle_pi2" = 400 (PAS 1900!)
+✅ Fondation = périmètre de l'extension MOINS le mur mitoyen (~50 pi lin au lieu de 80)
+✅ Fenêtres = seulement les 4 nouvelles (pas les 12 existantes)
+❌ NE PAS inclure la cuisine existante, les chambres existantes, etc.
+
+### VALIDATION OBLIGATOIRE:
+Si la superficie calculée dépasse ${manualContext?.squareFootage ? manualContext.squareFootage + 100 : 800} pi², 
+tu inclus probablement l'existant par erreur - REVOIR ton analyse!
+
 ` 
     : '';
 

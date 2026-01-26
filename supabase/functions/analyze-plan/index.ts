@@ -1530,54 +1530,60 @@ async function analyzeOnePageWithClaude({
   const isAgrandissement = effectiveProjectType.toLowerCase().includes('agrandissement');
   const agrandissementInstruction = isAgrandissement 
     ? `
-## ⚠️ INSTRUCTION CRITIQUE - AGRANDISSEMENT (EXTENSION)
+## 🚨🚨🚨 INSTRUCTION CRITIQUE PRIORITAIRE - AGRANDISSEMENT 🚨🚨🚨
 
-Ce projet est un **AGRANDISSEMENT** (extension d'un bâtiment existant).
+⚠️ **CE PROJET EST UN AGRANDISSEMENT (EXTENSION)**
+⚠️ **TU DOIS IGNORER TOUT LE BÂTIMENT EXISTANT**
 
-### ÉTAPE 1: ANALYSER LA LÉGENDE DU PLAN
-AVANT tout calcul, cherche et lis la **légende** ou **nomenclature** qui indique:
-- Comment l'architecte distingue "existant" de "nouveau"
-- Les conventions de traits utilisées (pointillé, tiret-point, hachures)
-- Les codes de couleur s'il y en a
+### 📋 ÉTAPE OBLIGATOIRE #1: LIRE LA LÉGENDE DU PLAN
+AVANT TOUT CALCUL, tu DOIS identifier dans la légende/nomenclature:
+- La convention pour "EXISTANT" (souvent: pointillés, trait fin, grisé, "E", "exist.")
+- La convention pour "NOUVEAU" (souvent: trait plein épais, "N", "nouveau", "proj.")
+- Si tu ne trouves pas de légende, DÉCRIS les conventions graphiques que tu observes
 
-### ÉTAPE 2: CONVENTIONS GRAPHIQUES QUÉBÉCOISES COURANTES
-Identifie visuellement ce qui est NOUVEAU vs. EXISTANT selon ces conventions:
-- **EXISTANT à conserver**: lignes pointillées (----), trait fin, mention "exist.", "conservé", "E", grisé/hachuré
-- **EXISTANT à démolir**: lignes avec X, mention "à démolir", "démol.", hachuré diagonal
-- **NOUVEAU/PROPOSÉ**: lignes pleines épaisses, trait fort, mention "nouveau", "proposé", "N", "proj.", zone colorée
-- **Mur mitoyen** (jonction existant-nouveau): souvent hachuré des deux côtés
+### 📋 ÉTAPE OBLIGATOIRE #2: IDENTIFIER CE QUI EST EXISTANT vs NOUVEAU
+Liste EXPLICITEMENT:
+- Quelles pièces/zones sont EXISTANTES (à ignorer): ex: "salon existant 15x20, cuisine existante 12x14..."
+- Quelles pièces/zones sont NOUVELLES (à calculer): ex: "nouvelle chambre 12x14, nouveau bureau 10x12..."
 
-### ÉTAPE 3: CALCULER UNIQUEMENT LA PARTIE NOUVELLE
-Pour CHAQUE catégorie budgétaire:
-1. **Fondations**: Seulement le périmètre NEUF (exclure le mur mitoyen contre l'existant)
-2. **Structure/Charpente**: Seulement les murs et toit NEUFS
-3. **Fenêtres**: Compter uniquement les NOUVELLES fenêtres dans les murs neufs
-4. **Toiture**: Surface de toiture NOUVELLE seulement
-5. **Superficie**: Extension seulement = "superficie_nouvelle_pi2"
+### 📋 ÉTAPE OBLIGATOIRE #3: CALCULER SEULEMENT LE NOUVEAU
+Pour chaque catégorie:
+- **Fondations**: Périmètre NEUF uniquement. Exclure le mur mitoyen contre l'existant!
+- **Structure**: Murs NEUFS uniquement
+- **Fenêtres**: Compter SEULEMENT les fenêtres dans les murs NEUFS
+- **Toiture**: Surface NOUVELLE seulement
+- **Électricité/Plomberie**: Seulement pour les nouvelles pièces
 
-### ÉTAPE 4: IGNORER COMPLÈTEMENT
-- Toutes les dimensions du bâtiment existant
-- Les pièces existantes non modifiées
-- Les fenêtres/portes existantes qui restent
+### ❌ CE QUE TU DOIS IGNORER COMPLÈTEMENT:
+- TOUTES les dimensions de la maison existante
+- TOUTES les pièces existantes (même si elles sont sur le plan)
+- TOUTES les fenêtres/portes existantes
 - La toiture existante
 
-### ÉTAPE 5: ÉLÉMENTS SPÉCIFIQUES AUX AGRANDISSEMENTS
-Inclure les coûts pour:
-- Jonction structurale (poutre de raccordement, linteau pour ouverture)
-- Ouverture dans le mur existant (découpe, renforcement)
-- Raccordements électrique/plomberie/CVAC à l'existant
-- Harmonisation des finitions (plancher, peinture)
+### ✅ CE QUE TU DOIS AJOUTER (spécifique aux agrandissements):
+- Jonction structurale / poutre de raccordement
+- Ouverture dans le mur existant (découpe + linteau)
+- Raccordements électriques/plomberie à l'existant
+- Harmonisation des finitions
 
-### EXEMPLE CONCRET:
-Plan montrant une maison de 1500 pi² + extension de 400 pi²:
-✅ "superficie_nouvelle_pi2" = 400 (PAS 1900!)
-✅ Fondation = périmètre de l'extension MOINS le mur mitoyen (~50 pi lin au lieu de 80)
-✅ Fenêtres = seulement les 4 nouvelles (pas les 12 existantes)
-❌ NE PAS inclure la cuisine existante, les chambres existantes, etc.
+### 🎯 VALIDATION FINALE OBLIGATOIRE:
+Dans ta réponse, tu DOIS inclure le champ:
+\`\`\`
+"validation_agrandissement": {
+  "legende_identifiee": "OUI/NON - description de ce que tu as trouvé",
+  "elements_existants_ignores": ["liste des pièces/éléments existants que tu as ignorés"],
+  "superficie_nouvelle_calculee": X,
+  "superficie_semble_correcte": true/false
+}
+\`\`\`
 
-### VALIDATION OBLIGATOIRE:
-Si la superficie calculée dépasse ${manualContext?.squareFootage ? manualContext.squareFootage + 100 : 800} pi², 
-tu inclus probablement l'existant par erreur - REVOIR ton analyse!
+**Si "superficie_nouvelle_pi2" dépasse ${manualContext?.squareFootage ? manualContext.squareFootage + 100 : 600} pi², 
+TU INCLUS L'EXISTANT PAR ERREUR! Recommence ton analyse en ignorant l'existant.**
+
+### EXEMPLE:
+Plan: Maison 1800 pi² existante + extension 350 pi²
+✅ CORRECT: superficie_nouvelle_pi2 = 350
+❌ FAUX: superficie_nouvelle_pi2 = 2150 (tu as inclus l'existant!)
 
 ` 
     : '';

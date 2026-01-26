@@ -111,7 +111,8 @@ export const categoryTaskMappings: CategoryTaskMappings = {
       taskTitle: "Étanchéité",
       keywords: [
         "étanchéité", "typar", "tyvek", "pare-air", "membrane étanchéité",
-        "housewrap", "enveloppe", "pare-intempérie"
+        "housewrap", "enveloppe", "pare-intempérie", "fourrure", "fourrures",
+        "1x3", "fond de clouage", "strapping"
       ],
     },
   ],
@@ -374,6 +375,7 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // REVÊTEMENT EXTÉRIEUR - matches step "exterieur"
+  // IMPORTANT: Exclude Tyvek, pare-air, fourrures - they belong to Structure et charpente
   "Revêtement extérieur": [
     {
       taskTitle: "Revêtement extérieur",
@@ -382,6 +384,8 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "parement", "fibrociment", "siding", "maçonnerie", "stucco", "hardie",
         "cèdre", "aluminium", "extérieur mur"
       ],
+      // Exclude items that belong to Structure et charpente
+      exclusions: ["tyvek", "typar", "pare-air", "housewrap", "fourrure", "fourrures", "1x3", "strapping", "fond de clouage"]
     },
     {
       taskTitle: "Fascia et soffite",

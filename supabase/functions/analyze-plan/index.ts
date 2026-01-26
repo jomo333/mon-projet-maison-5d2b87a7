@@ -2054,11 +2054,102 @@ function filterCategoryByMaterialChoice(
       keywords: {
         'vinyl': ['vinyl', 'vinyle', 'pvc'],
         'fibre-ciment': ['fibre', 'ciment', 'hardie', 'canexel'],
-        'bois': ['bois', 'cedre', 'cèdre', 'wood'],
+        'bois': ['bois', 'cedre', 'cèdre', 'wood', 'declin'],
         'brique': ['brique', 'brick', 'maconnerie', 'maçonnerie'],
         'pierre': ['pierre', 'stone', 'cultured'],
         'aluminium': ['aluminium', 'aluminum', 'alu'],
         'stucco': ['stucco', 'acrylique', 'crepi', 'crépi'],
+      }
+    },
+    'revetements de sol': {
+      choiceKey: 'flooringType',
+      keywords: {
+        'bois-franc': ['bois franc', 'hardwood', 'chene', 'erable', 'merisier', 'noyer'],
+        'bois-ingenierie': ['ingenierie', 'engineered', 'flottant'],
+        'ceramique': ['ceramique', 'céramique', 'carrelage', 'porcelaine', 'tuile'],
+        'vinyle-luxe': ['vinyle', 'vinyl', 'lvp', 'lvt', 'luxury'],
+        'lamine': ['lamine', 'laminé', 'stratifie', 'stratifié', 'laminate'],
+        'beton-poli': ['beton', 'béton', 'poli', 'epoxy'],
+      }
+    },
+    'finition interieure': {
+      choiceKey: 'flooringType',
+      keywords: {
+        'bois-franc': ['bois franc', 'hardwood', 'chene', 'erable'],
+        'bois-ingenierie': ['ingenierie', 'engineered', 'flottant'],
+        'ceramique': ['ceramique', 'céramique', 'carrelage', 'porcelaine'],
+        'vinyle-luxe': ['vinyle', 'vinyl', 'lvp', 'lvt'],
+        'lamine': ['lamine', 'laminé', 'stratifie', 'stratifié'],
+        'beton-poli': ['beton', 'béton', 'poli', 'epoxy'],
+      }
+    },
+    'travaux ebenisterie': {
+      choiceKey: 'cabinetType',
+      keywords: {
+        'melamine': ['melamine', 'mélamine', 'thermoplastique', 'entree de gamme'],
+        'semi-custom': ['semi-custom', 'semi custom', 'polyester', 'laque'],
+        'custom': ['custom', 'sur mesure', 'bois massif', 'haut de gamme'],
+        'ikea': ['ikea', 'pret a assembler', 'rta'],
+      }
+    },
+    'cuisine': {
+      choiceKey: 'cabinetType',
+      keywords: {
+        'melamine': ['melamine', 'mélamine', 'thermoplastique'],
+        'semi-custom': ['semi-custom', 'polyester', 'laque'],
+        'custom': ['custom', 'sur mesure', 'bois massif'],
+        'ikea': ['ikea', 'pret a assembler'],
+      }
+    },
+    'chauffage et ventilation': {
+      choiceKey: 'heatingType',
+      keywords: {
+        'thermopompe-centrale': ['thermopompe', 'centrale', 'central', 'heat pump', 'air climatise'],
+        'thermopompe-murale': ['murale', 'mini-split', 'minisplit', 'wall mount'],
+        'plinthes': ['plinthe', 'electrique', 'baseboard', 'convecteur'],
+        'plancher-radiant': ['radiant', 'plancher chauffant', 'floor heating', 'hydronic'],
+        'gaz': ['gaz', 'gas', 'fournaise', 'furnace'],
+        'geothermie': ['geothermie', 'géothermie', 'geothermal', 'ground source'],
+      }
+    },
+    'fenetres et portes': {
+      choiceKey: 'windowType',
+      keywords: {
+        'pvc-standard': ['pvc', 'vinyl', 'double vitrage', 'standard'],
+        'pvc-triple': ['triple', 'triple vitrage', 'energy star'],
+        'hybride': ['hybride', 'hybrid', 'alu', 'aluminium'],
+        'bois': ['bois', 'wood', 'massif'],
+        'aluminium': ['aluminium', 'aluminum', 'commercial'],
+      }
+    },
+    'fenetres et portes exterieures': {
+      choiceKey: 'windowType',
+      keywords: {
+        'pvc-standard': ['pvc', 'vinyl', 'double vitrage', 'standard'],
+        'pvc-triple': ['triple', 'triple vitrage', 'energy star'],
+        'hybride': ['hybride', 'hybrid', 'alu', 'aluminium'],
+        'bois': ['bois', 'wood', 'massif'],
+        'aluminium': ['aluminium', 'aluminum', 'commercial'],
+      }
+    },
+    'isolation et pare-vapeur': {
+      choiceKey: 'insulationType',
+      keywords: {
+        'laine-verre': ['laine', 'verre', 'fiberglass', 'batt', 'r-24', 'r-20'],
+        'laine-roche': ['roche', 'rockwool', 'roxul', 'mineral'],
+        'cellulose': ['cellulose', 'soufflee', 'soufflée', 'blown'],
+        'polyurethane': ['polyurethane', 'polyuréthane', 'spray foam', 'giclé', 'mousse'],
+        'polystyrene': ['polystyrene', 'polystyrène', 'styrofoam', 'eps', 'xps', 'rigid'],
+      }
+    },
+    'isolation': {
+      choiceKey: 'insulationType',
+      keywords: {
+        'laine-verre': ['laine', 'verre', 'fiberglass', 'batt'],
+        'laine-roche': ['roche', 'rockwool', 'roxul', 'mineral'],
+        'cellulose': ['cellulose', 'soufflee', 'soufflée', 'blown'],
+        'polyurethane': ['polyurethane', 'polyuréthane', 'spray foam', 'giclé', 'mousse'],
+        'polystyrene': ['polystyrene', 'polystyrène', 'styrofoam', 'eps', 'xps'],
       }
     },
   };

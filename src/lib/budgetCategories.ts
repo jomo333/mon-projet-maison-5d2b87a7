@@ -297,14 +297,19 @@ export const mapAnalysisToStepCategoriesWithExtras = (
 
     const weightSum = targets.reduce((s, t) => s + (Number(t.weight) || 0), 0) || 1;
 
-    targets.forEach((t, idx) => {
+    targets.forEach((t) => {
       const target = byName.get(t.target);
       if (!target) return;
-      target.budget += totalBudget * ((Number(t.weight) || 0) / weightSum);
+      const weightRatio = (Number(t.weight) || 0) / weightSum;
+      target.budget += totalBudget * weightRatio;
 
-      // Avoid duplicating items across multiple postes
-      if (idx === 0 && cat.items?.length) {
-        target.items = [...(target.items || []), ...cat.items];
+      // Distribute items proportionally with adjusted costs so that details match the budget
+      if (cat.items?.length && weightRatio > 0) {
+        const adjustedItems = cat.items.map((item) => ({
+          ...item,
+          cost: Math.round((Number(item.cost) || 0) * weightRatio),
+        }));
+        target.items = [...(target.items || []), ...adjustedItems];
       }
     });
   }

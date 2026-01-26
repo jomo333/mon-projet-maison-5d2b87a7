@@ -117,17 +117,17 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // TOITURE - matches step "toiture"
-  // Only roofing covering materials - plywood/OSB goes to Structure
+  // Only roofing covering materials - fascia/soffit/gouttières go to Revêtement extérieur
   "Toiture": [
     {
       taskTitle: "Membrane et bardeaux",
       keywords: [
-        "membrane", "bardeau", "asphalte", "solin", "ventilation",
-        "couverture", "shingle", "bardeaux", "évent",
-        "noue", "faîtière", "gouttière", "descente"
+        "membrane", "bardeau", "asphalte", "solin", "ventilation toit",
+        "couverture", "shingle", "bardeaux", "évent toit",
+        "noue", "faîtière"
       ],
-      // Exclude structural elements - they go to Structure
-      exclusions: ["contreplaqué", "osb", "pontage", "plywood", "decking", "ferme", "fermes", "truss"]
+      // Exclude structural elements and exterior finish items
+      exclusions: ["contreplaqué", "osb", "pontage", "plywood", "decking", "ferme", "fermes", "truss", "fascia", "soffite", "soffit", "gouttière", "descente"]
     },
   ],
 
@@ -369,7 +369,7 @@ export const categoryTaskMappings: CategoryTaskMappings = {
       taskTitle: "Fascia et soffite",
       keywords: [
         "fascia", "soffite", "corniche", "bordure", "soffit", "aluminium bordure",
-        "ventilé", "sous-face"
+        "ventilé", "sous-face", "gouttière", "gouttières", "descente", "descente pluviale"
       ],
     },
     {

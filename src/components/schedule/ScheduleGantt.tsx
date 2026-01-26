@@ -27,7 +27,7 @@ import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
 // Délais obligatoires (cure du béton, etc.)
 const minimumDelayConfig: Record<string, { afterStep: string; days: number; reason: string }> = {
   structure: {
-    afterStep: "excavation-fondation",
+    afterStep: "fondation",
     days: 21,
     reason: "Cure du béton des fondations (minimum 3 semaines)",
   },
@@ -154,20 +154,20 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     return conflicts.some((c) => c.trades.includes(schedule.trade_type));
   };
 
-  // Calcule la période de cure du béton entre excavation et structure
+  // Calcule la période de cure du béton entre fondation et structure
   const getCuringPeriod = useMemo(() => {
-    const excavation = schedulesWithDates.find(s => s.step_id === "excavation-fondation");
+    const fondation = schedulesWithDates.find(s => s.step_id === "fondation");
     const structure = schedulesWithDates.find(s => s.step_id === "structure");
     
-    if (!excavation?.end_date || !structure?.start_date) return null;
+    if (!fondation?.end_date || !structure?.start_date) return null;
     
-    const excavationEnd = parseISO(excavation.end_date);
+    const fondationEnd = parseISO(fondation.end_date);
     const structureStart = parseISO(structure.start_date);
-    const gapDays = differenceInDays(structureStart, excavationEnd);
+    const gapDays = differenceInDays(structureStart, fondationEnd);
     
     // S'il y a un écart >= 1 jour, on montre la période de cure
     if (gapDays >= 1) {
-      const left = differenceInDays(addDays(excavationEnd, 1), minDate) * dayWidth;
+      const left = differenceInDays(addDays(fondationEnd, 1), minDate) * dayWidth;
       const width = (gapDays - 1) * dayWidth;
       return { left, width, days: gapDays - 1 };
     }

@@ -49,7 +49,7 @@ export interface ScheduleAlert {
 // Ex: cure du béton avant structure
 const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; reason: string }> = {
   structure: {
-    afterStep: "excavation-fondation",
+    afterStep: "fondation",
     days: 21, // 3 semaines minimum pour la cure du béton
     reason: "Cure du béton des fondations (minimum 3 semaines)",
   },

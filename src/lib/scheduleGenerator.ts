@@ -26,7 +26,8 @@ const stepTradeMapping: Record<string, string> = {
   financement: "autre",
   "plans-permis": "autre",
   soumissions: "autre",
-  "excavation-fondation": "excavation",
+  excavation: "excavation",
+  fondation: "fondation",
   structure: "charpente",
   toiture: "toiture",
   "fenetres-portes": "fenetre",
@@ -53,7 +54,8 @@ const defaultDurations: Record<string, number> = {
   "plans-permis": 40,
   soumissions: 15,
   financement: 15,
-  "excavation-fondation": 10,
+  excavation: 5,
+  fondation: 5,
   structure: 8,
   toiture: 2,
   "fenetres-portes": 2,
@@ -90,7 +92,7 @@ const fabricationLeadDays: Record<string, number> = {
 // Délais obligatoires après certaines étapes (jours calendrier)
 const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; reason: string }> = {
   structure: {
-    afterStep: "excavation-fondation",
+    afterStep: "fondation",
     days: 21,
     reason: "Cure du béton des fondations (minimum 3 semaines)",
   },

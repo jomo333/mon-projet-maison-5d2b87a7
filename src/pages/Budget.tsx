@@ -960,24 +960,13 @@ const Budget = () => {
                                              </div>
 
                                              {hasItems ? (
-                                               <div className="ml-6 space-y-1">
-                                                 <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
-                                                   <div className="col-span-5">Élément</div>
-                                                   <div className="col-span-3 text-center">Quantité</div>
-                                                   <div className="col-span-4 text-right">Coût</div>
-                                                 </div>
+                                               <ul className="ml-6 list-disc pl-4 space-y-1">
                                                  {items.map((item, idx) => (
-                                                   <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
-                                                     <div className="col-span-5 truncate text-muted-foreground">{item.name}</div>
-                                                     <div className="col-span-3 text-center text-muted-foreground">
-                                                       {item.quantity} {item.unit}
-                                                     </div>
-                                                     <div className="col-span-4 text-right font-medium">
-                                                       {item.cost.toLocaleString()} $
-                                                     </div>
-                                                   </div>
+                                                   <li key={idx} className="text-sm text-muted-foreground">
+                                                     {item.name}
+                                                   </li>
                                                  ))}
-                                               </div>
+                                               </ul>
                                              ) : (
                                                <div className="ml-6 text-sm text-muted-foreground italic">
                                                  Aucun élément associé.
@@ -993,24 +982,13 @@ const Budget = () => {
                                              <CheckCircle2 className="h-4 w-4 text-primary" />
                                              Autres éléments
                                            </div>
-                                           <div className="ml-6 space-y-1">
-                                             <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
-                                               <div className="col-span-5">Élément</div>
-                                               <div className="col-span-3 text-center">Quantité</div>
-                                               <div className="col-span-4 text-right">Coût</div>
-                                             </div>
+                                           <ul className="ml-6 list-disc pl-4 space-y-1">
                                              {otherItems.map((item, idx) => (
-                                               <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
-                                                 <div className="col-span-5 truncate text-muted-foreground">{item.name}</div>
-                                                 <div className="col-span-3 text-center text-muted-foreground">
-                                                   {item.quantity} {item.unit}
-                                                 </div>
-                                                 <div className="col-span-4 text-right font-medium">
-                                                   {item.cost.toLocaleString()} $
-                                                 </div>
-                                               </div>
+                                               <li key={idx} className="text-sm text-muted-foreground">
+                                                 {item.name}
+                                               </li>
                                              ))}
-                                           </div>
+                                           </ul>
                                          </div>
                                        )}
                                      </div>
@@ -1026,24 +1004,13 @@ const Budget = () => {
                                            <CheckCircle2 className="h-4 w-4 text-primary" />
                                            {taskTitle}
                                          </div>
-                                         <div className="ml-6 space-y-1">
-                                           <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
-                                             <div className="col-span-5">Élément</div>
-                                             <div className="col-span-3 text-center">Quantité</div>
-                                             <div className="col-span-4 text-right">Coût</div>
-                                           </div>
+                                         <ul className="ml-6 list-disc pl-4 space-y-1">
                                            {items.map((item, idx) => (
-                                             <div key={idx} className="grid grid-cols-12 gap-2 text-sm py-1">
-                                               <div className="col-span-5 truncate text-muted-foreground">{item.name}</div>
-                                               <div className="col-span-3 text-center text-muted-foreground">
-                                                 {item.quantity} {item.unit}
-                                               </div>
-                                               <div className="col-span-4 text-right font-medium">
-                                                 {item.cost.toLocaleString()} $
-                                               </div>
-                                             </div>
+                                             <li key={idx} className="text-sm text-muted-foreground">
+                                               {item.name}
+                                             </li>
                                            ))}
-                                         </div>
+                                         </ul>
                                        </div>
                                      ))}
                                    </div>

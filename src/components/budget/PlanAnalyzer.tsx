@@ -702,6 +702,16 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               finishQuality,
               manualContext: manualData,
               totalImages,
+              materialChoices: {
+                roofingType,
+                exteriorSiding,
+                flooringType,
+                cabinetType,
+                countertopType,
+                heatingType,
+                windowType,
+                insulationType,
+              },
             },
           });
           
@@ -739,6 +749,16 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               finishQuality,
               manualContext: manualData,
               totalImages,
+              materialChoices: {
+                roofingType,
+                exteriorSiding,
+                flooringType,
+                cabinetType,
+                countertopType,
+                heatingType,
+                windowType,
+                insulationType,
+              },
             },
           });
           

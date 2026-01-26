@@ -2029,6 +2029,92 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
   };
 }
 
+// Filter category items based on material choices - only keep selected material type
+// Other materials become "alternatives" that are not summed into totals
+function filterCategoryByMaterialChoice(
+  categories: any[],
+  materialChoices: Record<string, string>
+): any[] {
+  if (!materialChoices) return categories;
+  
+  // Mapping of category names to material choice keys and their keywords
+  const materialFilters: Record<string, { choiceKey: string; keywords: Record<string, string[]> }> = {
+    'toiture': {
+      choiceKey: 'roofingType',
+      keywords: {
+        'bardeau-asphalte': ['bardeau', 'asphalte', 'shingle'],
+        'bardeau-architectural': ['bardeau', 'architectural', 'shingle'],
+        'metal': ['metal', 'tole', 'tôle', 'acier', 'steel'],
+        'elastomere': ['elastomere', 'élastomère', 'membrane', 'bitume'],
+        'tpo-epdm': ['tpo', 'epdm', 'membrane', 'caoutchouc'],
+      }
+    },
+    'revetement exterieur': {
+      choiceKey: 'exteriorSiding',
+      keywords: {
+        'vinyl': ['vinyl', 'vinyle', 'pvc'],
+        'fibre-ciment': ['fibre', 'ciment', 'hardie', 'canexel'],
+        'bois': ['bois', 'cedre', 'cèdre', 'wood'],
+        'brique': ['brique', 'brick', 'maconnerie', 'maçonnerie'],
+        'pierre': ['pierre', 'stone', 'cultured'],
+        'aluminium': ['aluminium', 'aluminum', 'alu'],
+        'stucco': ['stucco', 'acrylique', 'crepi', 'crépi'],
+      }
+    },
+  };
+  
+  const normalizeStr = (s: string) => String(s || '').toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
+  
+  return categories.map(cat => {
+    const catKey = normalizeStr(cat.nom || cat.name || '');
+    const filter = materialFilters[catKey];
+    
+    if (!filter) return cat;
+    
+    const selectedChoice = materialChoices[filter.choiceKey];
+    if (!selectedChoice) return cat; // No choice made, keep all items
+    
+    const selectedKeywords = filter.keywords[selectedChoice] || [];
+    if (selectedKeywords.length === 0) return cat;
+    
+    // Separate items into selected vs alternatives
+    const selectedItems: any[] = [];
+    const alternativeItems: any[] = [];
+    
+    for (const item of cat.items || []) {
+      const desc = normalizeStr(item.description);
+      const isSelectedMaterial = selectedKeywords.some(kw => desc.includes(kw));
+      
+      // Also check if it's a generic item (main d'oeuvre, installation, etc.) that applies to all
+      const isGenericItem = ['main', 'oeuvre', 'installation', 'pose', 'travail', 'labour'].some(g => desc.includes(g));
+      
+      if (isSelectedMaterial || isGenericItem) {
+        selectedItems.push(item);
+      } else {
+        // Check if it's an alternative material option
+        const isAlternativeMaterial = Object.values(filter.keywords).flat().some(kw => desc.includes(kw));
+        if (isAlternativeMaterial) {
+          alternativeItems.push({ ...item, isAlternative: true });
+        } else {
+          // Generic construction item, keep it
+          selectedItems.push(item);
+        }
+      }
+    }
+    
+    // Recalculate totals based on selected items only
+    const newMaterialTotal = selectedItems.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
+    
+    return {
+      ...cat,
+      items: selectedItems,
+      alternatives: alternativeItems.length > 0 ? alternativeItems : undefined,
+      sous_total_materiaux: newMaterialTotal > 0 ? newMaterialTotal : cat.sous_total_materiaux,
+    };
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -2041,7 +2127,7 @@ serve(async (req) => {
     // Handle MERGE mode first (no API key needed - just data processing)
     if (mode === "merge") {
       console.log('Merge mode: combining batch results...');
-      const { batchResults, manualContext, totalImages } = body;
+      const { batchResults, manualContext, totalImages, materialChoices } = body;
       
       if (!batchResults || !Array.isArray(batchResults) || batchResults.length === 0) {
         return new Response(
@@ -2080,6 +2166,33 @@ serve(async (req) => {
         finishQuality,
       });
       
+      // Filter categories based on material choices (e.g., only keep selected roofing type)
+      const filteredCategories = materialChoices 
+        ? filterCategoryByMaterialChoice(completed.categories, materialChoices)
+        : completed.categories;
+      
+      // Recalculate totals after filtering
+      let filteredTotaux = completed.totaux;
+      if (materialChoices) {
+        const totalMat = filteredCategories.reduce((sum: number, cat: any) => sum + (Number(cat.sous_total_materiaux) || 0), 0);
+        const totalMO = filteredCategories.reduce((sum: number, cat: any) => sum + (Number(cat.sous_total_main_oeuvre) || 0), 0);
+        const sousTotal = totalMat + totalMO;
+        const contingence = sousTotal * 0.05;
+        const sousTotalAvecContingence = sousTotal + contingence;
+        const tps = sousTotalAvecContingence * 0.05;
+        const tvq = sousTotalAvecContingence * 0.09975;
+        filteredTotaux = {
+          total_materiaux: totalMat,
+          total_main_oeuvre: totalMO,
+          sous_total_avant_taxes: sousTotal,
+          contingence_5_pourcent: contingence,
+          sous_total_avec_contingence: sousTotalAvecContingence,
+          tps_5_pourcent: tps,
+          tvq_9_975_pourcent: tvq,
+          total_ttc: sousTotalAvecContingence + tps + tvq,
+        };
+      }
+      
       // Generate summary
       const typeProjetDisplay = (merged.typeProjet || manualContext?.projectType || 'Construction neuve')
         .replace('_', ' ')
@@ -2094,12 +2207,12 @@ serve(async (req) => {
           superficie_nouvelle_pi2: sqft,
           nombre_etages: etages,
           plans_analyses: totalImages,
-          categories: completed.categories,
+          categories: filteredCategories,
           elements_manquants: merged.elements_manquants,
           ambiguites: merged.ambiguites,
           incoherences: merged.incoherences,
         },
-        totaux: completed.totaux,
+        totaux: filteredTotaux,
         validation: completed.validation,
         recommandations: [
           `Analyse multi-lots: ${batchResults.length} lot(s) fusionnés pour ${totalImages} plan(s) total.`,

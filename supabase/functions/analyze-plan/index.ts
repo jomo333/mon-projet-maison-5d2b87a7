@@ -1876,6 +1876,33 @@ function ensureAllMainCategoriesAndRecalc({
 
 function mergePageExtractions(pageExtractions: PageExtraction[]) {
   const normalizeKey = (s: unknown) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  
+  // More aggressive normalization for item matching - strips common prefixes/suffixes
+  const normalizeItemDesc = (s: unknown): string => {
+    let desc = String(s || '').trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/\s+/g, ' ')
+      .replace(/page\s*\d+/gi, '') // Remove "Page X" references
+      .replace(/\(.*?\)/g, '') // Remove parenthetical notes
+      .replace(/pour\s+(le\s+|la\s+)?/gi, '') // Remove "pour le/la"
+      .replace(/de\s+(la\s+|l')?/gi, '') // Remove "de la/l'"
+      .replace(/du\s+/gi, '') // Remove "du"
+      .replace(/des\s+/gi, '') // Remove "des"
+      .replace(/et\s+/gi, ' ') // Simplify "et"
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Extract core terms for matching
+    const coreTerms = ['beton', 'semelle', 'mur', 'fondation', 'coffrage', 'armature', 'acier', 
+      'excavation', 'remblai', 'drain', 'impermeabilisation', 'isolant', 'polystyrene',
+      'dalle', 'plancher', 'poutre', 'colonne', 'pilier', 'ancrage', 'sol', 'gravier'];
+    const found = coreTerms.filter(t => desc.includes(t));
+    if (found.length > 0) {
+      // Use sorted core terms as primary key to group similar items
+      return found.sort().join('|');
+    }
+    return desc.substring(0, 30); // Fallback: first 30 chars
+  };
 
   // Track category totals per page to detect duplicates vs truly additive items
   const catPageTotals = new Map<string, number[]>(); // key -> array of totals per page
@@ -1949,17 +1976,17 @@ function mergePageExtractions(pageExtractions: PageExtraction[]) {
       }
       existing.taux_horaire_CCQ = existing.taux_horaire_CCQ || Number(cat.taux_horaire_CCQ) || 0;
 
-      // Merge items by description+unit+dimension - use MAX for duplicates
+      // Merge items by normalized description to catch duplicates with slightly different wording
       const itemMap = new Map<string, any>();
       for (const it of existing.items) {
-        const k = `${normalizeKey(it.description)}|${normalizeKey(it.unite)}|${normalizeKey(it.dimension)}`;
+        const k = `${normalizeItemDesc(it.description)}|${normalizeKey(it.unite)}`;
         itemMap.set(k, it);
       }
       for (const it of cat.items || []) {
         const desc = it.description;
         const unite = it.unite || it.unit;
         const dimension = it.dimension || '';
-        const k = `${normalizeKey(desc)}|${normalizeKey(unite)}|${normalizeKey(dimension)}`;
+        const k = `${normalizeItemDesc(desc)}|${normalizeKey(unite)}`;
 
         const quantite = Number(it.quantite) || 0;
         const prix = Number(it.prix_unitaire) || 0;

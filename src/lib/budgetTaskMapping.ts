@@ -154,16 +154,19 @@ export const categoryTaskMappings: CategoryTaskMappings = {
     {
       taskTitle: "Isolation des murs",
       keywords: [
-        "isolation", "mur", "laine", "cellulose", "mousse", "r-24", "uréthane",
-        "isolant", "roxul", "rockwool", "fibre", "giclée", "polyuréthane",
-        "r24", "r-20", "r20", "murs isolation"
+        "isolation mur", "mur", "laine", "mousse", "r-24", "uréthane",
+        "isolant mur", "roxul", "rockwool", "fibre", "giclée", "polyuréthane",
+        "r24", "r-20", "r20", "murs isolation", "murs extérieurs"
       ],
+      // Exclude ceiling/attic insulation items
+      exclusions: ["plafond", "r50", "r-50", "r41", "r-41", "r60", "r-60", "comble", "grenier", "toit", "entretoit"]
     },
     {
       taskTitle: "Isolation du toit/comble",
       keywords: [
         "comble", "grenier", "toit", "r-41", "plafond", "r41", "r-60", "r60",
-        "entretoit", "soufflée", "cellulose toit", "isolation plafond"
+        "entretoit", "soufflée", "cellulose toit", "isolation plafond",
+        "r50", "r-50", "cellulose plafond", "cellulose"
       ],
     },
     {

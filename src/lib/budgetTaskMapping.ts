@@ -63,10 +63,15 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "mur de fondation", "mur fondation", "murs de fondation", "murs fondation",
         "fondation béton", "béton coulé", "coffrage mur", "coulage fondation",
         "solage", "8 pouces", "8\"", "10\"", "8' hauteur", "hauteur 8",
-        "25 mpa", "béton 25", "ml fondation", "pi lin fondation"
+        "ml fondation", "pi lin fondation"
       ],
-      // CRITICAL: Exclude ALL dalle-related items
-      exclusions: ["dalle", "plancher béton", "4 pouces", "4\"", "garage dalle", "sous-sol 4", "drain", "remblai", "puisard"]
+      // CRITICAL: Exclude ALL dalle-related items, drain/remblai, and generic concrete references
+      exclusions: [
+        "dalle", "dalle de béton", "dalle sous-sol", "dalle sous sol", "plancher béton", 
+        "4 pouces", "4\"", "4 po", "garage dalle", "sous-sol 4",
+        "drain", "remblai", "puisard", "drain français", "drain et remblai",
+        "coffrage et finition", "25 mpa", "béton 25"
+      ]
     },
     {
       taskTitle: "Imperméabilisation",
@@ -74,6 +79,8 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "imperméabilisation", "membrane fondation", "delta", "goudron", "membrane",
         "étanchéité fondation", "protection fondation", "bitume", "delta-ms"
       ],
+      // Exclude drain items
+      exclusions: ["drain français", "drain et remblai", "remblai", "puisard"]
     },
   ],
 

@@ -25,6 +25,8 @@ export const tradeTypes: TradeType[] = [
   { id: "amenagement", name: "Aménagement paysager", color: "#16A34A" },
   { id: "inspecteur", name: "Inspecteur", color: "#DC2626" },
   { id: "arpenteur", name: "Arpenteur", color: "#7C3AED" },
+  { id: "entrepreneur-general", name: "Entrepreneur général", color: "#1E3A5F" },
+  { id: "assurance", name: "Assurance", color: "#0D9488" },
   { id: "autre", name: "Autre", color: "#6B7280" },
 ];
 

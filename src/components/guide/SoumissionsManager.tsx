@@ -57,6 +57,8 @@ const soumissionTrades = [
   { id: "comptoirs", name: "Comptoirs", description: "Installation des comptoirs" },
   { id: "exterieur", name: "Revêtement extérieur", description: "Revêtement et finition extérieure" },
   { id: "amenagement", name: "Aménagement paysager", description: "Terrassement et aménagement extérieur" },
+  { id: "entrepreneur-general", name: "Entrepreneur général", description: "Gestion complète du projet de construction (ex: D3 Constructions)" },
+  { id: "assurance", name: "Assurance", description: "Assurance chantier, responsabilité civile et garantie" },
 ];
 
 interface SoumissionStatus {

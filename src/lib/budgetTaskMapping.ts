@@ -220,6 +220,7 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // MURS DE DIVISION - matches step "murs-division"
+  // Only interior partition walls - structural elements go to "Structure et charpente"
   "Murs de division": [
     {
       taskTitle: "Construire escalier",
@@ -231,9 +232,15 @@ export const categoryTaskMappings: CategoryTaskMappings = {
     {
       taskTitle: "Ossature des murs",
       keywords: [
-        "ossature", "mur", "division", "montant", "2x4", "2x6",
+        "ossature", "mur", "division", "montant",
         "murs intérieurs", "cloison", "partition", "séparation"
       ],
+      // Exclude structural elements - they go to Structure
+      exclusions: [
+        "solive", "solives", "plancher", "sous-plancher", "poutre", "poteau", "poteaux",
+        "ferme", "fermes", "toit", "contreplaqué", "osb", "2x10", "2x12", "lvl", 
+        "i-joist", "tji", "garage", "sablière", "lisse haute", "plafond"
+      ]
     },
     {
       taskTitle: "Cadrage des portes",

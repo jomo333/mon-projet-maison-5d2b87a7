@@ -443,22 +443,71 @@ export function BudgetAnalysisResults({
             </Card>
           </div>
 
-          {/* Category Summary Cards */}
-          <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {orderedCategories.map((cat, index) => {
-              const percentage = (cat.budget / analysis.estimatedTotal) * 100;
-              return (
-                <Card key={index} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium truncate">{cat.name}</span>
-                    <span className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</span>
-                  </div>
-                  <p className="text-lg font-bold">{formatCurrency(cat.budget)}</p>
-                  <Progress value={percentage} className="h-1 mt-2" />
+          {/* Category Summary Cards with Contingency and Taxes */}
+          {(() => {
+            const contingence = subTotalBeforeTaxes * 0.05;
+            const tps = (subTotalBeforeTaxes + contingence) * 0.05;
+            const tvq = (subTotalBeforeTaxes + contingence) * 0.09975;
+            const taxes = tps + tvq;
+            
+            return (
+              <>
+                <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                  {orderedCategories.map((cat, index) => {
+                    const percentage = (cat.budget / subTotalBeforeTaxes) * 100;
+                    return (
+                      <Card key={index} className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium truncate">{cat.name}</span>
+                          <span className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</span>
+                        </div>
+                        <p className="text-lg font-bold">{formatCurrency(cat.budget)}</p>
+                        <Progress value={percentage} className="h-1 mt-2" />
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Budget breakdown summary */}
+                <Card className="mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Récapitulatif du budget</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Sous-total travaux</span>
+                      <span className="font-semibold">{formatCurrency(subTotalBeforeTaxes)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center font-medium">%</span>
+                        <span className="text-amber-700 dark:text-amber-400">Budget imprévu (5%)</span>
+                      </div>
+                      <span className="font-semibold text-amber-700 dark:text-amber-400">{formatCurrency(contingence)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs flex items-center justify-center font-medium">$</span>
+                        <span className="text-blue-700 dark:text-blue-400">TPS (5%)</span>
+                      </div>
+                      <span className="font-semibold text-blue-700 dark:text-blue-400">{formatCurrency(tps)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs flex items-center justify-center font-medium">$</span>
+                        <span className="text-blue-700 dark:text-blue-400">TVQ (9,975%)</span>
+                      </div>
+                      <span className="font-semibold text-blue-700 dark:text-blue-400">{formatCurrency(tvq)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 bg-primary/5 rounded-lg px-3 -mx-3">
+                      <span className="font-bold text-lg">TOTAL ESTIMÉ</span>
+                      <span className="font-bold text-lg text-primary">{formatCurrency(subTotalBeforeTaxes + contingence + taxes)}</span>
+                    </div>
+                  </CardContent>
                 </Card>
-              );
-            })}
-          </div>
+              </>
+            );
+          })()}
         </TabsContent>
 
         {/* Details Tab */}
@@ -664,30 +713,66 @@ export function BudgetAnalysisResults({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orderedCategories.map((cat, index) => {
-                    const percentage = (cat.budget / analysis.estimatedTotal) * 100;
-                    const taskDescr = stepTasksByCategory[cat.name]?.join(", ") || cat.description || "";
+                  {(() => {
+                    const contingence = subTotalBeforeTaxes * 0.05;
+                    const tps = (subTotalBeforeTaxes + contingence) * 0.05;
+                    const tvq = (subTotalBeforeTaxes + contingence) * 0.09975;
+                    const taxes = tps + tvq;
+                    const grandTotal = subTotalBeforeTaxes + contingence + taxes;
+                    
                     return (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{cat.name}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(cat.budget)}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={percentage > 20 ? "default" : "secondary"}>
-                            {percentage.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground max-w-[300px] truncate">
-                          {taskDescr}
-                        </TableCell>
-                      </TableRow>
+                      <>
+                        {orderedCategories.map((cat, index) => {
+                          const percentage = (cat.budget / subTotalBeforeTaxes) * 100;
+                          const taskDescr = stepTasksByCategory[cat.name]?.join(", ") || cat.description || "";
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{cat.name}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(cat.budget)}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={percentage > 20 ? "default" : "secondary"}>
+                                  {percentage.toFixed(1)}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                                {taskDescr}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        <TableRow className="bg-muted/30">
+                          <TableCell className="font-medium">Sous-total travaux</TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(subTotalBeforeTaxes)}</TableCell>
+                          <TableCell className="text-right">—</TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                        <TableRow className="bg-amber-50 dark:bg-amber-950/30">
+                          <TableCell className="font-medium text-amber-700 dark:text-amber-400">Budget imprévu (5%)</TableCell>
+                          <TableCell className="text-right font-mono text-amber-700 dark:text-amber-400">{formatCurrency(contingence)}</TableCell>
+                          <TableCell className="text-right">—</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Contingence recommandée</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-blue-50 dark:bg-blue-950/30">
+                          <TableCell className="font-medium text-blue-700 dark:text-blue-400">TPS (5%)</TableCell>
+                          <TableCell className="text-right font-mono text-blue-700 dark:text-blue-400">{formatCurrency(tps)}</TableCell>
+                          <TableCell className="text-right">—</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Taxe fédérale</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-blue-50 dark:bg-blue-950/30">
+                          <TableCell className="font-medium text-blue-700 dark:text-blue-400">TVQ (9,975%)</TableCell>
+                          <TableCell className="text-right font-mono text-blue-700 dark:text-blue-400">{formatCurrency(tvq)}</TableCell>
+                          <TableCell className="text-right">—</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">Taxe provinciale</TableCell>
+                        </TableRow>
+                        <TableRow className="bg-primary/10 font-bold">
+                          <TableCell className="text-primary">TOTAL ESTIMÉ</TableCell>
+                          <TableCell className="text-right font-mono text-primary">{formatCurrency(grandTotal)}</TableCell>
+                          <TableCell className="text-right">100%</TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </>
                     );
-                  })}
-                  <TableRow className="bg-muted/50 font-bold">
-                    <TableCell>TOTAL</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(analysis.estimatedTotal)}</TableCell>
-                    <TableCell className="text-right">100%</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
+                  })()}
                 </TableBody>
               </Table>
             </CardContent>

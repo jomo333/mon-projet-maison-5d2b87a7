@@ -235,18 +235,26 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "préparation", "nivellement", "compaction", "membrane sol", "isolant rigide",
         "styrofoam", "polystyrène", "granulaire", "pierre concassée", "0-3/4"
       ],
-      // CRITICAL: Exclude foundation items
-      exclusions: ["fondation", "semelle", "semelles", "mur de fondation", "murs fondation", "footing", "coffrage mur", "imperméabilisation", "8' hauteur", "ml fondation"]
+      // CRITICAL: Exclude ALL foundation items - they go to "Fondation"
+      exclusions: [
+        "fondation", "semelle", "semelles", "mur de fondation", "murs de fondation", "murs fondation",
+        "footing", "coffrage mur", "imperméabilisation", "8' hauteur", "8 pieds", "ml fondation",
+        "périmètre", "perimetre", "béton coulé", "beton coule", "25 mpa", "25mpa"
+      ]
     },
     {
       taskTitle: "Coulage du béton",
       keywords: [
         "dalle", "dalle sous-sol", "dalle 4", "4 pouces", "4\"", "coulage dalle",
-        "joint", "cure", "plancher béton", "finition béton", "lissage", "garage dalle",
-        "coffrage et finition"
+        "joint", "cure", "plancher béton", "finition béton", "lissage", "garage dalle"
       ],
-      // CRITICAL: Exclude foundation items
-      exclusions: ["fondation", "semelle", "semelles", "mur de fondation", "murs fondation", "footing", "coffrage mur", "imperméabilisation", "8' hauteur", "ml fondation", "périmètre"]
+      // CRITICAL: Exclude ALL foundation items - they go to "Fondation"
+      exclusions: [
+        "fondation", "semelle", "semelles", "mur de fondation", "murs de fondation", "murs fondation",
+        "footing", "coffrage mur", "imperméabilisation", "8' hauteur", "8 pieds", "ml fondation",
+        "périmètre", "perimetre", "béton coulé", "beton coule", "25 mpa", "25mpa",
+        "coffrage et finition"
+      ]
     },
   ],
 

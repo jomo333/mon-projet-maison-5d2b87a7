@@ -67,6 +67,16 @@ const isExteriorFinish = (name: string) => {
   );
 };
 
+// Items that should move from Structure et charpente to Murs de division
+const isInteriorPartition = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("cloison") ||
+    n.includes("cloisons") ||
+    (n.includes("interieur") && (n.includes("mur") || n.includes("partition") || n.includes("2x4")))
+  );
+};
+
 /**
  * Moves misclassified items OUT of "Fondation" into:
  * - "Excavation" for drain/remblai items
@@ -134,6 +144,26 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
     toiture.items = keepInToiture as any;
     structure.items = ([...((structure.items as any) || []), ...toStructure] as any) as any;
     revetement.items = ([...((revetement.items as any) || []), ...toRevetement] as any) as any;
+  }
+
+  // === STRUCTURE ET CHARPENTE → MURS DE DIVISION REROUTING ===
+  const structureUpdated = nextByName.get("Structure et charpente");
+  const mursDivision = nextByName.get("Murs de division");
+
+  if (structureUpdated && Array.isArray(structureUpdated.items) && structureUpdated.items.length > 0 && mursDivision) {
+    const toMursDivision: ReroutableBudgetItem[] = [];
+    const keepInStructure: ReroutableBudgetItem[] = [];
+
+    for (const item of structureUpdated.items as ReroutableBudgetItem[]) {
+      if (isInteriorPartition(item.name)) {
+        toMursDivision.push(item);
+        continue;
+      }
+      keepInStructure.push(item);
+    }
+
+    structureUpdated.items = keepInStructure as any;
+    mursDivision.items = ([...((mursDivision.items as any) || []), ...toMursDivision] as any) as any;
   }
 
   return next;

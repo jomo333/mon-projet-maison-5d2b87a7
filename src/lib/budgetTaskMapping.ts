@@ -197,20 +197,25 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // COULAGE DE DALLE DU SOUS-SOL - matches step "dalle-sous-sol"
+  // Only slab items - foundation items go to "Fondation"
   "Coulage de dalle du sous-sol": [
     {
       taskTitle: "Préparation du sol",
       keywords: [
-        "préparation", "nivellement", "compaction", "membrane", "isolant rigide",
+        "préparation", "nivellement", "compaction", "membrane sol", "isolant rigide",
         "styrofoam", "polystyrène", "granulaire", "pierre concassée", "0-3/4"
       ],
+      // Exclude foundation items
+      exclusions: ["fondation", "semelle", "mur de fondation", "footing", "coffrage mur", "imperméabilisation"]
     },
     {
       taskTitle: "Coulage du béton",
       keywords: [
-        "dalle", "béton", "coulage", "joint", "cure", "sous-sol", "garage",
-        "plancher béton", "finition béton", "lissage", "m3"
+        "dalle", "coulage dalle", "joint", "cure", "sous-sol dalle", "garage dalle",
+        "plancher béton", "finition béton", "lissage"
       ],
+      // Exclude foundation items
+      exclusions: ["fondation", "semelle", "mur de fondation", "footing", "coffrage mur", "imperméabilisation", "périmètre", "ml fondation"]
     },
   ],
 

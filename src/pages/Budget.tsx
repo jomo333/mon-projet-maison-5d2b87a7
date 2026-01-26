@@ -294,7 +294,7 @@ const Budget = () => {
 
   // Reset budget mutation
   const resetBudgetMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (options: { deletePlans?: boolean } = {}) => {
       if (!selectedProjectId || !user?.id) {
         throw new Error("Aucun projet sélectionné");
       }
@@ -314,11 +314,58 @@ const Budget = () => {
         .eq("id", selectedProjectId);
 
       if (updateError) throw updateError;
+
+      // If user wants to delete plans as well
+      if (options.deletePlans) {
+        // Get all plan attachments for this project
+        const { data: planAttachments } = await supabase
+          .from("task_attachments")
+          .select("id, file_url")
+          .eq("project_id", selectedProjectId)
+          .eq("category", "plan");
+
+        // Get plan photos from project_photos
+        const { data: planPhotos } = await supabase
+          .from("project_photos")
+          .select("id, file_url")
+          .eq("project_id", selectedProjectId)
+          .eq("step_id", "plans-permis");
+
+        // Delete files from storage
+        const allFiles = [...(planAttachments || []), ...(planPhotos || [])];
+        for (const file of allFiles) {
+          const path = file.file_url?.split("/task-attachments/")[1];
+          if (path) {
+            await supabase.storage.from("task-attachments").remove([path.split("?")[0]]);
+          }
+        }
+
+        // Delete from task_attachments table
+        if (planAttachments && planAttachments.length > 0) {
+          await supabase
+            .from("task_attachments")
+            .delete()
+            .eq("project_id", selectedProjectId)
+            .eq("category", "plan");
+        }
+
+        // Delete from project_photos table (plan step)
+        if (planPhotos && planPhotos.length > 0) {
+          await supabase
+            .from("project_photos")
+            .delete()
+            .eq("project_id", selectedProjectId)
+            .eq("step_id", "plans-permis");
+        }
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       setBudgetCategories(defaultCategories);
       queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
       queryClient.invalidateQueries({ queryKey: ["user-projects"] });
+      if (variables?.deletePlans) {
+        queryClient.invalidateQueries({ queryKey: ["project-plans", selectedProjectId] });
+      }
       toast.success("Budget réinitialisé avec succès!");
     },
     onError: (error) => {
@@ -333,10 +380,16 @@ const Budget = () => {
       return;
     }
     
-    if (window.confirm("Êtes-vous sûr de vouloir réinitialiser tout le budget ? Cette action supprimera toutes les catégories analysées et les résultats d'analyse.")) {
+    const deletePlans = window.confirm(
+      "Voulez-vous aussi supprimer les fichiers de plans téléversés ?\n\n" +
+      "• OK = Supprimer le budget ET les plans\n" +
+      "• Annuler = Supprimer seulement le budget (les plans restent)"
+    );
+    
+    if (window.confirm("Êtes-vous sûr de vouloir réinitialiser le budget ? Cette action est irréversible.")) {
       // Reset the PlanAnalyzer analysis state
       planAnalyzerComponentRef.current?.resetAnalysis();
-      resetBudgetMutation.mutate();
+      resetBudgetMutation.mutate({ deletePlans });
     }
   };
 

@@ -204,7 +204,7 @@ export const categoryTaskMappings: CategoryTaskMappings = {
   ],
 
   // PLOMBERIE SOUS DALLE - matches step "plomberie-sous-dalle"
-  // Only plumbing items - concrete/dalle items go to "Coulage de dalle"
+  // Only plumbing items - concrete/dalle items go to "Coulage de dalle", foundation items go to "Fondation"
   "Plomberie sous dalle": [
     {
       taskTitle: "Plomberie sous dalle - première visite",
@@ -212,8 +212,17 @@ export const categoryTaskMappings: CategoryTaskMappings = {
         "plomberie", "drain", "tuyau", "égout", "renvoi",
         "rough-in sous-sol", "abs", "pvc drain", "coude", "té"
       ],
-      // Exclude concrete/slab items - they go to "Coulage de dalle du sous-sol"
-      exclusions: ["béton", "dalle", "coulage", "m3", "mètre cube", "styrofoam", "polystyrène", "isolant rigide", "granulaire", "pierre concassée", "membrane sol"]
+      // CRITICAL: Exclude ALL concrete/foundation/slab items
+      exclusions: [
+        // Slab/concrete items - go to "Coulage de dalle du sous-sol"
+        "béton", "beton", "dalle", "coulage", "m3", "mètre cube", "styrofoam", "polystyrène", "isolant rigide", 
+        "granulaire", "pierre concassée", "membrane sol", "4 pouces", "4\"", "4 po", "4 in",
+        "coffrage", "finition", "25 mpa", "25mpa", "lissage",
+        // Foundation items - go to "Fondation"
+        "semelle", "semelles", "fondation", "mur de fondation", "murs de fondation", "murs fondation",
+        "mur fondation", "footing", "solage", "8' hauteur", "8 pieds", "périmètre", "perimetre",
+        "béton coulé", "beton coule", "imperméabilisation"
+      ]
     },
   ],
 

@@ -234,18 +234,9 @@ export function StepDetail({
     
     try {
       const newValue = !currentSchedule.is_manual_date;
-      
-      // Verrouiller = simple update sans recalcul (rapide)
-      // Déverrouiller = recalcul nécessaire car les dates peuvent changer
-      if (newValue) {
-        // Verrouillage simple - pas besoin de recalculer
-        await updateScheduleAsync({ id: currentSchedule.id, is_manual_date: true });
-      } else {
-        // Déverrouillage - recalcul potentiel des dates
-        await updateScheduleAndRecalculate(currentSchedule.id, {
-          is_manual_date: false,
-        });
-      }
+      await updateScheduleAndRecalculate(currentSchedule.id, {
+        is_manual_date: newValue,
+      });
       
       toast({
         title: newValue ? "🔒 Date verrouillée" : "🔓 Date déverrouillée",

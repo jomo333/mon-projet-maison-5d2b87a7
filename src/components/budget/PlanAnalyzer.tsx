@@ -978,55 +978,61 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                 </div>
               ))}
 
-              <div className="space-y-2">
-                <Label>Garage</Label>
-                <div className="flex items-center space-x-2 h-10">
-                  <Checkbox
-                    id="garage"
-                    checked={hasGarage}
-                    onCheckedChange={(checked) => setHasGarage(checked === true)}
-                  />
-                  <label
-                    htmlFor="garage"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                  >
-                    <Car className="h-4 w-4" />
-                    Inclure un garage
-                  </label>
+              {/* Garage - masqué si le projet est déjà un garage */}
+              {projectType !== "garage" && projectType !== "garage-etage" && (
+                <div className="space-y-2">
+                  <Label>Garage</Label>
+                  <div className="flex items-center space-x-2 h-10">
+                    <Checkbox
+                      id="garage"
+                      checked={hasGarage}
+                      onCheckedChange={(checked) => setHasGarage(checked === true)}
+                    />
+                    <label
+                      htmlFor="garage"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                    >
+                      <Car className="h-4 w-4" />
+                      Inclure un garage
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-                <Label>Qualité des finitions intérieures</Label>
-                <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="economique">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">🏷️ Économique</span>
-                        <span className="text-xs text-muted-foreground">Matériaux de base, plancher flottant, armoires mélamine, comptoirs stratifiés</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="standard">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">⭐ Standard</span>
-                        <span className="text-xs text-muted-foreground">Bois franc ingénierie, armoires semi-custom, comptoirs quartz</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="haut-de-gamme">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">💎 Haut de gamme</span>
-                        <span className="text-xs text-muted-foreground">Bois franc massif, armoires sur mesure, comptoirs granite/marbre</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Ce choix affecte les coûts des planchers, armoires, comptoirs, quincaillerie et finitions.
-                </p>
-              </div>
+              {/* Qualité des finitions - masqué pour les projets garage */}
+              {projectType !== "garage" && projectType !== "garage-etage" && (
+                <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                  <Label>Qualité des finitions intérieures</Label>
+                  <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="economique">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">🏷️ Économique</span>
+                          <span className="text-xs text-muted-foreground">Matériaux de base, plancher flottant, armoires mélamine, comptoirs stratifiés</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="standard">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">⭐ Standard</span>
+                          <span className="text-xs text-muted-foreground">Bois franc ingénierie, armoires semi-custom, comptoirs quartz</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="haut-de-gamme">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">💎 Haut de gamme</span>
+                          <span className="text-xs text-muted-foreground">Bois franc massif, armoires sur mesure, comptoirs granite/marbre</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Ce choix affecte les coûts des planchers, armoires, comptoirs, quincaillerie et finitions.
+                  </p>
+                </div>
+              )}
               
               {/* Notes additionnelles (pré-remplies depuis la tâche Besoins) */}
               <div className="space-y-2 sm:col-span-2 lg:col-span-3">

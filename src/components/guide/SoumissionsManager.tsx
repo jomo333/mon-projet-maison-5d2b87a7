@@ -882,16 +882,32 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                             >
                               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                               <span className="text-sm truncate flex-1">{doc.file_name}</span>
-                              <a
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="shrink-0"
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(doc.file_url);
+                                    if (!response.ok) throw new Error('Erreur de téléchargement');
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = doc.file_name;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                  } catch (error) {
+                                    console.error('Download error:', error);
+                                    // Fallback: ouvrir dans un nouvel onglet
+                                    window.open(doc.file_url, '_blank');
+                                  }
+                                }}
                               >
-                                <Button size="icon" variant="ghost" className="h-8 w-8">
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </a>
+                                <Download className="h-4 w-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"

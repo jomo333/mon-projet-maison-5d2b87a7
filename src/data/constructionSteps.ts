@@ -207,6 +207,16 @@ export const constructionSteps: Step[] = [
         documents: ["Certificat d'implantation"]
       },
       {
+        id: "deboisement",
+        title: "Déboisement",
+        description: "Abattage des arbres et défrichage de la zone de construction.",
+        tips: [
+          "Vérifiez les règlements municipaux concernant l'abattage d'arbres",
+          "Certaines municipalités exigent un permis de coupe",
+          "Prévoyez le transport ou le broyage des branches et souches"
+        ]
+      },
+      {
         id: "excavation-creusage",
         title: "Creusage et excavation",
         description: "Creusage pour le sous-sol et préparation du terrain.",

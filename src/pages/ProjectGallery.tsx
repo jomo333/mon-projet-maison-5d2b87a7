@@ -38,7 +38,9 @@ import {
   CheckCircle2,
   Clock,
   Phone,
-  User
+  User,
+  Eye,
+  X
 } from "lucide-react";
 
 const documentCategories = [
@@ -84,6 +86,7 @@ const ProjectGallery = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [selectedStep, setSelectedStep] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [previewDocument, setPreviewDocument] = useState<{url: string; name: string; type: string} | null>(null);
 
   // Fetch all user projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -255,6 +258,10 @@ const ProjectGallery = () => {
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith("image/")) return FileImage;
     return File;
+  };
+
+  const canPreview = (fileType: string) => {
+    return fileType.startsWith("image/") || fileType === "application/pdf";
   };
 
   const formatFileSize = (bytes: number) => {
@@ -501,6 +508,7 @@ const ProjectGallery = () => {
                 <div className="space-y-2">
                   {filteredDocuments.map((doc) => {
                     const FileIcon = getFileIcon(doc.file_type);
+                    const isPreviewable = canPreview(doc.file_type);
                     return (
                       <Card key={doc.id} className="hover:bg-muted/50 transition-colors">
                         <CardContent className="p-4 flex items-center gap-4">
@@ -519,30 +527,47 @@ const ProjectGallery = () => {
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(doc.file_url);
-                                if (!response.ok) throw new Error('Erreur de téléchargement');
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = doc.file_name;
-                                document.body.appendChild(a);
-                                a.click();
-                                window.URL.revokeObjectURL(url);
-                                document.body.removeChild(a);
-                              } catch (error) {
-                                console.error('Download error:', error);
-                                window.open(doc.file_url, '_blank');
-                              }
-                            }}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {isPreviewable && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Visualiser"
+                                onClick={() => setPreviewDocument({
+                                  url: doc.file_url,
+                                  name: doc.file_name,
+                                  type: doc.file_type
+                                })}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Télécharger"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(doc.file_url);
+                                  if (!response.ok) throw new Error('Erreur de téléchargement');
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = doc.file_name;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                } catch (error) {
+                                  console.error('Download error:', error);
+                                  window.open(doc.file_url, '_blank');
+                                }
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -664,6 +689,59 @@ const ProjectGallery = () => {
               className="w-full h-auto rounded-lg"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Document preview dialog */}
+      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center justify-between pr-8">
+              <span className="truncate">{previewDocument?.name}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4"
+                onClick={async () => {
+                  if (!previewDocument) return;
+                  try {
+                    const response = await fetch(previewDocument.url);
+                    if (!response.ok) throw new Error('Erreur de téléchargement');
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = previewDocument.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Download error:', error);
+                    window.open(previewDocument.url, '_blank');
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden rounded-lg bg-muted">
+            {previewDocument?.type.startsWith("image/") ? (
+              <img
+                src={previewDocument.url}
+                alt={previewDocument.name}
+                className="w-full h-full object-contain"
+              />
+            ) : previewDocument?.type === "application/pdf" ? (
+              <iframe
+                src={previewDocument.url}
+                className="w-full h-full border-0"
+                title={previewDocument.name}
+              />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

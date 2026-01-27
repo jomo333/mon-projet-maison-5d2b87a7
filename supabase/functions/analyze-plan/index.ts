@@ -2525,10 +2525,14 @@ IMPORTANT: Ce garage utilise une DALLE MONOLITHIQUE - fondation ET plancher en u
 
 ### CATÉGORIES À EXCLURE COMPLÈTEMENT (budget = 0$):
 - "Coulée de dalle du sous-sol" → N'EXISTE PAS pour une dalle monolithique (la dalle EST la fondation)
-- "Plomberie sous dalle" → N'EXISTE PAS (pas de dalle de sous-sol séparée)
 - Murs de fondation séparés (pas de murs de 8 pieds)
 - Sous-sol
 - Semelles de fondation traditionnelles
+
+### PLOMBERIE SOUS DALLE (RESTE PERTINENTE):
+- "Plomberie sous dalle" reste applicable pour les garages
+- INCLURE: puisard de plancher (drain), cuve de nettoyage si applicable
+- Budget typique garage: 800$ à 2,000$ selon équipements
 
 ### CATÉGORIE FONDATION:
 - Inclure le coût TOTAL de la dalle monolithique dans "Fondation"
@@ -2601,10 +2605,15 @@ Ce garage utilise une DALLE MONOLITHIQUE - structure béton servant de fondation
 
 ### CATÉGORIES À EXCLURE COMPLÈTEMENT (NE PAS GÉNÉRER, budget = 0$):
 - "Coulée de dalle du sous-sol" → N'EXISTE PAS (la dalle monolithique EST le plancher final)
-- "Plomberie sous dalle" → N'EXISTE PAS (pas de dalle de sous-sol)
 - Murs de fondation séparés de 8 pieds
 - Sous-sol
 - Semelles traditionnelles
+
+### PLOMBERIE SOUS DALLE (RESTE PERTINENTE POUR GARAGE):
+- "Plomberie sous dalle" INCLURE pour les garages
+- Puisard de plancher (drain de sol): obligatoire pour collecte d'eau
+- Cuve de nettoyage (slop sink) si applicable
+- Budget typique garage: 800$ à 2,000$
 
 ### CATÉGORIE FONDATION:
 - Mettre le coût TOTAL de la dalle monolithique dans la catégorie "Fondation"

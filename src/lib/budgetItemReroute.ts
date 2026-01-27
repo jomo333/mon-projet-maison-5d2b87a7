@@ -381,11 +381,11 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
 
 /**
  * Categories that should be excluded for garage projects with monolithic slab.
- * These categories don't apply because a monolithic slab has no basement or separate slab pour.
+ * Only "Coulée de dalle du sous-sol" is excluded because a monolithic slab IS the floor.
+ * NOTE: "Plomberie sous dalle" remains relevant for sumps (puisards) and cleaning sinks.
  */
 const GARAGE_MONOLITHIC_EXCLUDED_CATEGORIES = [
   "Coulée de dalle du sous-sol",
-  "Plomberie sous dalle",
 ];
 
 /**

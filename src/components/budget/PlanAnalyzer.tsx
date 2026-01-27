@@ -893,7 +893,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     <SelectItem value="agrandissement">Agrandissement</SelectItem>
                     <SelectItem value="garage">Garage détaché</SelectItem>
                     <SelectItem value="garage-etage">Garage avec étage aménagé</SelectItem>
-                    <SelectItem value="renovation">Rénovation majeure</SelectItem>
+                    <SelectItem value="chalet">Chalet</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

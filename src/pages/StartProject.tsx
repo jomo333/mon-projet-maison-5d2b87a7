@@ -48,7 +48,6 @@ const projectTypes = [
   { value: "maison-neuve", label: "Maison neuve", icon: Home },
   { value: "agrandissement", label: "Agrandissement", icon: Home },
   { value: "garage-detache", label: "Garage détaché", icon: Home },
-  { value: "renovation-majeure", label: "Rénovation majeure", icon: HardHat },
   { value: "chalet", label: "Chalet", icon: Home },
 ];
 

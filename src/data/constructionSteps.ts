@@ -547,6 +547,15 @@ export const constructionSteps: Step[] = [
         ]
       },
       {
+        id: "conduite-gaz",
+        title: "Conduite pour gaz",
+        description: "Installation des conduites de gaz pour le foyer et la cuisinière.",
+        tips: [
+          "Faites appel à un installateur certifié pour le gaz naturel ou propane",
+          "Prévoyez l'emplacement des appareils avant l'installation des conduites"
+        ]
+      },
+      {
         id: "branchements",
         title: "Branchements municipaux",
         description: "Raccordement à l'aqueduc et aux égouts (ou installation septique).",

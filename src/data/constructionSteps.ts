@@ -534,7 +534,7 @@ export const constructionSteps: Step[] = [
         description: "Installation des tuyaux d'alimentation et de drainage dans les murs.",
         tips: [
           "Il est préférable de faire passer la plomberie avant l'électricité, car il est plus facile pour l'électricien de contourner les tuyaux que l'inverse",
-          "Le PEX est plus facile à installer que le cuivre",
+          "Le PEX est plus facile à installer et moins dispendieux que le cuivre",
           "Respectez les pentes de drainage"
         ]
       },

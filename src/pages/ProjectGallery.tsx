@@ -522,11 +522,26 @@ const ProjectGallery = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            asChild
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(doc.file_url);
+                                if (!response.ok) throw new Error('Erreur de téléchargement');
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = doc.file_name;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                              } catch (error) {
+                                console.error('Download error:', error);
+                                window.open(doc.file_url, '_blank');
+                              }
+                            }}
                           >
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
+                            <Download className="h-4 w-4" />
                           </Button>
                         </CardContent>
                       </Card>

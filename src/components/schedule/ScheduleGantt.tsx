@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeName, getTradeColor } from "@/data/tradeTypes";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
+import { constructionSteps } from "@/data/constructionSteps";
 
 // Délais obligatoires (cure du béton, etc.)
 const minimumDelayConfig: Record<string, { afterStep: string; days: number; reason: string }> = {
@@ -403,7 +404,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                           </span>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent className="max-w-xs">
                         <div className="space-y-1">
                           <p className="font-medium">{schedule.step_name}</p>
                           <p className="text-sm">
@@ -422,6 +423,31 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                             Durée: {schedule.actual_days || schedule.estimated_days}{" "}
                             jours
                           </p>
+                          {/* Afficher les tâches de l'étape */}
+                          {(() => {
+                            const step = constructionSteps.find(s => s.id === schedule.step_id);
+                            if (step?.tasks && step.tasks.length > 0) {
+                              return (
+                                <div className="pt-1 border-t border-border/50 mt-1">
+                                  <p className="text-xs text-muted-foreground mb-1">Tâches incluses :</p>
+                                  <ul className="text-xs space-y-0.5">
+                                    {step.tasks.slice(0, 5).map((task, i) => (
+                                      <li key={task.id} className="flex items-start gap-1">
+                                        <span className="text-muted-foreground">•</span>
+                                        <span className="truncate">{task.title}</span>
+                                      </li>
+                                    ))}
+                                    {step.tasks.length > 5 && (
+                                      <li className="text-muted-foreground">
+                                        +{step.tasks.length - 5} autres tâches
+                                      </li>
+                                    )}
+                                  </ul>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                           {delayInfo && (
                             <p className="text-sm text-primary flex items-center gap-1">
                               <Clock className="h-3 w-3" /> {delayInfo.reason}

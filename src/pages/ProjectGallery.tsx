@@ -105,6 +105,13 @@ const ProjectGallery = () => {
       return;
     }
 
+    // PDFs are handled by <PDFViewer /> (it fetches internally). No need to create a blob URL here.
+    if (previewDocument.type === "application/pdf") {
+      setPreviewLoading(false);
+      setPreviewBlobUrl(null);
+      return;
+    }
+
     let cancelled = false;
 
     const loadDocument = async () => {
@@ -145,6 +152,25 @@ const ProjectGallery = () => {
       }
     };
   }, [previewDocument?.url]);
+
+  const downloadFile = async (fileUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) throw new Error('Erreur de téléchargement');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      window.open(fileUrl, '_blank');
+    }
+  };
 
   // Fetch all user projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -611,22 +637,7 @@ const ProjectGallery = () => {
                               size="icon"
                               title="Télécharger"
                               onClick={async () => {
-                                try {
-                                  const response = await fetch(doc.file_url);
-                                  if (!response.ok) throw new Error('Erreur de téléchargement');
-                                  const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = doc.file_name;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-                                } catch (error) {
-                                  console.error('Download error:', error);
-                                  window.open(doc.file_url, '_blank');
-                                }
+                                await downloadFile(doc.file_url, doc.file_name);
                               }}
                             >
                               <Download className="h-4 w-4" />
@@ -698,8 +709,51 @@ const ProjectGallery = () => {
                                 )}
                               </div>
                               {trade.docs.length > 0 && (
-                                <div className="mt-2 pt-2 border-t">
-                                  <p className="text-xs text-muted-foreground">{trade.docs.length} document(s)</p>
+                                <div className="mt-3 pt-3 border-t space-y-2">
+                                  <p className="text-xs text-muted-foreground">Documents ({trade.docs.length})</p>
+                                  <div className="space-y-1">
+                                    {trade.docs.map((doc) => {
+                                      const isPreviewable = canPreview(doc.file_type);
+                                      return (
+                                        <div key={doc.id} className="flex items-center gap-2 rounded-md bg-background/60 px-2 py-1">
+                                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          <a
+                                            href={doc.file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm truncate flex-1 hover:underline"
+                                            title={doc.file_name}
+                                          >
+                                            {doc.file_name}
+                                          </a>
+                                          {isPreviewable && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8"
+                                              title="Visualiser"
+                                              onClick={() => setPreviewDocument({
+                                                url: doc.file_url,
+                                                name: doc.file_name,
+                                                type: doc.file_type,
+                                              })}
+                                            >
+                                              <Eye className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            title="Télécharger"
+                                            onClick={() => downloadFile(doc.file_url, doc.file_name)}
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </CardContent>
@@ -718,7 +772,7 @@ const ProjectGallery = () => {
                     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                       {soumissionsData.filter(s => !s.isRetenu).map((trade) => (
                         <Card key={trade.id} className="border-dashed">
-                          <CardContent className="p-3">
+                          <CardContent className="p-3 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-sm">{trade.name}</span>
                               {trade.docs.length > 0 && (
@@ -727,6 +781,51 @@ const ProjectGallery = () => {
                                 </Badge>
                               )}
                             </div>
+                            {trade.docs.length > 0 && (
+                              <div className="space-y-1">
+                                {trade.docs.map((doc) => {
+                                  const isPreviewable = canPreview(doc.file_type);
+                                  return (
+                                    <div key={doc.id} className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1">
+                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <a
+                                        href={doc.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm truncate flex-1 hover:underline"
+                                        title={doc.file_name}
+                                      >
+                                        {doc.file_name}
+                                      </a>
+                                      {isPreviewable && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          title="Visualiser"
+                                          onClick={() => setPreviewDocument({
+                                            url: doc.file_url,
+                                            name: doc.file_name,
+                                            type: doc.file_type,
+                                          })}
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        title="Télécharger"
+                                        onClick={() => downloadFile(doc.file_url, doc.file_name)}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -768,22 +867,7 @@ const ProjectGallery = () => {
                 className="ml-4"
                 onClick={async () => {
                   if (!previewDocument) return;
-                  try {
-                    const response = await fetch(previewDocument.url);
-                    if (!response.ok) throw new Error('Erreur de téléchargement');
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = previewDocument.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                  } catch (error) {
-                    console.error('Download error:', error);
-                    window.open(previewDocument.url, '_blank');
-                  }
+                  await downloadFile(previewDocument.url, previewDocument.name);
                 }}
               >
                 <Download className="h-4 w-4 mr-2" />

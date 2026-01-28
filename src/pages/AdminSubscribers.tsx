@@ -53,6 +53,8 @@ import {
   Clock,
   Eye,
   Users,
+  Shield,
+  ShieldOff,
 } from "lucide-react";
 
 interface UserWithSubscription {
@@ -60,6 +62,7 @@ interface UserWithSubscription {
   user_id: string;
   display_name: string | null;
   created_at: string;
+  isAdmin: boolean;
   subscription: {
     id: string;
     status: string;
@@ -121,18 +124,29 @@ export default function AdminSubscribers() {
 
       if (subsError) throw subsError;
 
-      // Create a map of user_id to subscription
+      // Fetch all admin roles
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (rolesError) throw rolesError;
+
+      // Create sets/maps for quick lookup
       const subscriptionMap = new Map();
       (subscriptions || []).forEach((sub) => {
         subscriptionMap.set(sub.user_id, sub);
       });
 
-      // Combine profiles with their subscriptions
+      const adminUserIds = new Set((adminRoles || []).map((r) => r.user_id));
+
+      // Combine profiles with their subscriptions and admin status
       const usersWithSubs: UserWithSubscription[] = (profiles || []).map((profile) => ({
         id: profile.id,
         user_id: profile.user_id,
         display_name: profile.display_name,
         created_at: profile.created_at,
+        isAdmin: adminUserIds.has(profile.user_id),
         subscription: subscriptionMap.get(profile.user_id) || null,
       }));
 
@@ -181,9 +195,67 @@ export default function AdminSubscribers() {
   };
 
   const executeAction = async () => {
-    if (!selectedUser || !selectedUser.subscription) return;
+    if (!selectedUser) return;
 
     try {
+      // Handle admin role actions
+      if (actionType === "make_admin") {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: selectedUser.user_id, role: "admin" });
+
+        if (error) throw error;
+
+        await logAdminAction(
+          "admin_role_granted",
+          selectedUser.user_id,
+          "user_roles",
+          undefined,
+          { role: "admin" }
+        );
+
+        toast({
+          title: "Rôle admin attribué",
+          description: `${selectedUser.display_name || "L'utilisateur"} est maintenant administrateur.`,
+        });
+
+        fetchUsers();
+        setActionDialogOpen(false);
+        setSelectedUser(null);
+        return;
+      }
+
+      if (actionType === "remove_admin") {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", selectedUser.user_id)
+          .eq("role", "admin");
+
+        if (error) throw error;
+
+        await logAdminAction(
+          "admin_role_revoked",
+          selectedUser.user_id,
+          "user_roles",
+          undefined,
+          { role: "admin" }
+        );
+
+        toast({
+          title: "Rôle admin retiré",
+          description: `${selectedUser.display_name || "L'utilisateur"} n'est plus administrateur.`,
+        });
+
+        fetchUsers();
+        setActionDialogOpen(false);
+        setSelectedUser(null);
+        return;
+      }
+
+      // Handle subscription actions (require subscription)
+      if (!selectedUser.subscription) return;
+
       let updateData: Record<string, unknown> = {};
       let logAction = "";
 
@@ -363,6 +435,7 @@ export default function AdminSubscribers() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nom</TableHead>
+                        <TableHead>Admin</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Forfait</TableHead>
                         <TableHead>Inscription</TableHead>
@@ -378,6 +451,16 @@ export default function AdminSubscribers() {
                             <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                               {user.user_id}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {user.isAdmin ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                                <Shield className="h-3.5 w-3.5" />
+                                Admin
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <SubscriberStatusBadge status={user.subscription?.status || "free"} />
@@ -412,6 +495,20 @@ export default function AdminSubscribers() {
                                   <Eye className="mr-2 h-4 w-4" />
                                   Voir détails
                                 </DropdownMenuItem>
+                                {user.isAdmin ? (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleAction(user, "remove_admin")}
+                                    className="text-destructive"
+                                  >
+                                    <ShieldOff className="mr-2 h-4 w-4" />
+                                    Retirer admin
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleAction(user, "make_admin")}>
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Rendre admin
+                                  </DropdownMenuItem>
+                                )}
                                 {user.subscription && (
                                   <>
                                     <DropdownMenuItem onClick={() => handleAction(user, "change_plan")}>
@@ -469,12 +566,18 @@ export default function AdminSubscribers() {
                   {actionType === "extend_trial" && "Prolonger l'essai"}
                   {actionType === "change_plan" && "Changer de forfait"}
                   {actionType === "view" && "Détails de l'utilisateur"}
+                  {actionType === "make_admin" && "Rendre administrateur"}
+                  {actionType === "remove_admin" && "Retirer le rôle admin"}
                 </DialogTitle>
                 <DialogDescription>
                   {actionType === "cancel" &&
                     "L'utilisateur perdra l'accès aux fonctionnalités premium."}
                   {actionType === "change_plan" && "Sélectionnez le nouveau forfait."}
                   {actionType === "extend_trial" && "L'essai sera prolongé de 7 jours."}
+                  {actionType === "make_admin" && 
+                    "Cet utilisateur aura accès à toutes les fonctionnalités d'administration."}
+                  {actionType === "remove_admin" && 
+                    "Cet utilisateur n'aura plus accès aux fonctionnalités d'administration."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -538,10 +641,10 @@ export default function AdminSubscribers() {
                 <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
                   {actionType === "view" ? "Fermer" : "Annuler"}
                 </Button>
-                {actionType !== "view" && selectedUser?.subscription && (
+                {actionType !== "view" && (actionType === "make_admin" || actionType === "remove_admin" || selectedUser?.subscription) && (
                   <Button
                     onClick={executeAction}
-                    variant={actionType === "cancel" ? "destructive" : "default"}
+                    variant={actionType === "cancel" || actionType === "remove_admin" ? "destructive" : "default"}
                   >
                     Confirmer
                   </Button>

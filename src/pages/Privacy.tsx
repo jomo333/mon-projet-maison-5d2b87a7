@@ -7,7 +7,7 @@ const Privacy = () => {
     {
       number: 1,
       title: "Collecte de renseignements",
-      intro: "Mon Projet Maison collecte des renseignements personnels lorsque vous utilisez notre plateforme pour planifier votre projet de construction ou de rénovation résidentielle. Les informations que nous recueillons peuvent inclure :",
+      intro: "Monprojetmaison.ca collecte des renseignements personnels lorsque vous utilisez notre plateforme pour planifier votre projet de construction ou de rénovation résidentielle. Les informations que nous recueillons peuvent inclure :",
       items: [
         "Votre nom, adresse courriel et numéro de téléphone",
         "Les détails de votre projet de construction ou rénovation",
@@ -32,7 +32,7 @@ const Privacy = () => {
     {
       number: 3,
       title: "Partage de renseignements",
-      intro: "Mon Projet Maison ne vend jamais vos renseignements personnels. Nous pouvons partager vos informations dans les circonstances suivantes :",
+      intro: "Monprojetmaison.ca ne vend jamais vos renseignements personnels. Nous pouvons partager vos informations dans les circonstances suivantes :",
       items: [
         "Avec des entrepreneurs et professionnels qualifiés pour réaliser votre projet",
         "Avec des fournisseurs de services qui nous aident à opérer notre plateforme",
@@ -108,12 +108,12 @@ const Privacy = () => {
         "Services de cartographie : Pour localiser les projets et entrepreneurs",
         "Réseaux sociaux : Boutons de partage qui peuvent transmettre des informations aux plateformes sociales",
       ],
-      footer: "Ces services tiers ont leurs propres politiques de confidentialité. Nous vous encourageons à les consulter. Mon Projet Maison n'est pas responsable des pratiques de confidentialité de ces tiers.",
+      footer: "Ces services tiers ont leurs propres politiques de confidentialité. Nous vous encourageons à les consulter. Monprojetmaison.ca n'est pas responsable des pratiques de confidentialité de ces tiers.",
     },
     {
       number: 10,
       title: "Utilisation de l'intelligence artificielle",
-      intro: "Mon Projet Maison peut utiliser des technologies d'intelligence artificielle pour améliorer nos services, notamment pour :",
+      intro: "Monprojetmaison.ca peut utiliser des technologies d'intelligence artificielle pour améliorer nos services, notamment pour :",
       items: [
         "Recommander des entrepreneurs qualifiés en fonction de votre projet",
         "Estimer les coûts et durées de projet",
@@ -178,7 +178,7 @@ const Privacy = () => {
               </h1>
               
               <p className="text-lg text-muted-foreground">
-                Chez Mon Projet Maison, nous prenons la protection de vos renseignements personnels au sérieux.
+                Chez Monprojetmaison.ca, nous prenons la protection de vos renseignements personnels au sérieux.
               </p>
             </div>
           </div>
@@ -258,7 +258,7 @@ const Privacy = () => {
                     <div>
                       <p className="font-medium">Adresse</p>
                       <p className="text-muted-foreground">
-                        Mon Projet Maison<br />
+                        Monprojetmaison.ca<br />
                         Laval, Québec, Canada
                       </p>
                     </div>
@@ -272,7 +272,7 @@ const Privacy = () => {
 
               {/* Footer note */}
               <div className="mt-12 text-center text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Mon Projet Maison. Tous droits réservés.
+                © {new Date().getFullYear()} Monprojetmaison.ca. Tous droits réservés.
               </div>
             </div>
           </div>

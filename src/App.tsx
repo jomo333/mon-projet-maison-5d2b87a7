@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { CookieConsent, CookieConsentProvider } from "@/components/cookies/CookieConsent";
 import { LegalConsentGuard } from "@/components/auth/LegalConsentGuard";
+import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <CookieConsent />
+              <ChatAssistant />
             </LegalConsentGuard>
           </CookieConsentProvider>
         </BrowserRouter>

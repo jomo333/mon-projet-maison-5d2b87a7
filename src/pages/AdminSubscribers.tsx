@@ -55,24 +55,25 @@ import {
   Users,
 } from "lucide-react";
 
-interface Subscriber {
-  id: string;
+interface UserWithSubscription {
+  id: string; // profile id
   user_id: string;
-  status: string;
-  billing_cycle: string;
-  start_date: string;
-  trial_end_date: string | null;
-  current_period_end: string | null;
+  display_name: string | null;
   created_at: string;
-  plans: {
+  subscription: {
     id: string;
-    name: string;
-    price_monthly: number;
+    status: string;
+    billing_cycle: string;
+    start_date: string;
+    trial_end_date: string | null;
+    current_period_end: string | null;
+    created_at: string;
+    plans: {
+      id: string;
+      name: string;
+      price_monthly: number;
+    } | null;
   } | null;
-  profiles?: {
-    display_name: string | null;
-  } | null;
-  user_email?: string;
 }
 
 interface Plan {
@@ -82,13 +83,13 @@ interface Plan {
 }
 
 export default function AdminSubscribers() {
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [users, setUsers] = useState<UserWithSubscription[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
-  const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithSubscription | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
   const [newPlanId, setNewPlanId] = useState<string>("");
@@ -96,45 +97,52 @@ export default function AdminSubscribers() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSubscribers();
+    fetchUsers();
     fetchPlans();
   }, []);
 
-  async function fetchSubscribers() {
+  async function fetchUsers() {
     try {
-      const { data, error } = await supabase
+      // Fetch all profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Fetch all subscriptions with plans
+      const { data: subscriptions, error: subsError } = await supabase
         .from("subscriptions")
         .select(`
           *,
           plans (id, name, price_monthly)
-        `)
-        .order("created_at", { ascending: false });
+        `);
 
-      if (error) throw error;
+      if (subsError) throw subsError;
 
-      // Fetch profile info for each subscriber
-      const subscribersWithProfiles = await Promise.all(
-        (data || []).map(async (sub) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("user_id", sub.user_id)
-            .maybeSingle();
-          
-          return {
-            ...sub,
-            profiles: profile,
-          };
-        })
-      );
+      // Create a map of user_id to subscription
+      const subscriptionMap = new Map();
+      (subscriptions || []).forEach((sub) => {
+        subscriptionMap.set(sub.user_id, sub);
+      });
 
-      setSubscribers(subscribersWithProfiles);
+      // Combine profiles with their subscriptions
+      const usersWithSubs: UserWithSubscription[] = (profiles || []).map((profile) => ({
+        id: profile.id,
+        user_id: profile.user_id,
+        display_name: profile.display_name,
+        created_at: profile.created_at,
+        subscription: subscriptionMap.get(profile.user_id) || null,
+      }));
+
+      setUsers(usersWithSubs);
     } catch (error) {
-      console.error("Error fetching subscribers:", error);
+      console.error("Error fetching users:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de charger les abonnés.",
+        description: "Impossible de charger les utilisateurs.",
       });
     } finally {
       setLoading(false);
@@ -150,24 +158,30 @@ export default function AdminSubscribers() {
     setPlans(data || []);
   }
 
-  const filteredSubscribers = subscribers.filter((sub) => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      sub.profiles?.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-      sub.user_id.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
-    const matchesPlan = planFilter === "all" || sub.plans?.id === planFilter;
+      user.display_name?.toLowerCase().includes(search.toLowerCase()) ||
+      user.user_id.toLowerCase().includes(search.toLowerCase());
+    
+    const userStatus = user.subscription?.status || "free";
+    const matchesStatus = statusFilter === "all" || userStatus === statusFilter;
+    
+    const userPlanId = user.subscription?.plans?.id || "free";
+    const matchesPlan = planFilter === "all" || 
+      (planFilter === "free" ? !user.subscription : userPlanId === planFilter);
+    
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
-  const handleAction = (subscriber: Subscriber, action: string) => {
-    setSelectedSubscriber(subscriber);
+  const handleAction = (user: UserWithSubscription, action: string) => {
+    setSelectedUser(user);
     setActionType(action);
-    setNewPlanId(subscriber.plans?.id || "");
+    setNewPlanId(user.subscription?.plans?.id || "");
     setActionDialogOpen(true);
   };
 
   const executeAction = async () => {
-    if (!selectedSubscriber) return;
+    if (!selectedUser || !selectedUser.subscription) return;
 
     try {
       let updateData: Record<string, unknown> = {};
@@ -201,16 +215,16 @@ export default function AdminSubscribers() {
       const { error } = await supabase
         .from("subscriptions")
         .update(updateData)
-        .eq("id", selectedSubscriber.id);
+        .eq("id", selectedUser.subscription.id);
 
       if (error) throw error;
 
       await logAdminAction(
         logAction,
-        selectedSubscriber.user_id,
+        selectedUser.user_id,
         "subscriptions",
-        selectedSubscriber.id,
-        { previous_status: selectedSubscriber.status, ...updateData }
+        selectedUser.subscription.id,
+        { previous_status: selectedUser.subscription.status, ...updateData }
       );
 
       toast({
@@ -218,7 +232,7 @@ export default function AdminSubscribers() {
         description: "L'abonnement a été mis à jour avec succès.",
       });
 
-      fetchSubscribers();
+      fetchUsers();
     } catch (error) {
       console.error("Error executing action:", error);
       toast({
@@ -228,19 +242,21 @@ export default function AdminSubscribers() {
       });
     } finally {
       setActionDialogOpen(false);
-      setSelectedSubscriber(null);
+      setSelectedUser(null);
     }
   };
 
   const exportCSV = () => {
-    const headers = ["ID", "Nom", "Statut", "Forfait", "Date inscription", "Prochaine facturation"];
-    const rows = filteredSubscribers.map((sub) => [
-      sub.id,
-      sub.profiles?.display_name || "N/A",
-      sub.status,
-      sub.plans?.name || "N/A",
-      format(new Date(sub.created_at), "yyyy-MM-dd"),
-      sub.current_period_end ? format(new Date(sub.current_period_end), "yyyy-MM-dd") : "N/A",
+    const headers = ["ID Utilisateur", "Nom", "Statut", "Forfait", "Date inscription", "Prochaine facturation"];
+    const rows = filteredUsers.map((user) => [
+      user.user_id,
+      user.display_name || "N/A",
+      user.subscription?.status || "Gratuit",
+      user.subscription?.plans?.name || "Gratuit",
+      format(new Date(user.created_at), "yyyy-MM-dd"),
+      user.subscription?.current_period_end 
+        ? format(new Date(user.subscription.current_period_end), "yyyy-MM-dd") 
+        : "N/A",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
@@ -248,7 +264,7 @@ export default function AdminSubscribers() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `abonnes-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `utilisateurs-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
   };
 
@@ -265,9 +281,9 @@ export default function AdminSubscribers() {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Abonnés</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Utilisateurs</h1>
               <p className="text-muted-foreground mt-1">
-                Gérez vos abonnés et leurs forfaits
+                Tous les comptes avec leur forfait
               </p>
             </div>
             <Button onClick={exportCSV} variant="outline" className="gap-2">
@@ -295,6 +311,7 @@ export default function AdminSubscribers() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="free">Gratuit</SelectItem>
                     <SelectItem value="active">Actif</SelectItem>
                     <SelectItem value="trial">Essai</SelectItem>
                     <SelectItem value="cancelled">Annulé</SelectItem>
@@ -308,6 +325,7 @@ export default function AdminSubscribers() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les forfaits</SelectItem>
+                    <SelectItem value="free">Gratuit</SelectItem>
                     {plans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name}
@@ -324,7 +342,7 @@ export default function AdminSubscribers() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                {filteredSubscribers.length} abonné{filteredSubscribers.length > 1 ? "s" : ""}
+                {filteredUsers.length} utilisateur{filteredUsers.length > 1 ? "s" : ""}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -334,10 +352,10 @@ export default function AdminSubscribers() {
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : filteredSubscribers.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucun abonné trouvé</p>
+                  <p>Aucun utilisateur trouvé</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -353,29 +371,31 @@ export default function AdminSubscribers() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredSubscribers.map((sub) => (
-                        <TableRow key={sub.id}>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
                           <TableCell className="font-medium">
-                            {sub.profiles?.display_name || "Utilisateur"}
+                            {user.display_name || "Utilisateur"}
                             <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {sub.user_id}
+                              {user.user_id}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <SubscriberStatusBadge status={sub.status} />
+                            <SubscriberStatusBadge status={user.subscription?.status || "free"} />
                           </TableCell>
                           <TableCell>
-                            {sub.plans?.name || "—"}
+                            {user.subscription?.plans?.name || "Gratuit"}
                             <div className="text-xs text-muted-foreground">
-                              {sub.plans ? formatCurrency(sub.plans.price_monthly) + "/mois" : ""}
+                              {user.subscription?.plans 
+                                ? formatCurrency(user.subscription.plans.price_monthly) + "/mois" 
+                                : "0 $/mois"}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {format(new Date(sub.created_at), "d MMM yyyy", { locale: fr })}
+                            {format(new Date(user.created_at), "d MMM yyyy", { locale: fr })}
                           </TableCell>
                           <TableCell>
-                            {sub.current_period_end
-                              ? format(new Date(sub.current_period_end), "d MMM yyyy", { locale: fr })
+                            {user.subscription?.current_period_end
+                              ? format(new Date(user.subscription.current_period_end), "d MMM yyyy", { locale: fr })
                               : "—"}
                           </TableCell>
                           <TableCell className="text-right">
@@ -388,39 +408,43 @@ export default function AdminSubscribers() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleAction(sub, "view")}>
+                                <DropdownMenuItem onClick={() => handleAction(user, "view")}>
                                   <Eye className="mr-2 h-4 w-4" />
                                   Voir détails
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleAction(sub, "change_plan")}>
-                                  <UserCog className="mr-2 h-4 w-4" />
-                                  Changer de forfait
-                                </DropdownMenuItem>
-                                {sub.status === "trial" && (
-                                  <DropdownMenuItem onClick={() => handleAction(sub, "extend_trial")}>
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Prolonger essai (+7j)
-                                  </DropdownMenuItem>
-                                )}
-                                {sub.status === "active" && (
-                                  <DropdownMenuItem onClick={() => handleAction(sub, "pause")}>
-                                    <Pause className="mr-2 h-4 w-4" />
-                                    Mettre en pause
-                                  </DropdownMenuItem>
-                                )}
-                                {sub.status === "cancelled" || sub.status === "paused" ? (
-                                  <DropdownMenuItem onClick={() => handleAction(sub, "reactivate")}>
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Réactiver
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    onClick={() => handleAction(sub, "cancel")}
-                                    className="text-destructive"
-                                  >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    Annuler
-                                  </DropdownMenuItem>
+                                {user.subscription && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleAction(user, "change_plan")}>
+                                      <UserCog className="mr-2 h-4 w-4" />
+                                      Changer de forfait
+                                    </DropdownMenuItem>
+                                    {user.subscription.status === "trial" && (
+                                      <DropdownMenuItem onClick={() => handleAction(user, "extend_trial")}>
+                                        <Clock className="mr-2 h-4 w-4" />
+                                        Prolonger essai (+7j)
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.subscription.status === "active" && (
+                                      <DropdownMenuItem onClick={() => handleAction(user, "pause")}>
+                                        <Pause className="mr-2 h-4 w-4" />
+                                        Mettre en pause
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.subscription.status === "cancelled" || user.subscription.status === "paused" ? (
+                                      <DropdownMenuItem onClick={() => handleAction(user, "reactivate")}>
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Réactiver
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={() => handleAction(user, "cancel")}
+                                        className="text-destructive"
+                                      >
+                                        <Ban className="mr-2 h-4 w-4" />
+                                        Annuler
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -444,7 +468,7 @@ export default function AdminSubscribers() {
                   {actionType === "pause" && "Mettre en pause"}
                   {actionType === "extend_trial" && "Prolonger l'essai"}
                   {actionType === "change_plan" && "Changer de forfait"}
-                  {actionType === "view" && "Détails de l'abonnement"}
+                  {actionType === "view" && "Détails de l'utilisateur"}
                 </DialogTitle>
                 <DialogDescription>
                   {actionType === "cancel" &&
@@ -454,36 +478,40 @@ export default function AdminSubscribers() {
                 </DialogDescription>
               </DialogHeader>
 
-              {actionType === "view" && selectedSubscriber && (
+              {actionType === "view" && selectedUser && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Nom</span>
-                      <p className="font-medium">{selectedSubscriber.profiles?.display_name || "N/A"}</p>
+                      <p className="font-medium">{selectedUser.display_name || "N/A"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Statut</span>
-                      <p><SubscriberStatusBadge status={selectedSubscriber.status} /></p>
+                      <p><SubscriberStatusBadge status={selectedUser.subscription?.status || "free"} /></p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Forfait</span>
-                      <p className="font-medium">{selectedSubscriber.plans?.name || "N/A"}</p>
+                      <p className="font-medium">{selectedUser.subscription?.plans?.name || "Gratuit"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Cycle</span>
-                      <p className="font-medium capitalize">{selectedSubscriber.billing_cycle}</p>
+                      <p className="font-medium capitalize">{selectedUser.subscription?.billing_cycle || "N/A"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Inscription</span>
                       <p className="font-medium">
-                        {format(new Date(selectedSubscriber.created_at), "d MMMM yyyy", { locale: fr })}
+                        {format(new Date(selectedUser.created_at), "d MMMM yyyy", { locale: fr })}
                       </p>
                     </div>
-                    {selectedSubscriber.trial_end_date && (
+                    <div>
+                      <span className="text-muted-foreground">ID Utilisateur</span>
+                      <p className="font-medium text-xs truncate">{selectedUser.user_id}</p>
+                    </div>
+                    {selectedUser.subscription?.trial_end_date && (
                       <div>
                         <span className="text-muted-foreground">Fin essai</span>
                         <p className="font-medium">
-                          {format(new Date(selectedSubscriber.trial_end_date), "d MMMM yyyy", { locale: fr })}
+                          {format(new Date(selectedUser.subscription.trial_end_date), "d MMMM yyyy", { locale: fr })}
                         </p>
                       </div>
                     )}
@@ -510,7 +538,7 @@ export default function AdminSubscribers() {
                 <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
                   {actionType === "view" ? "Fermer" : "Annuler"}
                 </Button>
-                {actionType !== "view" && (
+                {actionType !== "view" && selectedUser?.subscription && (
                   <Button
                     onClick={executeAction}
                     variant={actionType === "cancel" ? "destructive" : "default"}

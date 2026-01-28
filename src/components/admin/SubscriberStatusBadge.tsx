@@ -11,6 +11,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   cancelled: { label: "Annulé", variant: "destructive" },
   paused: { label: "Pause", variant: "outline" },
   past_due: { label: "En retard", variant: "destructive" },
+  free: { label: "Gratuit", variant: "outline" },
 };
 
 export function SubscriberStatusBadge({ status }: SubscriberStatusBadgeProps) {
@@ -20,9 +21,10 @@ export function SubscriberStatusBadge({ status }: SubscriberStatusBadgeProps) {
     <Badge
       variant={config.variant}
       className={cn(
-        status === "active" && "bg-green-100 text-green-800 hover:bg-green-100",
-        status === "trial" && "bg-blue-100 text-blue-800 hover:bg-blue-100",
-        status === "paused" && "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+        status === "active" && "bg-primary/10 text-primary hover:bg-primary/10",
+        status === "trial" && "bg-secondary text-secondary-foreground hover:bg-secondary",
+        status === "paused" && "bg-accent text-accent-foreground hover:bg-accent",
+        status === "free" && "bg-muted text-muted-foreground hover:bg-muted"
       )}
     >
       {config.label}

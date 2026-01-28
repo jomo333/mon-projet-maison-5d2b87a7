@@ -117,13 +117,18 @@ export function ChatAssistant() {
 
   if (!isOpen) {
     return (
-      <Button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2">
+        <div className="bg-background border rounded-full px-3 py-2 shadow-lg animate-fade-in">
+          <span className="text-sm font-medium">Besoin d'aide ?</span>
+        </div>
+        <Button
+          onClick={() => setIsOpen(true)}
+          className="h-14 w-14 rounded-full shadow-lg"
+          size="icon"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </Button>
+      </div>
     );
   }
 

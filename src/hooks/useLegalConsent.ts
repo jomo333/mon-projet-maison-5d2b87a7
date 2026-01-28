@@ -6,6 +6,7 @@ interface ConsentStatus {
   needsAcceptance: boolean;
   isLoading: boolean;
   checkConsent: () => Promise<void>;
+  markAsAccepted: () => void;
 }
 
 export function useLegalConsent(userId: string | undefined): ConsentStatus {
@@ -50,6 +51,10 @@ export function useLegalConsent(userId: string | undefined): ConsentStatus {
     }
   }, [userId]);
 
+  const markAsAccepted = useCallback(() => {
+    setNeedsAcceptance(false);
+  }, []);
+
   useEffect(() => {
     checkConsent();
   }, [checkConsent]);
@@ -58,5 +63,6 @@ export function useLegalConsent(userId: string | undefined): ConsentStatus {
     needsAcceptance,
     isLoading,
     checkConsent,
+    markAsAccepted,
   };
 }

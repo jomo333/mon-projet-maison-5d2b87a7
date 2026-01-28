@@ -9,7 +9,7 @@ interface LegalConsentGuardProps {
 
 export function LegalConsentGuard({ children }: LegalConsentGuardProps) {
   const { user, loading: authLoading } = useAuth();
-  const { needsAcceptance, isLoading: consentLoading, checkConsent } = useLegalConsent(user?.id);
+  const { needsAcceptance, isLoading: consentLoading, markAsAccepted } = useLegalConsent(user?.id);
 
   // Don't show dialog while loading
   if (authLoading || consentLoading) {
@@ -27,7 +27,7 @@ export function LegalConsentGuard({ children }: LegalConsentGuardProps) {
       <LegalAcceptanceDialog
         open={needsAcceptance}
         userId={user.id}
-        onAccepted={checkConsent}
+        onAccepted={markAsAccepted}
       />
     </>
   );

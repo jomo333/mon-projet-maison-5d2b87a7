@@ -72,25 +72,25 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
-        className="sm:max-w-lg max-h-[90vh] overflow-y-auto [&>button]:hidden"
+        className="w-[95vw] max-w-md mx-auto [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-full bg-primary/10 shrink-0">
-              <Shield className="h-5 w-5 text-primary" />
+        <div className="max-h-[80vh] overflow-y-auto space-y-4 p-1">
+          <DialogHeader className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <DialogTitle className="font-display text-lg">
+                Acceptation requise
+              </DialogTitle>
             </div>
-            <DialogTitle className="font-display text-lg sm:text-xl">
-              Acceptation requise
-            </DialogTitle>
-          </div>
-          <DialogDescription className="text-sm">
-            Pour utiliser Monprojetmaison.ca, vous devez accepter nos conditions d'utilisation et notre politique de confidentialité.
-          </DialogDescription>
-        </DialogHeader>
+            <DialogDescription className="text-sm">
+              Pour utiliser Monprojetmaison.ca, vous devez accepter nos conditions.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-2">
           {/* Boutons pour lire les documents */}
           <div className="grid grid-cols-1 gap-2">
             <Button
@@ -101,7 +101,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
             >
               <Link to="/conditions" target="_blank">
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
-                <span className="truncate">Lire les Conditions d'utilisation</span>
+                <span className="text-xs sm:text-sm">Lire les Conditions d'utilisation</span>
               </Link>
             </Button>
             <Button
@@ -112,7 +112,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
             >
               <Link to="/confidentialite" target="_blank">
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
-                <span className="truncate">Lire la Politique de confidentialité</span>
+                <span className="text-xs sm:text-sm">Lire la Politique de confidentialité</span>
               </Link>
             </Button>
           </div>
@@ -136,19 +136,19 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
           </div>
 
           <p className="text-xs text-muted-foreground">
-            En acceptant, vous confirmez avoir lu et compris nos conditions. 
             Votre acceptation sera enregistrée pour des raisons légales.
           </p>
-        </div>
 
-        <Button 
-          onClick={handleAccept} 
-          disabled={!accepted || isLoading}
-          className="w-full mt-2"
-        >
-          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Continuer
-        </Button>
+          <Button 
+            onClick={handleAccept} 
+            disabled={!accepted || isLoading}
+            className="w-full"
+            size="lg"
+          >
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Continuer
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

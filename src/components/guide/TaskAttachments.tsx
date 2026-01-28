@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from "@/hooks/useAuth";
+import { getSignedUrl } from "@/hooks/useSignedUrl";
 interface TaskAttachmentsProps {
   stepId: string;
   taskId: string;
@@ -47,9 +48,11 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
   const [selectedCategory, setSelectedCategory] = useState("other");
   const [isUploading, setIsUploading] = useState(false);
   const [showBudgetSuggestion, setShowBudgetSuggestion] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["task-attachments", stepId, taskId, projectId ?? null],
@@ -73,10 +76,39 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
     },
   });
 
+  // Generate signed URLs for attachments
+  useEffect(() => {
+    const generateSignedUrls = async () => {
+      if (!attachments.length || !user) return;
+      
+      const urlMap = new Map<string, string>();
+      await Promise.all(
+        attachments.map(async (att) => {
+          // Extract path from file_url
+          const bucketMarker = "/task-attachments/";
+          const markerIndex = att.file_url.indexOf(bucketMarker);
+          if (markerIndex >= 0) {
+            const path = att.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+            const signedUrl = await getSignedUrl("task-attachments", path);
+            if (signedUrl) {
+              urlMap.set(att.id, signedUrl);
+            }
+          }
+        })
+      );
+      setSignedUrls(urlMap);
+    };
+    generateSignedUrls();
+  }, [attachments, user]);
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!user) throw new Error("Non authentifié");
+      
       const fileExt = file.name.split(".").pop();
-      const fileName = `${stepId}/${taskId}/${Date.now()}.${fileExt}`;
+      const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      // Path format: user_id/step_id/task_id/filename (user_id first for RLS)
+      const fileName = `${user.id}/${stepId}/${taskId}/${uniqueId}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("task-attachments")
@@ -84,9 +116,9 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("task-attachments")
-        .getPublicUrl(fileName);
+      // Generate signed URL
+      const signedUrl = await getSignedUrl("task-attachments", fileName);
+      if (!signedUrl) throw new Error("Failed to generate signed URL");
 
       const insertData: {
         step_id: string;
@@ -101,7 +133,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
         step_id: stepId,
         task_id: taskId,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: signedUrl, // Store signed URL temporarily
         file_type: file.type,
         file_size: file.size,
         category: selectedCategory,
@@ -250,7 +282,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
                 
                 <div className="flex-1 min-w-0">
                   <a
-                    href={attachment.file_url}
+                    href={signedUrls.get(attachment.id) || attachment.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium hover:underline truncate block"

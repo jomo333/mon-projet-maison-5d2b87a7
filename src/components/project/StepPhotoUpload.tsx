@@ -1,18 +1,18 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Camera, Upload, Loader2, Trash2, X, ImageIcon } from "lucide-react";
+import { Camera, Upload, Loader2, Trash2, ImageIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getSignedUrl } from "@/hooks/useSignedUrl";
 
 interface StepPhotoUploadProps {
   projectId: string;
@@ -26,6 +26,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
 
   // Fetch photos for this step
   const { data: photos = [], isLoading } = useQuery({
@@ -44,6 +45,26 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
     enabled: !!projectId && !!user,
   });
 
+  // Generate signed URLs for photos
+  useEffect(() => {
+    const generateSignedUrls = async () => {
+      if (!photos.length || !user) return;
+      
+      const urlMap = new Map<string, string>();
+      await Promise.all(
+        photos.map(async (photo) => {
+          const path = `${user.id}/${projectId}/${stepId}/${photo.file_url.split("/").pop()?.split("?")[0]}`;
+          const signedUrl = await getSignedUrl("project-photos", path);
+          if (signedUrl) {
+            urlMap.set(photo.id, signedUrl);
+          }
+        })
+      );
+      setSignedUrls(urlMap);
+    };
+    generateSignedUrls();
+  }, [photos, projectId, stepId, user]);
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error("Non authentifié");
@@ -51,6 +72,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
       const fileExt = file.name.split(".").pop();
       const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
       const fileName = `${uniqueId}.${fileExt}`;
+      // Path format: user_id/project_id/step_id/filename
       const filePath = `${user.id}/${projectId}/${stepId}/${fileName}`;
 
       // Upload to storage
@@ -60,41 +82,49 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
-        .from("project-photos")
-        .getPublicUrl(filePath);
+      // Generate signed URL instead of public URL
+      const signedUrl = await getSignedUrl("project-photos", filePath);
+      if (!signedUrl) throw new Error("Failed to generate signed URL");
 
-      // Save metadata
+      // Save metadata with signed URL (will be refreshed on next fetch)
       const { error: dbError } = await supabase.from("project_photos").insert({
         project_id: projectId,
         step_id: stepId,
         file_name: file.name,
-        file_url: publicUrlData.publicUrl,
+        file_url: filePath, // Store path instead of full URL
         file_size: file.size,
       });
 
       if (dbError) throw dbError;
 
-      return publicUrlData.publicUrl;
+      return signedUrl;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["step-photos", projectId, stepId] });
       queryClient.invalidateQueries({ queryKey: ["all-project-photos", projectId] });
       toast.success("Photo ajoutée avec succès!");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erreur: " + error.message);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (photo: { id: string; file_url: string }) => {
-      // Extract path from URL
-      const urlParts = photo.file_url.split("/project-photos/");
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        await supabase.storage.from("project-photos").remove([filePath]);
+      if (!user) throw new Error("Non authentifié");
+      
+      // file_url now stores the path directly
+      let filePath = photo.file_url;
+      
+      // Handle legacy URLs that contain the full URL
+      if (filePath.includes("/project-photos/")) {
+        const urlParts = filePath.split("/project-photos/");
+        if (urlParts.length > 1) {
+          filePath = urlParts[1].split("?")[0];
+        }
       }
+
+      await supabase.storage.from("project-photos").remove([filePath]);
 
       const { error } = await supabase
         .from("project_photos")
@@ -108,7 +138,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
       queryClient.invalidateQueries({ queryKey: ["all-project-photos", projectId] });
       toast.success("Photo supprimée");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erreur: " + error.message);
     },
   });
@@ -186,28 +216,31 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer"
-                  onClick={() => setSelectedPhoto(photo.file_url)}
-                >
-                  <img
-                    src={photo.file_url}
-                    alt={photo.file_name}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteMutation.mutate({ id: photo.id, file_url: photo.file_url });
-                    }}
-                    className="absolute top-1 right-1 p-1 bg-destructive/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              {photos.map((photo) => {
+                const displayUrl = signedUrls.get(photo.id) || photo.file_url;
+                return (
+                  <div
+                    key={photo.id}
+                    className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer"
+                    onClick={() => setSelectedPhoto(displayUrl)}
                   >
-                    <Trash2 className="h-3 w-3 text-destructive-foreground" />
-                  </button>
-                </div>
-              ))}
+                    <img
+                      src={displayUrl}
+                      alt={photo.file_name}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate({ id: photo.id, file_url: photo.file_url });
+                      }}
+                      className="absolute top-1 right-1 p-1 bg-destructive/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive-foreground" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

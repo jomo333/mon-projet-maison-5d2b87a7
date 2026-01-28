@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { getSignedUrl } from "@/hooks/useSignedUrl";
 import { 
   Sparkles, 
   FileText, 
@@ -78,6 +80,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   prefillFloors,
   prefillSquareFootage
 }, ref) {
+  const { user } = useAuth();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BudgetAnalysis | null>(null);
   const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">(
@@ -293,8 +296,12 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
   // Upload mutation
   const uploadPlanFile = async (file: File, opts: { silent?: boolean } = {}) => {
+    if (!user) throw new Error("Non authentifié");
+    
     const fileExt = file.name.split(".").pop();
-    const fileName = `budget-plans/${Date.now()}.${fileExt}`;
+    const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // Path format: user_id/budget-plans/filename
+    const fileName = `${user.id}/budget-plans/${uniqueId}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("task-attachments")
@@ -302,9 +309,9 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
     if (uploadError) throw uploadError;
 
-    const { data: urlData } = supabase.storage
-      .from("task-attachments")
-      .getPublicUrl(fileName);
+    // Generate signed URL
+    const signedUrl = await getSignedUrl("task-attachments", fileName);
+    if (!signedUrl) throw new Error("Failed to generate signed URL");
 
     const insertData: {
       step_id: string;
@@ -319,7 +326,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       step_id: "budget",
       task_id: "plan-upload",
       file_name: file.name,
-      file_url: urlData.publicUrl,
+      file_url: signedUrl,
       file_type: file.type,
       file_size: file.size,
       category: "plan",
@@ -332,11 +339,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
     if (!opts.silent) {
       queryClient.invalidateQueries({ queryKey: ["project-plans", projectId] });
-      setSelectedPlanUrls((prev) => [...prev, urlData.publicUrl]);
+      setSelectedPlanUrls((prev) => [...prev, signedUrl]);
       toast.success("Plan téléversé avec succès!");
     }
 
-    return urlData.publicUrl;
+    return signedUrl;
   };
 
   const uploadMutation = useMutation({

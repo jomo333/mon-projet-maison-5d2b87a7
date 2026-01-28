@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { constructionSteps } from "@/data/constructionSteps";
+import { getSignedUrl, getSignedUrlFromPublicUrl } from "@/hooks/useSignedUrl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,10 @@ const ProjectGallery = () => {
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const blobUrlRef = useRef<string | null>(null);
+  
+  // Signed URLs cache for photos and documents
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Map<string, string>>(new Map());
+  const [docSignedUrls, setDocSignedUrls] = useState<Map<string, string>>(new Map());
 
   // Load blob URL when preview document changes
   useEffect(() => {
@@ -278,6 +283,44 @@ const ProjectGallery = () => {
     },
     enabled: !!projectId && !!user,
   });
+
+  // Generate signed URLs for photos
+  useEffect(() => {
+    const generatePhotoUrls = async () => {
+      if (!photos.length || !user) return;
+      
+      const urlMap = new Map<string, string>();
+      await Promise.all(
+        photos.map(async (photo) => {
+          const signedUrl = await getSignedUrlFromPublicUrl(photo.file_url);
+          if (signedUrl && signedUrl !== photo.file_url) {
+            urlMap.set(photo.id, signedUrl);
+          }
+        })
+      );
+      setPhotoSignedUrls(urlMap);
+    };
+    generatePhotoUrls();
+  }, [photos, user]);
+
+  // Generate signed URLs for documents
+  useEffect(() => {
+    const generateDocUrls = async () => {
+      if (!documents.length || !user) return;
+      
+      const urlMap = new Map<string, string>();
+      await Promise.all(
+        documents.map(async (doc) => {
+          const signedUrl = await getSignedUrlFromPublicUrl(doc.file_url);
+          if (signedUrl && signedUrl !== doc.file_url) {
+            urlMap.set(doc.id, signedUrl);
+          }
+        })
+      );
+      setDocSignedUrls(urlMap);
+    };
+    generateDocUrls();
+  }, [documents, user]);
 
   // Group photos by step
   const photosByStep = photos.reduce((acc, photo) => {
@@ -519,19 +562,22 @@ const ProjectGallery = () => {
                             </span>
                           </h3>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                            {stepPhotos.map((photo) => (
-                              <div
-                                key={photo.id}
-                                className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                                onClick={() => setSelectedPhoto(photo.file_url)}
-                              >
-                                <img
-                                  src={photo.file_url}
-                                  alt={photo.file_name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
+                            {stepPhotos.map((photo) => {
+                              const displayUrl = photoSignedUrls.get(photo.id) || photo.file_url;
+                              return (
+                                <div
+                                  key={photo.id}
+                                  className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                                  onClick={() => setSelectedPhoto(displayUrl)}
+                                >
+                                  <img
+                                    src={displayUrl}
+                                    alt={photo.file_name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -539,19 +585,22 @@ const ProjectGallery = () => {
                   ) : (
                     // Single step view
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {filteredPhotos.map((photo) => (
-                        <div
-                          key={photo.id}
-                          className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                          onClick={() => setSelectedPhoto(photo.file_url)}
-                        >
-                          <img
-                            src={photo.file_url}
-                            alt={photo.file_name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
+                      {filteredPhotos.map((photo) => {
+                        const displayUrl = photoSignedUrls.get(photo.id) || photo.file_url;
+                        return (
+                          <div
+                            key={photo.id}
+                            className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                            onClick={() => setSelectedPhoto(displayUrl)}
+                          >
+                            <img
+                              src={displayUrl}
+                              alt={photo.file_name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </>

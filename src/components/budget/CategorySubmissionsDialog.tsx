@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { getSignedUrl } from "@/hooks/useSignedUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,6 +102,7 @@ export function CategorySubmissionsDialog({
   onSave,
 }: CategorySubmissionsDialogProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [budget, setBudget] = useState(currentBudget.toString());
   const [spent, setSpent] = useState(currentSpent.toString());
   const [uploading, setUploading] = useState(false);
@@ -119,6 +122,9 @@ export function CategorySubmissionsDialog({
   const [analyzingDIY, setAnalyzingDIY] = useState(false);
   const [diyAnalysisResult, setDiyAnalysisResult] = useState<string | null>(null);
   const [showDIYAnalysis, setShowDIYAnalysis] = useState(false);
+  
+  // Signed URLs for documents
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   
   // Sub-category state
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -245,6 +251,30 @@ export function CategorySubmissionsDialog({
     enabled: !!projectId && open,
   });
 
+  // Generate signed URLs for documents
+  useEffect(() => {
+    const generateSignedUrls = async () => {
+      if (!documents.length || !user) return;
+      
+      const urlMap = new Map<string, string>();
+      await Promise.all(
+        documents.map(async (doc) => {
+          const bucketMarker = "/task-attachments/";
+          const markerIndex = doc.file_url.indexOf(bucketMarker);
+          if (markerIndex >= 0) {
+            const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+            const signedUrl = await getSignedUrl("task-attachments", path);
+            if (signedUrl) {
+              urlMap.set(doc.id, signedUrl);
+            }
+          }
+        })
+      );
+      setSignedUrls(urlMap);
+    };
+    generateSignedUrls();
+  }, [documents, user]);
+
   // Fetch existing supplier status for current category/sub-category
   const { data: supplierStatus } = useQuery({
     queryKey: ['supplier-status', projectId, currentTaskId],
@@ -305,9 +335,12 @@ export function CategorySubmissionsDialog({
   // Upload mutation - uses currentTaskId for sub-category support
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!user) throw new Error("Non authentifié");
+      
       const sanitizedName = sanitizeFileName(file.name);
       const subPath = activeSubCategoryId ? `${tradeId}/sub-${activeSubCategoryId}` : tradeId;
-      const fileName = `${projectId}/soumissions/${subPath}/${Date.now()}_${sanitizedName}`;
+      // Path format: user_id/project_id/soumissions/trade/filename
+      const fileName = `${user.id}/${projectId}/soumissions/${subPath}/${Date.now()}_${sanitizedName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('task-attachments')
@@ -315,9 +348,9 @@ export function CategorySubmissionsDialog({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('task-attachments')
-        .getPublicUrl(fileName);
+      // Generate signed URL
+      const signedUrl = await getSignedUrl("task-attachments", fileName);
+      if (!signedUrl) throw new Error("Failed to generate signed URL");
 
       const { error: dbError } = await supabase
         .from('task_attachments')
@@ -326,14 +359,14 @@ export function CategorySubmissionsDialog({
           step_id: 'soumissions',
           task_id: currentTaskId,
           file_name: file.name,
-          file_url: urlData.publicUrl,
+          file_url: signedUrl,
           file_type: file.type,
           file_size: file.size,
           category: 'soumission',
         });
 
       if (dbError) throw dbError;
-      return urlData.publicUrl;
+      return signedUrl;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['category-docs', projectId, currentTaskId] });

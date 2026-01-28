@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 import { constructionSteps, phases } from "@/data/constructionSteps";
 import { StepCard } from "@/components/guide/StepCard";
 import { StepDetail } from "@/components/guide/StepDetail";
+import { ProjectOverviewTab } from "@/components/project/ProjectOverviewTab";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { 
   ArrowLeft, Home, MapPin, Calendar, ChevronRight, AlertTriangle, X, 
-  Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2, PhoneCall, Bell
+  Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2, PhoneCall, Bell, LayoutDashboard
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,7 +31,7 @@ const Project = () => {
   const { user, loading: authLoading } = useAuth();
   
   const stepFromUrl = searchParams.get("step");
-  const tabFromUrl = searchParams.get("tab") || "etapes";
+  const tabFromUrl = searchParams.get("tab") || "apercu";
   
   const [selectedStepId, setSelectedStepId] = useState<string | null>(stepFromUrl);
   const [activePhase, setActivePhase] = useState<string | null>(null);
@@ -385,7 +386,11 @@ const Project = () => {
 
           {/* Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+              <TabsTrigger value="apercu" className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Aperçu
+              </TabsTrigger>
               <TabsTrigger value="etapes" className="gap-2">
                 <ChevronRight className="h-4 w-4" />
                 Étapes
@@ -399,6 +404,17 @@ const Project = () => {
                 Documents ({documents.length})
               </TabsTrigger>
             </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="apercu" className="space-y-6">
+              <ProjectOverviewTab 
+                schedules={schedules || []}
+                onNavigateToStep={(stepId) => {
+                  setSelectedStepId(stepId);
+                  setActiveTab("etapes");
+                }}
+              />
+            </TabsContent>
 
             {/* Steps Tab */}
             <TabsContent value="etapes" className="space-y-6">

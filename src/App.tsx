@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import CookiePolicy from "./pages/CookiePolicy";
+import Plans from "./pages/Plans";
 import Admin from "./pages/Admin";
 import AdminSubscribers from "./pages/AdminSubscribers";
 import AdminPlans from "./pages/AdminPlans";
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/confidentialite" element={<Privacy />} />
                 <Route path="/conditions" element={<Terms />} />
                 <Route path="/politique-cookies" element={<CookiePolicy />} />
+                <Route path="/forfaits" element={<Plans />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/subscribers" element={<AdminSubscribers />} />
                 <Route path="/admin/plans" element={<AdminPlans />} />

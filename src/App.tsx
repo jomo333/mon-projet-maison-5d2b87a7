@@ -25,6 +25,13 @@ import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import CookiePolicy from "./pages/CookiePolicy";
+import Admin from "./pages/Admin";
+import AdminSubscribers from "./pages/AdminSubscribers";
+import AdminPlans from "./pages/AdminPlans";
+import AdminPayments from "./pages/AdminPayments";
+import AdminSettings from "./pages/AdminSettings";
+import AdminLogs from "./pages/AdminLogs";
+import AdminPromotions from "./pages/AdminPromotions";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +62,13 @@ const App = () => (
                 <Route path="/confidentialite" element={<Privacy />} />
                 <Route path="/conditions" element={<Terms />} />
                 <Route path="/politique-cookies" element={<CookiePolicy />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/subscribers" element={<AdminSubscribers />} />
+                <Route path="/admin/plans" element={<AdminPlans />} />
+                <Route path="/admin/payments" element={<AdminPayments />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/logs" element={<AdminLogs />} />
+                <Route path="/admin/promotions" element={<AdminPromotions />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <CookieConsent />

@@ -287,10 +287,9 @@ export default function Plans() {
           <div className="container max-w-3xl">
             <div className="bg-background border rounded-lg p-6 text-center">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Important :</strong> Les analyses fournies par l'IA 
-                sont basées sur des données moyennes du marché et servent à la planification. 
-                Elles ne remplacent pas les soumissions de professionnels ni les obligations 
-                réglementaires en vigueur.
+                <strong className="text-foreground">Monprojetmaison.ca</strong> est conçu exclusivement pour les autoconstructeurs résidentiels.
+                Les outils et analyses servent à structurer le projet et à soutenir la prise de décision, 
+                sans remplacer les professionnels ni les soumissions réelles.
               </p>
             </div>
           </div>

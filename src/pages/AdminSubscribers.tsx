@@ -253,6 +253,41 @@ export default function AdminSubscribers() {
         return;
       }
 
+      // Handle assign/change plan for users WITHOUT subscription
+      if (actionType === "assign_plan" && !selectedUser.subscription && newPlanId) {
+        const { error } = await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: selectedUser.user_id,
+            plan_id: newPlanId,
+            status: "active",
+            billing_cycle: "monthly",
+            start_date: new Date().toISOString(),
+            current_period_start: new Date().toISOString(),
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+
+        if (error) throw error;
+
+        await logAdminAction(
+          "subscription_created",
+          selectedUser.user_id,
+          "subscriptions",
+          undefined,
+          { plan_id: newPlanId, reason: "admin_manual_assignment" }
+        );
+
+        toast({
+          title: "Forfait assigné",
+          description: `${selectedUser.display_name || "L'utilisateur"} a maintenant accès au forfait.`,
+        });
+
+        fetchUsers();
+        setActionDialogOpen(false);
+        setSelectedUser(null);
+        return;
+      }
+
       // Handle subscription actions (require subscription)
       if (!selectedUser.subscription) return;
 
@@ -279,7 +314,7 @@ export default function AdminSubscribers() {
           logAction = "trial_extended";
           break;
         case "change_plan":
-          updateData = { plan_id: newPlanId };
+          updateData = { plan_id: newPlanId, status: "active" };
           logAction = "plan_changed";
           break;
       }
@@ -509,7 +544,7 @@ export default function AdminSubscribers() {
                                     Rendre admin
                                   </DropdownMenuItem>
                                 )}
-                                {user.subscription && (
+                                {user.subscription ? (
                                   <>
                                     <DropdownMenuItem onClick={() => handleAction(user, "change_plan")}>
                                       <UserCog className="mr-2 h-4 w-4" />
@@ -542,6 +577,11 @@ export default function AdminSubscribers() {
                                       </DropdownMenuItem>
                                     )}
                                   </>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleAction(user, "assign_plan")}>
+                                    <UserCog className="mr-2 h-4 w-4" />
+                                    Assigner un forfait
+                                  </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -565,6 +605,7 @@ export default function AdminSubscribers() {
                   {actionType === "pause" && "Mettre en pause"}
                   {actionType === "extend_trial" && "Prolonger l'essai"}
                   {actionType === "change_plan" && "Changer de forfait"}
+                  {actionType === "assign_plan" && "Assigner un forfait"}
                   {actionType === "view" && "Détails de l'utilisateur"}
                   {actionType === "make_admin" && "Rendre administrateur"}
                   {actionType === "remove_admin" && "Retirer le rôle admin"}
@@ -573,6 +614,7 @@ export default function AdminSubscribers() {
                   {actionType === "cancel" &&
                     "L'utilisateur perdra l'accès aux fonctionnalités premium."}
                   {actionType === "change_plan" && "Sélectionnez le nouveau forfait."}
+                  {actionType === "assign_plan" && "Sélectionnez le forfait à assigner à cet utilisateur (pour testeur)."}
                   {actionType === "extend_trial" && "L'essai sera prolongé de 7 jours."}
                   {actionType === "make_admin" && 
                     "Cet utilisateur aura accès à toutes les fonctionnalités d'administration."}
@@ -622,7 +664,7 @@ export default function AdminSubscribers() {
                 </div>
               )}
 
-              {actionType === "change_plan" && (
+              {(actionType === "change_plan" || actionType === "assign_plan") && (
                 <Select value={newPlanId} onValueChange={setNewPlanId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un forfait" />
@@ -641,10 +683,11 @@ export default function AdminSubscribers() {
                 <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
                   {actionType === "view" ? "Fermer" : "Annuler"}
                 </Button>
-                {actionType !== "view" && (actionType === "make_admin" || actionType === "remove_admin" || selectedUser?.subscription) && (
+                {actionType !== "view" && (actionType === "make_admin" || actionType === "remove_admin" || actionType === "assign_plan" || selectedUser?.subscription) && (
                   <Button
                     onClick={executeAction}
                     variant={actionType === "cancel" || actionType === "remove_admin" ? "destructive" : "default"}
+                    disabled={(actionType === "assign_plan" || actionType === "change_plan") && !newPlanId}
                   >
                     Confirmer
                   </Button>

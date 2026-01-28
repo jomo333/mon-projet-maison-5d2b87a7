@@ -19,6 +19,7 @@ import ProjectGallery from "./pages/ProjectGallery";
 import Project from "./pages/Project";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/mes-projets" element={<MyProjects />} />
             <Route path="/galerie" element={<ProjectGallery />} />
+            <Route path="/confidentialite" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

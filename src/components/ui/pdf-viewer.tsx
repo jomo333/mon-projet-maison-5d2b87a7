@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
@@ -17,28 +17,47 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const [scale, setScale] = useState<number>(1.0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
 
-  // Fetch PDF as ArrayBuffer to bypass CORS issues
+  // Fetch PDF as Uint8Array to bypass CORS issues
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchPdf = async () => {
       setLoading(true);
       setError(null);
+      setPdfBytes(null);
+      
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error("Erreur de chargement du PDF");
         const buffer = await response.arrayBuffer();
-        setPdfData(buffer);
+        
+        if (!cancelled) {
+          // Convert to Uint8Array to avoid detached ArrayBuffer issues
+          setPdfBytes(new Uint8Array(buffer));
+        }
       } catch (err) {
         console.error("PDF fetch error:", err);
-        setError("Impossible de charger le PDF");
-      } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setError("Impossible de charger le PDF");
+          setLoading(false);
+        }
       }
     };
 
     fetchPdf();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [url]);
+
+  // Create a fresh copy of the data for each render to avoid detached buffer issues
+  const pdfFile = useMemo(() => {
+    if (!pdfBytes) return null;
+    return { data: new Uint8Array(pdfBytes) };
+  }, [pdfBytes]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -57,7 +76,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
   const zoomIn = () => setScale((prev) => Math.min(prev + 0.2, 2.5));
   const zoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.5));
 
-  if (loading && !pdfData) {
+  if (loading && !pdfBytes) {
     return (
       <div className={`flex flex-col items-center justify-center h-full ${className}`}>
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
@@ -117,9 +136,9 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
 
       {/* PDF Content */}
       <div className="flex-1 overflow-auto flex justify-center bg-muted p-4">
-        {pdfData && (
+        {pdfFile && (
           <Document
-            file={{ data: pdfData }}
+            file={pdfFile}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={

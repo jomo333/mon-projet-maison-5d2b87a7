@@ -42,6 +42,7 @@ import {
   Eye,
   X
 } from "lucide-react";
+import { PDFViewer } from "@/components/ui/pdf-viewer";
 
 const documentCategories = [
   { value: "all", label: "Tous les documents" },
@@ -785,7 +786,9 @@ const ProjectGallery = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-            {previewLoading ? (
+            {previewDocument?.type === "application/pdf" ? (
+              <PDFViewer url={previewDocument.url} className="w-full h-full" />
+            ) : previewLoading ? (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Chargement du document...</p>
@@ -796,30 +799,6 @@ const ProjectGallery = () => {
                 alt={previewDocument.name}
                 className="w-full h-full object-contain"
               />
-            ) : previewDocument?.type === "application/pdf" && previewBlobUrl ? (
-              <object
-                data={previewBlobUrl}
-                type="application/pdf"
-                className="w-full h-full"
-                title={previewDocument.name}
-              >
-                <div className="flex flex-col items-center gap-3 text-muted-foreground p-4">
-                  <File className="h-12 w-12" />
-                  <p>Votre navigateur ne supporte pas l'affichage PDF intégré</p>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = previewBlobUrl;
-                      link.download = previewDocument.name;
-                      link.click();
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger le PDF
-                  </Button>
-                </div>
-              </object>
             ) : previewDocument?.type === "text/markdown" && previewBlobUrl ? (
               <iframe
                 src={previewBlobUrl}

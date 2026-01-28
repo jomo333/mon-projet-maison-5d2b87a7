@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -118,7 +116,7 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
       </div>
 
       {/* PDF Content */}
-      <div className="flex-1 overflow-auto flex justify-center bg-gray-100 dark:bg-gray-800 p-4">
+      <div className="flex-1 overflow-auto flex justify-center bg-muted p-4">
         {pdfData && (
           <Document
             file={{ data: pdfData }}
@@ -133,8 +131,8 @@ export function PDFViewer({ url, className = "" }: PDFViewerProps) {
             <Page
               pageNumber={pageNumber}
               scale={scale}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
               className="shadow-lg"
             />
           </Document>

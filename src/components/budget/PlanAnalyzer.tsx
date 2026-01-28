@@ -37,20 +37,12 @@ import { usePdfToImage } from "@/hooks/use-pdf-to-image";
 import { mapAnalysisToStepCategories, type ProjectConfig } from "@/lib/budgetCategories";
 import { compressImageFileToJpeg } from "@/lib/imageCompression";
 
-interface BudgetCategory {
-  name: string;
-  budget: number;
-  description: string;
-  items: { name: string; cost: number; quantity: string; unit: string }[];
-}
-
-interface BudgetAnalysis {
-  projectSummary: string;
-  estimatedTotal: number;
-  categories: BudgetCategory[];
-  recommendations: string[];
-  warnings: string[];
-}
+import type { 
+  BudgetCategory, 
+  BudgetAnalysis, 
+  PlanDocument, 
+  StylePhoto 
+} from "./types";
 
 interface PlanAnalyzerProps {
   onBudgetGenerated: (categories: BudgetCategory[]) => void;
@@ -214,7 +206,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   }, [besoinsNote]);
 
   // Fetch style photos for the project (category "style")
-  const { data: stylePhotos = [] } = useQuery({
+  const { data: stylePhotos = [] } = useQuery<StylePhoto[]>({
     queryKey: ["style-photos", projectId],
     queryFn: async () => {
       if (!projectId) return [];
@@ -227,13 +219,13 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         .eq("category", "style")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as StylePhoto[];
     },
     enabled: !!projectId,
   });
 
   // Fetch uploaded plans/documents from project tasks AND project photos
-  const { data: plans = [] } = useQuery({
+  const { data: plans = [] } = useQuery<PlanDocument[]>({
     queryKey: ["project-plans", projectId],
     queryFn: async () => {
       if (!projectId) {
@@ -244,7 +236,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           .eq("category", "plan")
           .order("created_at", { ascending: false });
         if (error) throw error;
-        return data || [];
+        return (data || []) as PlanDocument[];
       }
 
       // Fetch ALL attachments for this project (any category – user may have selected "other")
@@ -263,7 +255,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
 
-      let photos: any[] = [];
+      let photos: PlanDocument[] = [];
       if (!photosError && projectPhotos) {
         photos = projectPhotos.map(photo => ({
           id: photo.id,
@@ -278,16 +270,21 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       }
 
       // Merge and deduplicate by file_url
-      const allPlans = [...(attachments || []), ...photos];
+      const attachmentsAsPlan: PlanDocument[] = (attachments || []).map(att => ({
+        id: att.id,
+        file_name: att.file_name,
+        file_url: att.file_url,
+        file_type: att.file_type,
+        file_size: att.file_size,
+        created_at: att.created_at,
+        category: att.category,
+        step_id: att.step_id,
+      }));
+      
+      const allPlans = [...attachmentsAsPlan, ...photos];
       const uniquePlans = allPlans.filter((plan, index, self) =>
         index === self.findIndex(p => p.file_url === plan.file_url)
       );
-
-      console.log("[PlanAnalyzer] projectId", projectId, {
-        attachments: attachments?.length ?? 0,
-        photos: photos.length,
-        unique: uniquePlans.length,
-      });
 
       return uniquePlans;
     },
@@ -473,14 +470,14 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     }
     autoImportedForProjectRef.current = projectId;
 
-    const isPdfPlan = (p: any) => {
-      const url = p?.file_url as string | undefined;
+    const isPdfPlan = (p: PlanDocument) => {
+      const url = p?.file_url;
       const fileType = String(p?.file_type || "").toLowerCase();
       return fileType.includes("pdf") || (!!url && isPdfUrl(url));
     };
 
-    const isImagePlan = (p: any) => {
-      const url = p?.file_url as string | undefined;
+    const isImagePlan = (p: PlanDocument) => {
+      const url = p?.file_url;
       const fileType = String(p?.file_type || "").toLowerCase();
       return fileType.startsWith("image/") || (!!url && isImageUrl(url));
     };
@@ -495,8 +492,8 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     // Otherwise, preselect a handful of the latest images (often the PDF pages already converted)
     const imageUrls = plans
       .filter(isImagePlan)
-      .map((p: any) => p?.file_url)
-      .filter((u: unknown): u is string => typeof u === "string" && u.length > 0)
+      .map((p) => p.file_url)
+      .filter((u): u is string => typeof u === "string" && u.length > 0)
       .slice(0, 10);
 
     if (imageUrls.length > 0) {
@@ -569,7 +566,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
     try {
       // Get style photo URLs to include in analysis
-      const stylePhotoUrls = stylePhotos.map((p: any) => p.file_url);
+      const stylePhotoUrls = stylePhotos.map((p) => p.file_url);
       
       // Données manuelles enrichies (toujours incluses pour contexte)
       const isGarageProject = projectType === "garage" || projectType === "garage-etage";
@@ -691,8 +688,38 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         const totalImages = planUrlsForAnalysis.length;
         const totalBatches = Math.ceil(totalImages / BATCH_SIZE);
         
+        // Types for batch results
+        interface BatchResultRaw {
+          categories?: Array<{
+            nom?: string;
+            name?: string;
+            sous_total_categorie?: number;
+            budget?: number;
+            items?: Array<{
+              description?: string;
+              name?: string;
+              total?: number;
+              cost?: number;
+              quantite?: number | string;
+              quantity?: number | string;
+              unite?: string;
+              unit?: string;
+            }>;
+          }>;
+          extraction?: {
+            categories?: BatchResultRaw["categories"];
+          };
+          resume_projet?: string;
+          totaux?: {
+            total_ttc?: number;
+          };
+          recommandations?: string[];
+          warnings?: string[];
+        }
+        
         // Collecter les résultats bruts de chaque batch pour fusion côté serveur
-        const batchResults: any[] = [];
+        const batchResults: BatchResultRaw[] = [];
+        let failedBatches = 0;
         
         for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
           const startIdx = batchIndex * BATCH_SIZE;
@@ -728,22 +755,34 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           if (error) {
             console.error(`Batch ${batchIndex + 1} error:`, error);
             toast.error(`Erreur sur le lot ${batchIndex + 1}: ${error.message}`);
+            failedBatches++;
             // Continue avec les autres lots
             continue;
           }
           
           if (data.success && data.rawAnalysis) {
-            batchResults.push(data.rawAnalysis);
+            batchResults.push(data.rawAnalysis as BatchResultRaw);
           } else if (data.success && data.data) {
             // Fallback si rawAnalysis n'est pas disponible
-            batchResults.push({ categories: data.data.categories, extraction: data.data });
+            batchResults.push({ categories: data.data.categories, extraction: data.data } as BatchResultRaw);
+          } else {
+            failedBatches++;
           }
         }
         
         setBatchProgress(null);
         
+        // Show partial failure message if some batches failed
+        const succeededBatches = totalBatches - failedBatches;
+        if (failedBatches > 0 && succeededBatches > 0) {
+          toast.warning(
+            `${succeededBatches} plan(s) analysé(s) sur ${totalBatches}, ${failedBatches} en échec. ` +
+            `Les résultats sont partiels.`
+          );
+        }
+        
         if (batchResults.length === 0) {
-          throw new Error("Aucun lot n'a pu être analysé avec succès");
+          throw new Error(`Aucun lot n'a pu être analysé avec succès (${failedBatches} échec(s) sur ${totalBatches})`);
         }
         
         // Si un seul lot, utiliser directement le résultat
@@ -778,16 +817,16 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             setAnalysis({
               projectSummary: singleResult.resume_projet || `Analyse de ${totalImages} plan(s)`,
               estimatedTotal: singleResult.totaux?.total_ttc || 0,
-              categories: categories.map((cat: any) => ({
-                name: cat.nom || cat.name,
+              categories: categories.map((cat) => ({
+                name: cat.nom || cat.name || "",
                 budget: cat.sous_total_categorie || cat.budget || 0,
                 description: `${cat.items?.length || 0} items`,
-                items: (cat.items || []).map((item: any) => ({
-                  name: item.description || item.name,
+                items: (cat.items || []).map((item) => ({
+                  name: item.description || item.name || "",
                   cost: item.total || item.cost || 0,
-                  quantity: String(item.quantite || item.quantity || ''),
-                  unit: item.unite || item.unit || ''
-                }))
+                  quantity: String(item.quantite || item.quantity || ""),
+                  unit: item.unite || item.unit || "",
+                })),
               })),
               recommendations: singleResult.recommandations || [],
               warnings: singleResult.warnings || [],

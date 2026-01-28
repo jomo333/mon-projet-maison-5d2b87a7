@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { CookieConsent } from "@/components/cookies/CookieConsent";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
@@ -21,6 +22,7 @@ import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import CookiePolicy from "./pages/CookiePolicy";
 
 const queryClient = new QueryClient();
 
@@ -48,8 +50,10 @@ const App = () => (
             <Route path="/galerie" element={<ProjectGallery />} />
             <Route path="/confidentialite" element={<Privacy />} />
             <Route path="/conditions" element={<Terms />} />
+            <Route path="/politique-cookies" element={<CookiePolicy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsent />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

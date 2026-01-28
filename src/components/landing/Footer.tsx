@@ -46,6 +46,11 @@ export function Footer() {
                   Conditions d'utilisation
                 </Link>
               </li>
+              <li>
+                <Link to="/politique-cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Politique de cookies
+                </Link>
+              </li>
             </ul>
           </div>
 

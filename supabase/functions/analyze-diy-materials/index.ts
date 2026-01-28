@@ -1,11 +1,45 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper to increment AI usage for a user
+async function incrementAiUsage(authHeader: string | null): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.log('Could not get user claims for AI usage tracking');
+      return;
+    }
+    
+    const userId = claimsData.claims.sub;
+    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
+    
+    if (error) {
+      console.error('Failed to increment AI usage:', error);
+    } else {
+      console.log('AI usage incremented for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI usage:', err);
+  }
+}
 
 // Prix des matériaux Québec 2025
 const PRIX_MATERIAUX_QUEBEC_2025 = {
@@ -178,6 +212,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Get auth header for AI usage tracking
+  const authHeader = req.headers.get('Authorization');
+
   try {
     const body = await req.json();
     const { categoryName, subCategoryName, planUrls, projectDetails } = body;
@@ -294,6 +331,9 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Increment AI usage for the user
+    await incrementAiUsage(authHeader);
 
     // Return streaming response
     return new Response(response.body, {

@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.bootstrap-admin]
 verify_jwt = false
+
+[functions.analyze-plan]
+verify_jwt = false
+
+[functions.analyze-soumissions]
+verify_jwt = false
+
+[functions.analyze-diy-materials]
+verify_jwt = false
+
+[functions.search-building-code]
+verify_jwt = false

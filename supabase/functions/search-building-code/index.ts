@@ -1,12 +1,50 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper to increment AI usage for a user
+async function incrementAiUsage(authHeader: string | null): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.log('Could not get user claims for AI usage tracking');
+      return;
+    }
+    
+    const userId = claimsData.claims.sub;
+    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
+    
+    if (error) {
+      console.error('Failed to increment AI usage:', error);
+    } else {
+      console.log('AI usage incremented for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI usage:', err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Get auth header for AI usage tracking
+  const authHeader = req.headers.get('Authorization');
 
   try {
     const { query, conversationHistory = [] } = await req.json();
@@ -167,6 +205,10 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
     }
 
     console.log("Search successful with Claude, type:", result.type);
+    
+    // Increment AI usage for the user
+    await incrementAiUsage(authHeader);
+    
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -25,6 +25,8 @@ import {
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { useAuth } from "@/hooks/useAuth";
+import { PlanUsageCard } from "@/components/subscription/PlanUsageCard";
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -417,25 +419,27 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Progress overview */}
-          <Card className="mb-8">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Progression globale</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Progress value={overallProgress} className="flex-1 h-3" />
-                <span className="text-lg font-semibold">{Math.round(overallProgress)}%</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {completedStepsCount} étape{completedStepsCount > 1 ? 's' : ''} terminée{completedStepsCount > 1 ? 's' : ''} sur {scheduledStepsCount}
-                {nextStep && (
-                  <> • Prochaine: <span className="font-medium text-foreground">{nextStep.title}</span></>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
+          {/* Plan Usage and Progress overview */}
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Progression globale</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Progress value={overallProgress} className="flex-1 h-3" />
+                  <span className="text-lg font-semibold">{Math.round(overallProgress)}%</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {completedStepsCount} étape{completedStepsCount > 1 ? 's' : ''} terminée{completedStepsCount > 1 ? 's' : ''} sur {scheduledStepsCount}
+                  {nextStep && (
+                    <> • Prochaine: <span className="font-medium text-foreground">{nextStep.title}</span></>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+            <PlanUsageCard />
+          </div>
           {/* Current step highlight */}
           {nextStep && (
             <div className="mb-8">

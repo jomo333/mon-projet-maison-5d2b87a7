@@ -1,9 +1,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Helper to increment AI usage for a user (only if authenticated)
+async function incrementAiUsage(authHeader: string | null): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      // User not authenticated - this is OK for chat (anonymous allowed)
+      return;
+    }
+    
+    const userId = claimsData.claims.sub;
+    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
+    
+    if (error) {
+      console.error('Failed to increment AI usage:', error);
+    } else {
+      console.log('AI usage incremented for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI usage:', err);
+  }
+}
 
 const SYSTEM_PROMPT = `Tu es l'assistant officiel de MonProjetMaison.ca.
 
@@ -44,6 +78,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Get auth header for AI usage tracking (optional - anonymous users can also chat)
+  const authHeader = req.headers.get('Authorization');
 
   try {
     const { messages } = await req.json();
@@ -89,6 +126,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Increment AI usage for authenticated users
+    await incrementAiUsage(authHeader);
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

@@ -36,6 +36,11 @@ export function Footer() {
                   Guide
                 </Link>
               </li>
+              <li>
+                <Link to="/confidentialite" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Confidentialité
+                </Link>
+              </li>
             </ul>
           </div>
 

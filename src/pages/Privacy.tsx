@@ -1,0 +1,218 @@
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/landing/Footer";
+import { Shield } from "lucide-react";
+
+const Privacy = () => {
+  const sections = [
+    {
+      number: 1,
+      title: "Collecte de renseignements",
+      intro: "Mon Projet Maison collecte des renseignements personnels lorsque vous utilisez notre plateforme pour planifier votre projet de construction ou de rénovation résidentielle. Les informations que nous recueillons peuvent inclure :",
+      items: [
+        "Votre nom, adresse courriel et numéro de téléphone",
+        "Les détails de votre projet de construction ou rénovation",
+        "Votre localisation géographique au Québec",
+        "Les préférences et spécifications de votre projet",
+        "Les informations d'utilisation de notre plateforme",
+      ],
+    },
+    {
+      number: 2,
+      title: "Utilisation des renseignements",
+      intro: "Nous utilisons vos renseignements personnels pour les finalités suivantes :",
+      items: [
+        "Fournir et améliorer nos services de planification de projet",
+        "Vous connecter avec des entrepreneurs et professionnels qualifiés",
+        "Personnaliser votre expérience sur notre plateforme",
+        "Vous envoyer des communications pertinentes concernant votre projet",
+        "Respecter nos obligations légales et réglementaires",
+        "Analyser et optimiser l'utilisation de notre plateforme",
+      ],
+    },
+    {
+      number: 3,
+      title: "Partage de renseignements",
+      intro: "Mon Projet Maison ne vend jamais vos renseignements personnels. Nous pouvons partager vos informations dans les circonstances suivantes :",
+      items: [
+        "Avec des entrepreneurs et professionnels qualifiés pour réaliser votre projet",
+        "Avec des fournisseurs de services qui nous aident à opérer notre plateforme",
+        "Lorsque requis par la loi ou pour protéger nos droits légaux",
+        "Avec votre consentement explicite pour des fins spécifiques",
+      ],
+      footer: "Tous nos partenaires sont tenus de respecter la confidentialité de vos renseignements et de se conformer aux lois applicables en matière de protection des données.",
+    },
+    {
+      number: 4,
+      title: "Protection des renseignements",
+      intro: "Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles appropriées pour protéger vos renseignements personnels contre tout accès non autorisé, modification, divulgation ou destruction. Ces mesures incluent :",
+      items: [
+        "Chiffrement des données sensibles en transit et au repos",
+        "Contrôles d'accès stricts et authentification sécurisée",
+        "Surveillance continue de nos systèmes de sécurité",
+        "Formation régulière de notre personnel sur la protection des données",
+        "Audits de sécurité périodiques",
+      ],
+    },
+    {
+      number: 5,
+      title: "Vos droits",
+      intro: "Conformément aux lois québécoises et canadiennes sur la protection des renseignements personnels, vous disposez des droits suivants :",
+      items: [
+        "Droit d'accès : Vous pouvez demander une copie des renseignements personnels que nous détenons à votre sujet",
+        "Droit de rectification : Vous pouvez demander la correction de renseignements inexacts ou incomplets",
+        "Droit de suppression : Vous pouvez demander la suppression de vos renseignements personnels dans certaines circonstances",
+        "Droit d'opposition : Vous pouvez vous opposer à certaines utilisations de vos renseignements",
+        "Droit de retrait du consentement : Vous pouvez retirer votre consentement à tout moment",
+      ],
+      footer: "Pour exercer ces droits, veuillez nous contacter aux coordonnées indiquées ci-dessous.",
+    },
+    {
+      number: 6,
+      title: "Cookies et technologies similaires",
+      intro: "Notre plateforme utilise des cookies et des technologies similaires pour améliorer votre expérience utilisateur, analyser l'utilisation de notre site et personnaliser le contenu. Vous pouvez gérer vos préférences en matière de cookies via les paramètres de votre navigateur.",
+      items: [],
+      footer: "Les cookies que nous utilisons incluent des cookies essentiels nécessaires au fonctionnement du site, des cookies analytiques pour comprendre comment vous utilisez notre plateforme, et des cookies de performance pour optimiser votre expérience.",
+    },
+    {
+      number: 7,
+      title: "Conservation des données",
+      intro: "Nous conservons vos renseignements personnels aussi longtemps que nécessaire pour fournir nos services et respecter nos obligations légales. Les données de projet peuvent être conservées pendant la durée de votre projet et une période raisonnable par la suite pour des fins de référence et de conformité.",
+      items: [],
+      footer: "Lorsque vos renseignements ne sont plus nécessaires, nous les supprimons ou les anonymisons de manière sécurisée.",
+    },
+    {
+      number: 8,
+      title: "Modifications de la politique",
+      intro: "Nous nous réservons le droit de modifier cette politique de confidentialité à tout moment. Toute modification sera publiée sur cette page avec une date de mise à jour révisée. Nous vous encourageons à consulter régulièrement cette politique pour rester informé de la manière dont nous protégeons vos renseignements.",
+      items: [],
+      footer: "Si nous apportons des modifications importantes, nous vous en informerons par courriel ou via une notification sur notre plateforme.",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative py-16 md:py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+          <div className="container">
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <Shield className="h-4 w-4" />
+                Dernière mise à jour : Janvier 2026
+              </div>
+              
+              <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">
+                Politique de{" "}
+                <span className="text-primary">Confidentialité</span>
+              </h1>
+              
+              <p className="text-lg text-muted-foreground">
+                Chez Mon Projet Maison, nous prenons la protection de vos renseignements personnels au sérieux.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Content */}
+        <section className="py-16">
+          <div className="container">
+            <div className="max-w-4xl mx-auto">
+              <div className="space-y-12">
+                {sections.map((section) => (
+                  <div key={section.number} className="relative">
+                    <div className="flex gap-6">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-lg">
+                        {section.number}
+                      </div>
+                      
+                      <div className="flex-1">
+                        <h2 className="font-display text-2xl font-semibold mb-4">
+                          {section.title}
+                        </h2>
+                        
+                        <div className="text-muted-foreground space-y-4">
+                          <p>{section.intro}</p>
+                          
+                          {section.items.length > 0 && (
+                            <ul className="space-y-2 ml-4">
+                              {section.items.map((item, index) => (
+                                <li key={index} className="flex gap-2">
+                                  <span className="text-primary">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          
+                          {section.footer && (
+                            <p className="mt-4 text-sm">{section.footer}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Contact Section */}
+              <div className="mt-16 p-8 rounded-2xl bg-muted/50 border">
+                <h2 className="font-display text-2xl font-semibold mb-4">
+                  Nous contacter
+                </h2>
+                
+                <p className="text-muted-foreground mb-6">
+                  Pour toute question concernant cette politique de confidentialité ou pour exercer vos droits en matière de protection des renseignements personnels, veuillez nous contacter :
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl">
+                      📧
+                    </div>
+                    <div>
+                      <p className="font-medium">Courriel</p>
+                      <a 
+                        href="mailto:confidentialite@monprojetmaison.ca" 
+                        className="text-primary hover:underline"
+                      >
+                        confidentialite@monprojetmaison.ca
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl">
+                      📍
+                    </div>
+                    <div>
+                      <p className="font-medium">Adresse</p>
+                      <p className="text-muted-foreground">
+                        Mon Projet Maison<br />
+                        Laval, Québec, Canada
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 rounded-lg bg-background border text-sm text-muted-foreground">
+                  <strong>Note :</strong> Cette politique de confidentialité est conforme à la Loi sur la protection des renseignements personnels dans le secteur privé du Québec et à la Loi sur la protection des renseignements personnels et les documents électroniques (LPRPDE) du Canada.
+                </div>
+              </div>
+
+              {/* Footer note */}
+              <div className="mt-12 text-center text-sm text-muted-foreground">
+                © {new Date().getFullYear()} Mon Projet Maison. Tous droits réservés.
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+};
+
+export default Privacy;

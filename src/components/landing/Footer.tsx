@@ -1,5 +1,20 @@
-import { Home, Mail, Phone } from "lucide-react";
+import { Home, Mail, Phone, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCookieConsent } from "@/components/cookies/CookieConsent";
+
+const CookieSettingsButton = () => {
+  const { openPreferences } = useCookieConsent();
+  
+  return (
+    <button 
+      onClick={openPreferences}
+      className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+    >
+      <Settings className="h-3.5 w-3.5" />
+      Gérer mes cookies
+    </button>
+  );
+};
 
 export function Footer() {
   return (
@@ -50,6 +65,9 @@ export function Footer() {
                 <Link to="/politique-cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Politique de cookies
                 </Link>
+              </li>
+              <li>
+                <CookieSettingsButton />
               </li>
             </ul>
           </div>

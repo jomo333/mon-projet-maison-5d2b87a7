@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Cookie, Settings, X } from "lucide-react";
+import { Cookie, Settings } from "lucide-react";
 import { CookiePreferencesDialog } from "./CookiePreferencesDialog";
 
 export type CookiePreferences = {
@@ -28,6 +28,62 @@ export const getStoredPreferences = (): CookiePreferences | null => {
 
 export const hasConsented = (): boolean => {
   return localStorage.getItem(COOKIE_CONSENT_KEY) === "true";
+};
+
+// Context for opening cookie preferences from anywhere
+type CookieConsentContextType = {
+  openPreferences: () => void;
+};
+
+const CookieConsentContext = createContext<CookieConsentContextType | null>(null);
+
+export const useCookieConsent = () => {
+  const context = useContext(CookieConsentContext);
+  if (!context) {
+    // Return a no-op function if context is not available (prevents errors)
+    return { openPreferences: () => {} };
+  }
+  return context;
+};
+
+export const CookieConsentProvider = ({ children }: { children: ReactNode }) => {
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [preferences, setPreferences] = useState<CookiePreferences>({
+    essential: true,
+    analytics: false,
+    marketing: false,
+    functional: false,
+  });
+
+  useEffect(() => {
+    const savedPrefs = getStoredPreferences();
+    if (savedPrefs) {
+      setPreferences(savedPrefs);
+    }
+  }, []);
+
+  const openPreferencesDialog = () => {
+    setShowPreferences(true);
+  };
+
+  const handleSavePreferences = (prefs: CookiePreferences) => {
+    localStorage.setItem(COOKIE_CONSENT_KEY, "true");
+    localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
+    setPreferences(prefs);
+    setShowPreferences(false);
+  };
+
+  return (
+    <CookieConsentContext.Provider value={{ openPreferences: openPreferencesDialog }}>
+      {children}
+      <CookiePreferencesDialog
+        open={showPreferences}
+        onOpenChange={setShowPreferences}
+        preferences={preferences}
+        onSave={handleSavePreferences}
+      />
+    </CookieConsentContext.Provider>
+  );
 };
 
 export const CookieConsent = () => {
@@ -59,17 +115,13 @@ export const CookieConsent = () => {
 
   const applyPreferences = (prefs: CookiePreferences) => {
     // Here you would enable/disable third-party scripts based on preferences
-    // For example, loading Google Analytics only if analytics is true
     if (prefs.analytics) {
-      // Enable analytics cookies/scripts
       console.log("Analytics cookies enabled");
     }
     if (prefs.marketing) {
-      // Enable marketing cookies/scripts
       console.log("Marketing cookies enabled");
     }
     if (prefs.functional) {
-      // Enable functional cookies/scripts
       console.log("Functional cookies enabled");
     }
   };

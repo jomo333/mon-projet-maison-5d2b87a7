@@ -1,7 +1,8 @@
-import { Home, Bug, Settings } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCookieConsent } from "@/components/cookies/CookieConsent";
+import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
 
 const CookieSettingsButton = () => {
   const { t } = useTranslation();
@@ -97,13 +98,13 @@ export function BlueprintFooter() {
                 <CookieSettingsButton />
               </li>
               <li className="pt-2">
-                <a 
-                  href="mailto:bug@monprojetmaison.ca" 
-                  className="text-sm text-slate-400 hover:text-amber-500 transition-colors flex items-center gap-1.5"
-                >
-                  <Bug className="h-3.5 w-3.5" />
-                  {t("footer.reportBug")}
-                </a>
+                <ReportBugDialog 
+                  trigger={
+                    <button className="text-sm text-slate-400 hover:text-amber-500 transition-colors flex items-center gap-1.5">
+                      {t("footer.reportBug", "Signaler un bug")}
+                    </button>
+                  }
+                />
               </li>
             </ul>
           </div>

@@ -53,6 +53,8 @@ interface BugReport {
   resolved: boolean;
   admin_notes: string | null;
   created_at: string;
+  user_email?: string | null;
+  user_display_name?: string | null;
 }
 
 interface AIUsageStats {
@@ -171,7 +173,29 @@ export default function AdminAnalytics() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setBugReports(data || []);
+
+      // Fetch user profiles for bugs with user_id
+      const userIds = [...new Set((data || []).filter(b => b.user_id).map(b => b.user_id))];
+      let profilesMap = new Map<string, { display_name: string | null }>();
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds);
+        
+        if (profiles) {
+          profiles.forEach(p => profilesMap.set(p.user_id, { display_name: p.display_name }));
+        }
+      }
+
+      // Enrich bug reports with user info
+      const enrichedBugs = (data || []).map(bug => ({
+        ...bug,
+        user_display_name: bug.user_id ? profilesMap.get(bug.user_id)?.display_name : null,
+      }));
+
+      setBugReports(enrichedBugs);
     } catch (error) {
       console.error("Error fetching bug reports:", error);
       toast.error("Erreur lors du chargement des rapports de bugs");
@@ -552,6 +576,7 @@ export default function AdminAnalytics() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>
+                          <TableHead>Utilisateur</TableHead>
                           <TableHead>Source</TableHead>
                           <TableHead>Description</TableHead>
                           <TableHead>Page</TableHead>
@@ -565,10 +590,21 @@ export default function AdminAnalytics() {
                             <TableCell className="whitespace-nowrap">
                               {format(new Date(bug.created_at), "dd/MM/yy HH:mm")}
                             </TableCell>
+                            <TableCell className="text-sm">
+                              {bug.user_display_name || bug.user_id?.slice(0, 8) || "—"}
+                            </TableCell>
                             <TableCell>
-                              <Badge variant={bug.source === "repeated_clicks" ? "destructive" : "secondary"}>
+                              <Badge 
+                                variant={
+                                  bug.source === "repeated_clicks" 
+                                    ? "destructive" 
+                                    : bug.source === "user_report" 
+                                      ? "default" 
+                                      : "secondary"
+                                }
+                              >
                                 {bug.source === "repeated_clicks" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                                {bug.source}
+                                {bug.source === "user_report" ? "Utilisateur" : bug.source}
                               </Badge>
                             </TableCell>
                             <TableCell className="max-w-[300px] truncate">

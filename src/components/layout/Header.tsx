@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard } from "lucide-react";
+import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
+import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
 import logo from "@/assets/logo.png";
 
 const getNavItems = (t: (key: string) => string) => [
@@ -140,6 +141,15 @@ export function Header() {
                         </DropdownMenuItem>
                       </>
                     )}
+                    <DropdownMenuSeparator />
+                    <ReportBugDialog 
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Bug className="mr-2 h-4 w-4" />
+                          {t("reportBug.title", "Signaler un bug")}
+                        </DropdownMenuItem>
+                      }
+                    />
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />

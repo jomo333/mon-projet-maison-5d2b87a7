@@ -1,6 +1,7 @@
 import { Home, Mail, Phone, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCookieConsent } from "@/components/cookies/CookieConsent";
+import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
 
 const CookieSettingsButton = () => {
   const { openPreferences } = useCookieConsent();
@@ -70,6 +71,9 @@ export function Footer() {
                 <Link to="/politique-cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Politique de cookies
                 </Link>
+              </li>
+              <li>
+                <ReportBugDialog />
               </li>
               <li>
                 <CookieSettingsButton />

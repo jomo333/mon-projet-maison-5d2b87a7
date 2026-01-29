@@ -662,5 +662,16 @@
     "copied": "Copied to clipboard",
     "uploaded": "Uploaded successfully",
     "downloadStarted": "Download started"
+  },
+  "reportBug": {
+    "title": "Report a bug",
+    "description": "Describe the problem you encountered. We will review your report quickly.",
+    "problemLabel": "Describe the problem",
+    "placeholder": "Explain what happened, what you expected, and the steps to reproduce the issue...",
+    "autoCapture": "The current page and technical information will be automatically included.",
+    "send": "Send",
+    "success": "Thank you, your report has been sent!",
+    "error": "Error sending the report",
+    "descriptionRequired": "Please describe the problem"
   }
 }

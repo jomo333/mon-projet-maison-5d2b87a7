@@ -662,5 +662,16 @@
     "copied": "Copié dans le presse-papiers",
     "uploaded": "Téléversé avec succès",
     "downloadStarted": "Téléchargement commencé"
+  },
+  "reportBug": {
+    "title": "Signaler un bug",
+    "description": "Décrivez le problème que vous avez rencontré. Nous examinerons votre signalement rapidement.",
+    "problemLabel": "Décrivez le problème",
+    "placeholder": "Expliquez ce qui s'est passé, ce que vous attendiez, et les étapes pour reproduire le problème...",
+    "autoCapture": "La page actuelle et des informations techniques seront automatiquement incluses.",
+    "send": "Envoyer",
+    "success": "Merci, votre signalement a été envoyé !",
+    "error": "Erreur lors de l'envoi du signalement",
+    "descriptionRequired": "Veuillez décrire le problème"
   }
 }

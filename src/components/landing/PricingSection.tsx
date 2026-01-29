@@ -5,48 +5,51 @@ import { useNavigate } from "react-router-dom";
 
 const plans = [
   {
-    name: "Essentiel",
-    price: "Gratuit",
-    description: "Pour démarrer et explorer les fonctionnalités de base.",
+    name: "Découverte",
+    price: "0 $",
+    period: "/mois",
+    description: "Pour explorer les fonctionnalités de base gratuitement.",
     features: [
       "1 projet actif",
-      "Suivi budgétaire de base",
-      "Échéancier simple",
-      "Stockage 100 Mo",
+      "Guide et structure en lecture seule",
+      "Stockage 10 Go",
+      "1 analyse IA par mois",
     ],
     cta: "Commencer gratuitement",
     featured: false,
   },
   {
-    name: "Pro",
-    price: "14,99 $",
+    name: "Essentiel",
+    price: "50 $",
     period: "/mois",
-    description: "L'outil complet pour gérer votre autoconstruction efficacement.",
+    yearlyPrice: "500 $/an",
+    description: "L'outil complet pour gérer votre autoconstruction.",
     features: [
-      "Projets illimités",
-      "Analyse IA des plans et soumissions",
-      "Alertes de dépassement",
-      "Gestion des sous-traitants",
-      "Stockage 5 Go",
-      "Support prioritaire",
+      "1 projet actif",
+      "Échéancier et budget modifiables",
+      "Guide complet avec suivi",
+      "Stockage 10 Go",
+      "10 analyses IA par mois",
     ],
-    cta: "Choisir Pro",
-    featured: true,
+    cta: "Choisir Essentiel",
+    featured: false,
   },
   {
-    name: "Entreprise",
-    price: "Sur mesure",
-    description: "Pour les professionnels et entrepreneurs généraux.",
+    name: "Gestion complète",
+    price: "125 $",
+    period: "/mois",
+    yearlyPrice: "1 230 $/an",
+    description: "Pour une gestion avancée avec analyses spécialisées.",
     features: [
-      "Tout du forfait Pro",
-      "Multi-utilisateurs",
-      "Rapports personnalisés",
-      "API & intégrations",
-      "Stockage illimité",
-      "Accompagnement dédié",
+      "1 projet actif",
+      "Tout du forfait Essentiel",
+      "Analyses par corps de métier",
+      "Détection d'incohérences",
+      "Stockage 10 Go",
+      "20 analyses IA par mois",
     ],
-    cta: "Nous contacter",
-    featured: false,
+    cta: "Choisir Gestion complète",
+    featured: true,
   },
 ];
 
@@ -79,7 +82,7 @@ export function PricingSection() {
               {plan.featured && (
                 <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
                   <Star className="h-3 w-3 fill-current" />
-                  Recommandé
+                  Le plus populaire
                 </div>
               )}
               
@@ -93,6 +96,11 @@ export function PricingSection() {
                     <span className="text-muted-foreground text-sm">{plan.period}</span>
                   )}
                 </div>
+                {plan.yearlyPrice && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ou {plan.yearlyPrice} <span className="text-amber-600">(2 mois gratuits)</span>
+                  </p>
+                )}
                 <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
               

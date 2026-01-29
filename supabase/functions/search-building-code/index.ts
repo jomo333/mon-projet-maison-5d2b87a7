@@ -66,6 +66,50 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
   }
 }
 
+// Helper to track AI analysis usage
+async function trackAiAnalysisUsage(
+  authHeader: string | null,
+  analysisType: string
+): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userSupabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.log('Could not get user claims for AI analysis tracking');
+      return;
+    }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    const { error } = await supabase.from('ai_analysis_usage').insert({
+      user_id: userId,
+      analysis_type: analysisType,
+      project_id: null,
+    });
+    
+    if (error) {
+      console.error('Failed to track AI analysis usage:', error);
+    } else {
+      console.log('AI analysis usage tracked:', analysisType, 'for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI analysis usage:', err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -244,7 +288,8 @@ RAPPEL: Inclus toujours un avertissement que ces informations sont à titre indi
     
     // Increment AI usage for the user
     await incrementAiUsage(authHeader);
-    
+    await trackAiAnalysisUsage(authHeader, 'search-building-code');
+
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

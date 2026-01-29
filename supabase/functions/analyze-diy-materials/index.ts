@@ -69,6 +69,51 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
   }
 }
 
+// Helper to track AI analysis usage
+async function trackAiAnalysisUsage(
+  authHeader: string | null,
+  analysisType: string,
+  projectId?: string | null
+): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userSupabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.log('Could not get user claims for AI analysis tracking');
+      return;
+    }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    const { error } = await supabase.from('ai_analysis_usage').insert({
+      user_id: userId,
+      analysis_type: analysisType,
+      project_id: projectId || null,
+    });
+    
+    if (error) {
+      console.error('Failed to track AI analysis usage:', error);
+    } else {
+      console.log('AI analysis usage tracked:', analysisType, 'for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI analysis usage:', err);
+  }
+}
+
 // Prix des matériaux Québec 2025
 const PRIX_MATERIAUX_QUEBEC_2025 = {
   bois: {
@@ -370,6 +415,7 @@ serve(async (req) => {
 
     // Increment AI usage for the user
     await incrementAiUsage(authHeader);
+    await trackAiAnalysisUsage(authHeader, 'analyze-diy-materials', null);
 
     // Return streaming response
     return new Response(response.body, {

@@ -50,6 +50,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_analysis_usage: {
+        Row: {
+          analysis_type: string
+          created_at: string
+          id: string
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           count: number
@@ -74,6 +98,48 @@ export type Database = {
           month?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      bug_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          page_path: string | null
+          resolved: boolean
+          source: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          resolved?: boolean
+          source: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          resolved?: boolean
+          source?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -679,6 +745,69 @@ export type Database = {
           step_id?: string
           task_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_analytics_aggregated: {
+        Row: {
+          first_project_at: string | null
+          first_session_at: string | null
+          id: string
+          last_updated_at: string
+          time_to_first_project_seconds: number | null
+          total_sessions: number | null
+          total_time_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          first_project_at?: string | null
+          first_session_at?: string | null
+          id?: string
+          last_updated_at?: string
+          time_to_first_project_seconds?: number | null
+          total_sessions?: number | null
+          total_time_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          first_project_at?: string | null
+          first_session_at?: string | null
+          id?: string
+          last_updated_at?: string
+          time_to_first_project_seconds?: number | null
+          total_sessions?: number | null
+          total_time_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_path: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          user_id?: string
         }
         Relationships: []
       }

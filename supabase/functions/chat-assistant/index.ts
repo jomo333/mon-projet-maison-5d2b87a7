@@ -39,6 +39,50 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
   }
 }
 
+// Helper to track AI analysis usage
+async function trackAiAnalysisUsage(
+  authHeader: string | null,
+  analysisType: string
+): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userSupabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      // User not authenticated - this is OK for chat (anonymous allowed)
+      return;
+    }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    const { error } = await supabase.from('ai_analysis_usage').insert({
+      user_id: userId,
+      analysis_type: analysisType,
+      project_id: null,
+    });
+    
+    if (error) {
+      console.error('Failed to track AI analysis usage:', error);
+    } else {
+      console.log('AI analysis usage tracked:', analysisType, 'for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI analysis usage:', err);
+  }
+}
+
 const SYSTEM_PROMPT = `Tu es l'assistant officiel de MonProjetMaison.ca.
 
 Ton rôle est d'aider les utilisateurs à comprendre comment utiliser le site, étape par étape.
@@ -129,6 +173,7 @@ serve(async (req) => {
 
     // Increment AI usage for authenticated users
     await incrementAiUsage(authHeader);
+    await trackAiAnalysisUsage(authHeader, 'chat-assistant');
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

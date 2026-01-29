@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +28,7 @@ const menuItems = [
   { href: "/admin/plans", label: "Forfaits", icon: Package },
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
+  { href: "/admin/analytics", label: "Analyses & Bugs", icon: BarChart3 },
   { href: "/admin/settings", label: "Paramètres", icon: Settings },
   { href: "/admin/logs", label: "Journal d'activité", icon: FileText },
 ];

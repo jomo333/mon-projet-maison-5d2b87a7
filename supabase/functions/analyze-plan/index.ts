@@ -68,6 +68,51 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
     console.error('Error tracking AI usage:', err);
   }
 }
+
+// Helper to track AI analysis usage
+async function trackAiAnalysisUsage(
+  authHeader: string | null,
+  analysisType: string,
+  projectId?: string | null
+): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userSupabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.log('Could not get user claims for AI analysis tracking');
+      return;
+    }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    const { error } = await supabase.from('ai_analysis_usage').insert({
+      user_id: userId,
+      analysis_type: analysisType,
+      project_id: projectId || null,
+    });
+    
+    if (error) {
+      console.error('Failed to track AI analysis usage:', error);
+    } else {
+      console.log('AI analysis usage tracked:', analysisType, 'for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI analysis usage:', err);
+  }
+}
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Base de données des prix Québec 2025
@@ -2428,6 +2473,7 @@ serve(async (req) => {
       
       // Increment AI usage for the user (merge mode also counts as AI usage)
       await incrementAiUsage(authHeader);
+      await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
       
       return new Response(
         JSON.stringify({ success: true, data: transformedMerged, rawAnalysis: mergedBudgetData }),
@@ -2988,6 +3034,7 @@ Retourne le JSON structuré COMPLET.`;
 
     // Increment AI usage for the user
     await incrementAiUsage(authHeader);
+    await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
 
     return new Response(
       JSON.stringify({ success: true, data: transformedData, rawAnalysis: budgetData }),

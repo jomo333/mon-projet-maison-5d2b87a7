@@ -1,5 +1,6 @@
 {
   "common": {
+    "locale": "fr-CA",
     "loading": "Chargement...",
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -53,6 +54,22 @@
     "stepCompleted": "Étape complétée",
     "markAsCompleted": "Marquer comme complétée",
     "viewDetails": "Voir détails"
+  },
+  "projectOverview": {
+    "globalProgress": "Progression globale",
+    "projectProgress": "Avancement du projet",
+    "completed": "Terminées",
+    "inProgress": "En cours",
+    "upcoming": "À venir",
+    "nextStep": "Prochaine étape",
+    "stepNumber": "Étape {{number}}",
+    "scheduledFor": "Prévu le {{date}}",
+    "start": "Commencer",
+    "congratulations": "Félicitations !",
+    "allStepsCompleted": "Toutes les étapes de construction sont terminées.",
+    "upcomingSteps": "Étapes à venir",
+    "noScheduleTitle": "Aucun échéancier configuré",
+    "noScheduleDescription": "Rendez-vous dans l'onglet Échéancier pour générer un calendrier de construction personnalisé."
   },
   "nav": {
     "myProjects": "Mes Projets",

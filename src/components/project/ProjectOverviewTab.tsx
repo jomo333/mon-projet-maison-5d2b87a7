@@ -8,6 +8,7 @@ import {
   TrendingUp, ListTodo, AlertCircle
 } from "lucide-react";
 import { constructionSteps } from "@/data/constructionSteps";
+import { useTranslation } from "react-i18next";
 
 interface ScheduleData {
   step_id: string;
@@ -22,6 +23,8 @@ interface ProjectOverviewTabProps {
 }
 
 export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverviewTabProps) => {
+  const { t } = useTranslation();
+  
   // Calculate progress statistics
   const stats = useMemo(() => {
     const totalSteps = constructionSteps.length;
@@ -87,12 +90,12 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Progression globale
+            {t("projectOverview.globalProgress")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Avancement du projet</span>
+            <span className="text-muted-foreground">{t("projectOverview.projectProgress")}</span>
             <span className="font-semibold">{stats.progressPercent}%</span>
           </div>
           <Progress value={stats.progressPercent} className="h-3" />
@@ -103,21 +106,21 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
                 <CheckCircle2 className="h-4 w-4" />
                 <span className="text-2xl font-bold">{stats.completedSteps}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Terminées</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("projectOverview.completed")}</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
               <div className="flex items-center justify-center gap-1 text-blue-600 dark:text-blue-400">
                 <Clock className="h-4 w-4" />
                 <span className="text-2xl font-bold">{stats.inProgressSteps}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">En cours</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("projectOverview.inProgress")}</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <ListTodo className="h-4 w-4" />
                 <span className="text-2xl font-bold">{stats.pendingSteps}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">À venir</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("projectOverview.upcoming")}</p>
             </div>
           </div>
         </CardContent>
@@ -129,7 +132,7 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ArrowRight className="h-5 w-5 text-primary" />
-              Prochaine étape
+              {t("projectOverview.nextStep")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -137,10 +140,10 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
-                    Étape {constructionSteps.findIndex(s => s.id === nextStep.id) + 1}
+                    {t("projectOverview.stepNumber", { number: constructionSteps.findIndex(s => s.id === nextStep.id) + 1 })}
                   </Badge>
                   {nextStep.status === 'in_progress' && (
-                    <Badge variant="secondary">En cours</Badge>
+                    <Badge variant="secondary">{t("projectOverview.inProgress")}</Badge>
                   )}
                 </div>
                 <h3 className="text-lg font-semibold">{nextStep.title}</h3>
@@ -151,7 +154,7 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      Prévu le {new Date(nextStep.startDate).toLocaleDateString('fr-CA')}
+                      {t("projectOverview.scheduledFor", { date: new Date(nextStep.startDate).toLocaleDateString(t("common.locale")) })}
                     </span>
                   </div>
                 )}
@@ -160,7 +163,7 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
                 onClick={() => onNavigateToStep(nextStep.id)}
                 className="shrink-0"
               >
-                Commencer
+                {t("projectOverview.start")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -172,10 +175,10 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
             <div className="text-center">
               <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-semibold">
-                Félicitations !
+                {t("projectOverview.congratulations")}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Toutes les étapes de construction sont terminées.
+                {t("projectOverview.allStepsCompleted")}
               </p>
             </div>
           </CardContent>
@@ -188,12 +191,12 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Étapes à venir
+              {t("projectOverview.upcomingSteps")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingSteps.map((step, index) => (
+              {upcomingSteps.map((step) => (
                 <div 
                   key={step.id}
                   className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
@@ -207,7 +210,7 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
                       <p className="font-medium">{step.title}</p>
                       {step.startDate && (
                         <p className="text-xs text-muted-foreground">
-                          Prévu le {new Date(step.startDate).toLocaleDateString('fr-CA')}
+                          {t("projectOverview.scheduledFor", { date: new Date(step.startDate).toLocaleDateString(t("common.locale")) })}
                         </p>
                       )}
                     </div>
@@ -227,10 +230,10 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
             <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-amber-700 dark:text-amber-400">
-                Aucun échéancier configuré
+                {t("projectOverview.noScheduleTitle")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Rendez-vous dans l'onglet Échéancier pour générer un calendrier de construction personnalisé.
+                {t("projectOverview.noScheduleDescription")}
               </p>
             </div>
           </CardContent>

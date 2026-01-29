@@ -1,5 +1,6 @@
 {
   "common": {
+    "locale": "en-CA",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -53,6 +54,22 @@
     "stepCompleted": "Step completed",
     "markAsCompleted": "Mark as completed",
     "viewDetails": "View details"
+  },
+  "projectOverview": {
+    "globalProgress": "Overall Progress",
+    "projectProgress": "Project progress",
+    "completed": "Completed",
+    "inProgress": "In progress",
+    "upcoming": "Upcoming",
+    "nextStep": "Next Step",
+    "stepNumber": "Step {{number}}",
+    "scheduledFor": "Scheduled for {{date}}",
+    "start": "Start",
+    "congratulations": "Congratulations!",
+    "allStepsCompleted": "All construction steps are completed.",
+    "upcomingSteps": "Upcoming Steps",
+    "noScheduleTitle": "No schedule configured",
+    "noScheduleDescription": "Go to the Schedule tab to generate a customized construction calendar."
   },
   "nav": {
     "myProjects": "My Projects",

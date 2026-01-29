@@ -588,113 +588,78 @@ export default function AdminSubscribers() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Admin</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Forfait</TableHead>
-                        <TableHead>Consentements</TableHead>
-                        <TableHead>Dernière connexion</TableHead>
-                        <TableHead>Temps total</TableHead>
-                        <TableHead>Inscription</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                      <TableRow className="text-xs">
+                        <TableHead className="py-2 px-2">Utilisateur</TableHead>
+                        <TableHead className="py-2 px-2">Statut</TableHead>
+                        <TableHead className="py-2 px-2 hidden md:table-cell">Consentements</TableHead>
+                        <TableHead className="py-2 px-2 hidden lg:table-cell">Activité</TableHead>
+                        <TableHead className="py-2 px-2 text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            {user.display_name || "Utilisateur"}
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {user.email || "—"}
+                        <TableRow key={user.id} className="text-xs">
+                          <TableCell className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              {user.isAdmin && <Shield className="h-3 w-3 text-primary flex-shrink-0" />}
+                              <div className="min-w-0">
+                                <div className="font-medium truncate max-w-[140px]">
+                                  {user.display_name || "Utilisateur"}
+                                </div>
+                                <div className="text-muted-foreground truncate max-w-[140px]">
+                                  {user.email || "—"}
+                                </div>
+                              </div>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            {user.isAdmin ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                                <Shield className="h-3.5 w-3.5" />
-                                Admin
+                          <TableCell className="py-2 px-2">
+                            <div className="space-y-0.5">
+                              <SubscriberStatusBadge status={user.subscription?.status || "free"} />
+                              <div className="text-muted-foreground">
+                                {user.subscription?.plans?.name || "Gratuit"}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 px-2 hidden md:table-cell">
+                            <div className="flex flex-wrap gap-1">
+                              <span className={`px-1 rounded ${user.consent?.terms_version ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Conditions">
+                                C{user.consent?.terms_version ? `${user.consent.terms_version}` : '✗'}
                               </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <SubscriberStatusBadge status={user.subscription?.status || "free"} />
-                          </TableCell>
-                          <TableCell>
-                            {user.subscription?.plans?.name || "Gratuit"}
-                            <div className="text-xs text-muted-foreground">
-                              {user.subscription?.plans 
-                                ? formatCurrency(user.subscription.plans.price_monthly) + "/mois" 
-                                : "0 $/mois"}
+                              <span className={`px-1 rounded ${user.consent?.privacy_version ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Politique">
+                                P{user.consent?.privacy_version ? `${user.consent.privacy_version}` : '✗'}
+                              </span>
+                              {user.consent?.cookie_accepted_at && (
+                                <>
+                                  <span className={`px-1 rounded ${user.consent.cookie_analytics ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Analytics">A</span>
+                                  <span className={`px-1 rounded ${user.consent.cookie_marketing ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Marketing">M</span>
+                                  <span className={`px-1 rounded ${user.consent.cookie_functional ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Fonctionnel">F</span>
+                                </>
+                              )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                {user.consent?.terms_version ? (
-                                  <FileCheck className="h-3.5 w-3.5 text-primary" />
-                                ) : (
-                                  <FileX className="h-3.5 w-3.5 text-destructive" />
-                                )}
-                                <span className="text-xs">
-                                  Conditions {user.consent?.terms_version ? `v${user.consent.terms_version}` : "—"}
-                                </span>
+                          <TableCell className="py-2 px-2 hidden lg:table-cell">
+                            <div className="space-y-0.5">
+                              <div className="text-muted-foreground">
+                                {user.session?.last_session_start 
+                                  ? getTimeSinceLastConnection(user.session.last_session_start)
+                                  : "Jamais"}
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                {user.consent?.privacy_version ? (
-                                  <FileCheck className="h-3.5 w-3.5 text-primary" />
-                                ) : (
-                                  <FileX className="h-3.5 w-3.5 text-destructive" />
-                                )}
-                                <span className="text-xs">
-                                  Politique {user.consent?.privacy_version ? `v${user.consent.privacy_version}` : "—"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
-                                <span className="text-xs text-muted-foreground">Cookies:</span>
-                                {user.consent?.cookie_accepted_at ? (
-                                  <div className="flex gap-1">
-                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_analytics ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>A</span>
-                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_marketing ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>M</span>
-                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_functional ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>F</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {user.session?.last_session_start ? (
                               <div>
-                                <div className="text-sm">
-                                  {format(new Date(user.session.last_session_start), "d MMM yyyy", { locale: fr })}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {getTimeSinceLastConnection(user.session.last_session_start)}
-                                </div>
+                                {user.session?.total_time_seconds 
+                                  ? formatDuration(user.session.total_time_seconds) 
+                                  : "0min"}
+                                {" • "}
+                                <span className="text-muted-foreground">
+                                  {format(new Date(user.created_at), "d/M/yy", { locale: fr })}
+                                </span>
                               </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Jamais</span>
-                            )}
+                            </div>
                           </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-medium">
-                              {user.session?.total_time_seconds 
-                                ? formatDuration(user.session.total_time_seconds) 
-                                : "0min"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(user.created_at), "d MMM yyyy", { locale: fr })}
-                          </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-2 px-2 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">

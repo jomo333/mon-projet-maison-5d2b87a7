@@ -1534,9 +1534,9 @@ const BuildingCode = () => {
               {messages.length === 0 ? (
                 <div className="text-center py-8">
                   <Search className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">{t("buildingCode.askQuestion", "Ask your question")}</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("buildingCode.askQuestion")}</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    {t("buildingCode.guideYou", "I will guide you with questions to find the best answer.")}
+                    {t("buildingCode.guideYou")}
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {exampleSearches.map((example) => (

@@ -1107,8 +1107,9 @@
     "title": "Building Code",
     "subtitle": "Search for information in the Quebec Construction Code",
     "search": "Search the code...",
-    "searchPlaceholder": "E.g.: guard rail height, wall insulation...",
+    "searchPlaceholder": "Ask your question about the building code...",
     "categories": {
+      "all": "All",
       "structure": "Structure",
       "safety": "Safety",
       "stairs": "Stairs",
@@ -1116,7 +1117,9 @@
       "plumbing": "Plumbing",
       "electrical": "Electrical",
       "ventilation": "Ventilation",
-      "finishes": "Finishes"
+      "finishes": "Finishes",
+      "windows": "Windows",
+      "municipal": "Municipal code"
     },
     "importance": {
       "critical": "Critical",
@@ -1126,7 +1129,7 @@
     "article": "Article",
     "seeArticle": "View full article",
     "aiAssistant": "AI Assistant",
-    "askQuestion": "Ask your question about the building code...",
+    "askQuestion": "Ask your question",
     "resultsFor": "Results for",
     "noResults": "No results found",
     "tryDifferent": "Try different keywords",
@@ -1139,21 +1142,7 @@
     "change": "Change",
     "smartSearch": "Smart search",
     "newSearch": "New search",
-    "askQuestion": "Ask your question",
-    "guideYou": "I will guide you with questions to find the best answer.",
-    "searchPlaceholder": "Ask your question about the building code...",
-    "categories": {
-      "all": "All",
-      "structure": "Structure",
-      "safety": "Safety",
-      "stairs": "Stairs",
-      "insulation": "Insulation",
-      "plumbing": "Plumbing",
-      "electrical": "Electrical",
-      "ventilation": "Ventilation",
-      "windows": "Windows",
-      "municipal": "Municipal code"
-    }
+    "guideYou": "I will guide you with questions to find the best answer."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -1107,8 +1107,9 @@
     "title": "Code du bâtiment",
     "subtitle": "Recherchez des informations dans le code de construction du Québec",
     "search": "Rechercher dans le code...",
-    "searchPlaceholder": "Ex: hauteur garde-corps, isolation murs...",
+    "searchPlaceholder": "Posez votre question sur le code du bâtiment...",
     "categories": {
+      "all": "Tout",
       "structure": "Structure",
       "safety": "Sécurité",
       "stairs": "Escaliers",
@@ -1116,7 +1117,9 @@
       "plumbing": "Plomberie",
       "electrical": "Électricité",
       "ventilation": "Ventilation",
-      "finishes": "Finitions"
+      "finishes": "Finitions",
+      "windows": "Fenêtres",
+      "municipal": "Code municipal"
     },
     "importance": {
       "critical": "Critique",
@@ -1126,7 +1129,7 @@
     "article": "Article",
     "seeArticle": "Voir l'article complet",
     "aiAssistant": "Assistant IA",
-    "askQuestion": "Posez votre question sur le code du bâtiment...",
+    "askQuestion": "Posez votre question",
     "resultsFor": "Résultats pour",
     "noResults": "Aucun résultat trouvé",
     "tryDifferent": "Essayez avec d'autres mots-clés",
@@ -1139,21 +1142,7 @@
     "change": "Changer",
     "smartSearch": "Recherche intelligente",
     "newSearch": "Nouvelle recherche",
-    "askQuestion": "Posez votre question",
-    "guideYou": "Je vous guiderai avec des questions pour trouver la meilleure réponse.",
-    "searchPlaceholder": "Posez votre question sur le code du bâtiment...",
-    "categories": {
-      "all": "Tout",
-      "structure": "Structure",
-      "safety": "Sécurité",
-      "stairs": "Escaliers",
-      "insulation": "Isolation",
-      "plumbing": "Plomberie",
-      "electrical": "Électricité",
-      "ventilation": "Ventilation",
-      "windows": "Fenêtres",
-      "municipal": "Code municipal"
-    }
+    "guideYou": "Je vous guiderai avec des questions pour trouver la meilleure réponse."
   },
   "dashboard": {
     "title": "Tableau de bord",

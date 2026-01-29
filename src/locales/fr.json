@@ -799,11 +799,37 @@
       "windowCountMismatch": "Nombre de fenêtres différent entre élévations et plans"
     }
   },
+  "categories": {
+    "excavation": "Excavation",
+    "foundation": "Fondation",
+    "plumbing": "Plomberie",
+    "electrical": "Électricité",
+    "structure": "Structure et charpente",
+    "roofing": "Toiture",
+    "windowsDoors": "Fenêtres et portes extérieures",
+    "insulation": "Isolation et pare-vapeur",
+    "hvac": "Chauffage et ventilation",
+    "exterior": "Revêtement extérieur",
+    "drywall": "Gypse et peinture",
+    "flooring": "Revêtements de sol",
+    "plumbingSlab": "Plomberie sous dalle",
+    "basementSlab": "Coulée de dalle du sous-sol",
+    "interiorWalls": "Murs de division",
+    "cabinetry": "Travaux ébénisterie",
+    "interiorFinishes": "Finitions intérieures",
+    "otherItems": "Autres éléments",
+    "contingency": "Budget imprévu (5%)",
+    "taxes": "Taxes"
+  },
   "planAnalyzer": {
     "aiProjectAnalysis": "Analyse IA du projet",
     "chooseMethod": "Choisissez votre méthode d'analyse pour générer un budget personnalisé",
     "importantNote": "Note importante",
     "disclaimer": "Les estimations fournies par l'IA sont basées sur des coûts moyens du marché et servent à la planification. Elles aident à mieux estimer les coûts et à structurer le projet, mais ne remplacent pas les soumissions professionnelles, qui demeurent essentielles pour établir le coût réel de chaque étape des travaux.",
+    "tabs": {
+      "manual": "Configuration manuelle",
+      "plan": "Analyse de plan"
+    },
     "manualConfig": "Configuration manuelle",
     "planAnalysis": "Analyse de plan",
     "manualConfigDesc": "Entrez les détails de votre projet pour obtenir une estimation budgétaire basée sur les paramètres.",
@@ -958,6 +984,9 @@
     "contingencyBudget": "Budget imprévu (5%)",
     "taxesLabel": "Taxes (TPS 5% + TVQ 9,975%)",
     "categoriesCount": "{{count}} poste(s) + Contingence + Taxes • Fourchette ±10%",
+    "summaryLine": "{{count}} poste(s) + Contingence + Taxes • Fourchette ±10%",
+    "warningsTitle": "Avertissements",
+    "recommendationsTitle": "Recommandations",
     "warnings": "Avertissements",
     "recommendations": "Recommandations",
     "applyBudget": "Appliquer ce budget",

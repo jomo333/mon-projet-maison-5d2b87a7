@@ -22,9 +22,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/i18n";
-import { groupItemsByTask } from "@/lib/budgetTaskMapping";
+import { groupItemsByTask, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
+import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import {
   mapAnalysisToStepCategories,
   defaultCategories as libDefaultCategories,
@@ -114,10 +115,7 @@ const Budget = () => {
   
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
-    const key = `budget.categories.${name}`;
-    const translated = t(key);
-    // If no translation found (returns the key), use original name
-    return translated === key ? name : translated;
+    return getCategoryLabel(t, name);
   };
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -921,7 +919,7 @@ const Budget = () => {
                               {(() => {
                                 const groupedByTask = groupItemsByTask(category.name, displayItems);
                                  const taskEntries = Array.from(groupedByTask.entries());
-                                 const otherItems = groupedByTask.get("Autres éléments") ?? [];
+                                 const otherItems = groupedByTask.get(OTHER_ITEMS_KEY) ?? [];
                                  const guideTaskTitles = stepTasks;
                                  const hasAnyItems = displayItems.length > 0;
 
@@ -997,7 +995,7 @@ const Budget = () => {
                                           <div>
                                             <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                                               <CheckCircle2 className="h-4 w-4 text-primary" />
-                                              {t("budget.otherItems")}
+                                              {t("categories.otherItems")}
                                             </div>
                                            <ul className="ml-6 list-disc pl-4 space-y-1">
                                              {otherItems.map((item, idx) => (
@@ -1017,9 +1015,9 @@ const Budget = () => {
                                    <div className="space-y-4">
                                      {taskEntries.map(([taskTitle, items]) => (
                                        <div key={taskTitle}>
-                                         <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                                          <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                                           {taskTitle}
+                                            {taskTitle === OTHER_ITEMS_KEY ? t("categories.otherItems") : taskTitle}
                                          </div>
                                          <ul className="ml-6 list-disc pl-4 space-y-1">
                                            {items.map((item, idx) => (

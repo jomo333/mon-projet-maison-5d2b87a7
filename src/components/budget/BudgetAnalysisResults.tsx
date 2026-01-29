@@ -61,9 +61,10 @@ import {
   Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { groupItemsByTask, getTasksForCategory } from "@/lib/budgetTaskMapping";
+import { groupItemsByTask, getTasksForCategory, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import { translateWarnings, translateRecommendations } from "@/lib/budgetWarningsI18n";
+import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import { 
   mapAnalysisToStepCategories, 
   defaultCategories,
@@ -156,9 +157,7 @@ export function BudgetAnalysisResults({
 
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
-    const key = `budget.categories.${name}`;
-    const translated = t(key);
-    return translated === key ? name : translated;
+    return getCategoryLabel(t, name);
   };
 
   // Parse and translate project summary dynamically
@@ -736,10 +735,10 @@ export function BudgetAnalysisResults({
                         const fallbackTasks = Array.from(groupedByTask.keys());
                         const baseTasks = orderedTasks.length ? orderedTasks : fallbackTasks;
 
-                        const hasOther = groupedByTask.has("Autres éléments");
+                        const hasOther = groupedByTask.has(OTHER_ITEMS_KEY);
                         const tasksToRender = [
-                          ...baseTasks.filter((t) => t !== "Autres éléments"),
-                          ...(hasOther ? ["Autres éléments"] : []),
+                          ...baseTasks.filter((t) => t !== OTHER_ITEMS_KEY),
+                          ...(hasOther ? [OTHER_ITEMS_KEY] : []),
                         ];
 
                         if (tasksToRender.length === 0) {
@@ -752,7 +751,10 @@ export function BudgetAnalysisResults({
 
                         return tasksToRender.map((taskTitle) => {
                           const taskItems = groupedByTask.get(taskTitle) ?? [];
-                          const displayTaskTitle = translateBudgetTaskTitle(t, cat.name, taskTitle);
+                          const displayTaskTitle =
+                            taskTitle === OTHER_ITEMS_KEY
+                              ? t("categories.otherItems")
+                              : translateBudgetTaskTitle(t, cat.name, taskTitle);
 
                           return (
                             <div key={taskTitle} className="space-y-2">

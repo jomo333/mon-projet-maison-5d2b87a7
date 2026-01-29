@@ -118,7 +118,7 @@ export const translateBudgetTaskTitle = (
 ): string => {
   // Special "Other items" bucket (coming from the grouping logic)
   if (normalizeKey(taskTitle) === normalizeKey(OTHER_ITEMS_FR)) {
-    return t("budget.otherItems");
+    return t("categories.otherItems");
   }
 
   const normalizedTitle = normalizeKey(taskTitle);

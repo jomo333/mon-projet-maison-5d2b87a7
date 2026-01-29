@@ -9,40 +9,79 @@ import { TFunction } from "i18next";
 // Known warning prefixes and their translation keys
 const WARNING_PREFIXES: Record<string, string> = {
   "⚠️ Élément manquant:": "budgetWarnings.missingElement",
+  "⚠️ Missing element:": "budgetWarnings.missingElement",
   "❓ Ambiguïté:": "budgetWarnings.ambiguity",
+  "❓ Ambiguity:": "budgetWarnings.ambiguity",
   "⚡ Incohérence:": "budgetWarnings.inconsistency",
+  "⚡ Inconsistency:": "budgetWarnings.inconsistency",
   "🏗️ PRÉPARATION DU SITE:": "budgetWarnings.sitePreparation",
+  "🏗️ SITE PREPARATION:": "budgetWarnings.sitePreparation",
   "🚧 PERMIS ET INSPECTIONS:": "budgetWarnings.permitsInspections",
+  "🚧 PERMITS AND INSPECTIONS:": "budgetWarnings.permitsInspections",
   "📋 SERVICES PUBLICS:": "budgetWarnings.publicServices",
+  "📋 UTILITIES:": "budgetWarnings.publicServices",
   "🔗 JUMELAGE STRUCTUREL:": "budgetWarnings.structuralJoining",
+  "🔗 STRUCTURAL CONNECTION:": "budgetWarnings.structuralJoining",
   "⚡ RACCORDEMENT ÉLECTRIQUE:": "budgetWarnings.electricalConnection",
+  "⚡ ELECTRICAL CONNECTION:": "budgetWarnings.electricalConnection",
   "🔌 RACCORDEMENT PLOMBERIE:": "budgetWarnings.plumbingConnection",
+  "🔌 PLUMBING CONNECTION:": "budgetWarnings.plumbingConnection",
   "🏠 IMPERMÉABILISATION:": "budgetWarnings.waterproofing",
+  "🏠 WATERPROOFING:": "budgetWarnings.waterproofing",
   "🎨 HARMONISATION:": "budgetWarnings.harmonization",
+  "🎨 HARMONIZATION:": "budgetWarnings.harmonization",
   "🔥 COUPE-FEU:": "budgetWarnings.fireSeparation",
+  "🔥 FIRE SEPARATION:": "budgetWarnings.fireSeparation",
 };
 
 // Known full warning messages that can be translated completely
 const FULL_WARNING_TRANSLATIONS: Record<string, string> = {
   "🏗️ PRÉPARATION DU SITE: Vérifier les coûts d'excavation, nivellement, et accès chantier":
     "budgetWarnings.sitePreparationFull",
+  "🏗️ SITE PREPARATION: Verify excavation, grading, and site access costs":
+    "budgetWarnings.sitePreparationFull",
   "🚧 PERMIS ET INSPECTIONS: Frais de permis de construction et inspections municipales à prévoir":
+    "budgetWarnings.permitsInspectionsFull",
+  "🚧 PERMITS AND INSPECTIONS: Building permit fees and municipal inspections to be planned":
     "budgetWarnings.permitsInspectionsFull",
   "📋 SERVICES PUBLICS: Confirmer les raccordements (eau, égout, électricité, gaz) et frais associés":
     "budgetWarnings.publicServicesFull",
+  "📋 UTILITIES: Confirm connections (water, sewer, electricity, gas) and associated fees":
+    "budgetWarnings.publicServicesFull",
   "🔗 JUMELAGE STRUCTUREL: Travaux de connexion à la structure existante (linteaux, ancrages, renfort fondation)":
+    "budgetWarnings.structuralJoiningFull",
+  "🔗 STRUCTURAL CONNECTION: Connection work to existing structure (lintels, anchors, foundation reinforcement)":
     "budgetWarnings.structuralJoiningFull",
   "⚡ RACCORDEMENT ÉLECTRIQUE: Extension du panneau existant et mise aux normes possiblement requise":
     "budgetWarnings.electricalConnectionFull",
+  "⚡ ELECTRICAL CONNECTION: Existing panel extension and possible code upgrade required":
+    "budgetWarnings.electricalConnectionFull",
   "🔌 RACCORDEMENT PLOMBERIE: Connexion aux systèmes existants (eau, drainage, chauffage)":
+    "budgetWarnings.plumbingConnectionFull",
+  "🔌 PLUMBING CONNECTION: Connection to existing systems (water, drainage, heating)":
     "budgetWarnings.plumbingConnectionFull",
   "🏠 IMPERMÉABILISATION: Joint d'étanchéité entre nouvelle et ancienne construction critique":
     "budgetWarnings.waterproofingFull",
+  "🏠 WATERPROOFING: Critical sealing joint between new and existing construction":
+    "budgetWarnings.waterproofingFull",
   "🎨 HARMONISATION: Travaux de finition pour raccorder les matériaux extérieurs existants":
+    "budgetWarnings.harmonizationFull",
+  "🎨 HARMONIZATION: Finishing work to match existing exterior materials":
     "budgetWarnings.harmonizationFull",
   "🔥 COUPE-FEU: Vérifier les exigences de séparation coupe-feu entre garage et habitation":
     "budgetWarnings.fireSeparationFull",
+  "🔥 FIRE SEPARATION: Verify fire separation requirements between garage and dwelling":
+    "budgetWarnings.fireSeparationFull",
 };
+
+type WarningKind = "missing" | "ambiguity" | "inconsistency" | "other";
+
+function getWarningKind(prefixKey: string): WarningKind {
+  if (prefixKey === "budgetWarnings.missingElement") return "missing";
+  if (prefixKey === "budgetWarnings.ambiguity") return "ambiguity";
+  if (prefixKey === "budgetWarnings.inconsistency") return "inconsistency";
+  return "other";
+}
 
 // Extended missing element translations (common ones from AI)
 const MISSING_ELEMENT_TRANSLATIONS: Record<string, string> = {
@@ -147,7 +186,7 @@ export function translateWarning(t: TFunction, warning: string): string {
       const translatedPrefix = t(prefixKey);
       
       // Try to translate the content part too
-      const translatedContent = translateWarningContent(t, content, prefix);
+      const translatedContent = translateWarningContent(t, content, getWarningKind(prefixKey));
       
       if (translatedPrefix !== prefixKey) {
         return `${translatedPrefix} ${translatedContent}`;
@@ -162,21 +201,20 @@ export function translateWarning(t: TFunction, warning: string): string {
 /**
  * Try to translate the content portion of a warning based on its type
  */
-function translateWarningContent(t: TFunction, content: string, prefix: string): string {
-  // Determine which dictionary to use based on prefix
-  if (prefix.includes("Élément manquant")) {
+function translateWarningContent(t: TFunction, content: string, kind: WarningKind): string {
+  if (kind === "missing") {
     const missingKey = MISSING_ELEMENT_TRANSLATIONS[content];
     if (missingKey) {
       const translated = t(missingKey);
       if (translated !== missingKey) return translated;
     }
-  } else if (prefix.includes("Ambiguïté")) {
+  } else if (kind === "ambiguity") {
     const ambiguityKey = AMBIGUITY_TRANSLATIONS[content];
     if (ambiguityKey) {
       const translated = t(ambiguityKey);
       if (translated !== ambiguityKey) return translated;
     }
-  } else if (prefix.includes("Incohérence")) {
+  } else if (kind === "inconsistency") {
     const inconsistencyKey = INCONSISTENCY_TRANSLATIONS[content];
     if (inconsistencyKey) {
       const translated = t(inconsistencyKey);

@@ -799,11 +799,37 @@
       "windowCountMismatch": "Different window count between elevations and plans"
     }
   },
+  "categories": {
+    "excavation": "Excavation",
+    "foundation": "Foundation",
+    "plumbing": "Plumbing",
+    "electrical": "Electrical",
+    "structure": "Structure and framing",
+    "roofing": "Roofing",
+    "windowsDoors": "Windows and exterior doors",
+    "insulation": "Insulation and vapour barrier",
+    "hvac": "Heating and ventilation",
+    "exterior": "Exterior cladding",
+    "drywall": "Drywall and paint",
+    "flooring": "Flooring",
+    "plumbingSlab": "Under-slab plumbing",
+    "basementSlab": "Basement slab pour",
+    "interiorWalls": "Partition walls",
+    "cabinetry": "Cabinetry work",
+    "interiorFinishes": "Interior finishes",
+    "otherItems": "Other items",
+    "contingency": "Contingency budget (5%)",
+    "taxes": "Taxes"
+  },
   "planAnalyzer": {
     "aiProjectAnalysis": "AI Project Analysis",
     "chooseMethod": "Choose your analysis method to generate a personalized budget",
     "importantNote": "Important note",
     "disclaimer": "Estimates provided by AI are based on average market costs and are intended for planning purposes. They help estimate costs and structure the project, but do not replace professional quotes, which remain essential for determining the actual cost of each phase of work.",
+    "tabs": {
+      "manual": "Manual configuration",
+      "plan": "Plan analysis"
+    },
     "manualConfig": "Manual configuration",
     "planAnalysis": "Plan analysis",
     "manualConfigDesc": "Enter your project details to get a budget estimate based on parameters.",
@@ -958,6 +984,9 @@
     "contingencyBudget": "Contingency budget (5%)",
     "taxesLabel": "Taxes (GST 5% + QST 9.975%)",
     "categoriesCount": "{{count}} category(ies) + Contingency + Taxes • Range ±10%",
+    "summaryLine": "{{count}} category(ies) + Contingency + Taxes • Range ±10%",
+    "warningsTitle": "Warnings",
+    "recommendationsTitle": "Recommendations",
     "warnings": "Warnings",
     "recommendations": "Recommendations",
     "applyBudget": "Apply this budget",

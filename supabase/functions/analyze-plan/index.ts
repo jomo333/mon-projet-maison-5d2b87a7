@@ -1630,6 +1630,7 @@ async function analyzeOnePageWithClaude({
   additionalNotes,
   projectType,
   manualContext,
+  lang,
 }: {
   apiKey: string;
   imageBase64: string;
@@ -1647,7 +1648,12 @@ async function analyzeOnePageWithClaude({
     foundationSqft?: number;
     additionalNotes?: string;
   };
+  lang?: string;
 }): Promise<string | null> {
+  const isEnglish = String(lang || "fr").startsWith("en");
+  const languageInstruction = isEnglish
+    ? "IMPORTANT: Respond ONLY in ENGLISH. All strings in the JSON (resume_projet, recommandations, elements_manquants, ambiguites, incoherences, categories.nom, items.description) must be in English."
+    : "IMPORTANT: Réponds UNIQUEMENT en FRANÇAIS. Tous les champs texte du JSON doivent être en français.";
   // Build special instruction for "agrandissement" projects
   const effectiveProjectType = projectType || manualContext?.projectType || '';
   const isAgrandissement = effectiveProjectType.toLowerCase().includes('agrandissement');
@@ -1807,13 +1813,13 @@ ${hasManualContext ? '- PERSONNALISE les estimations selon les spécifications c
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2800,
         temperature: 0,
-        system: SYSTEM_PROMPT_EXTRACTION,
+        system: `${SYSTEM_PROMPT_EXTRACTION}\n\n${languageInstruction}`,
         messages: [
           {
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
-              { type: 'text', text: pagePrompt },
+              { type: 'text', text: `${pagePrompt}\n\n${languageInstruction}` },
             ],
           },
         ],
@@ -2848,6 +2854,7 @@ Retourne le JSON structuré COMPLET.`;
           additionalNotes: manualContext.additionalNotes || body.additionalNotes,
           projectType: manualContext.projectType || body.projectType,
           manualContext: manualContext,
+          lang,
         });
 
         const parsed = pageText ? safeParseJsonFromModel(pageText) : null;
@@ -2897,9 +2904,17 @@ Retourne le JSON structuré COMPLET.`;
         .replace(/^\w/, (c: string) => c.toUpperCase());
       
       const plansCount = imagesToProcess.length - skipped;
-      const hasManualNotes = manualCtx.additionalNotes ? ' (avec spécifications client)' : '';
-      const limitNote = totalOriginal > MAX_IMAGES ? ` (limité à ${MAX_IMAGES} sur ${totalOriginal} plans)` : '';
-      const resumeProjet = `Analyse de ${plansCount} plan(s)${limitNote} - ${typeProjetDisplay} de ${sqft} pi² sur ${etages} étage(s)${hasManualNotes}`;
+      const isEnglish = String(lang || "fr").startsWith("en");
+      const hasManualNotes = manualCtx.additionalNotes
+        ? (isEnglish ? " (with client specs)" : " (avec spécifications client)")
+        : "";
+      const limitNote = totalOriginal > MAX_IMAGES
+        ? (isEnglish ? ` (limited to ${MAX_IMAGES} of ${totalOriginal} plans)` : ` (limité à ${MAX_IMAGES} sur ${totalOriginal} plans)`)
+        : "";
+
+      const resumeProjet = isEnglish
+        ? `Merged analysis from ${plansCount} plan(s)${limitNote} - ${typeProjetDisplay} of ${sqft} sq ft on ${etages} floor(s)${hasManualNotes}`
+        : `Analyse fusionnée de ${plansCount} plan(s)${limitNote} - ${typeProjetDisplay} de ${sqft} pi² sur ${etages} étage(s)${hasManualNotes}`;
 
       const budgetData = {
         extraction: {
@@ -2915,7 +2930,9 @@ Retourne le JSON structuré COMPLET.`;
         totaux: completed.totaux,
         validation: completed.validation,
         recommandations: [
-          "Analyse multi-pages: extraction séquentielle + complétion automatique des catégories manquantes.",
+          isEnglish
+            ? "Multi-page analysis: sequential extraction + automatic completion of missing categories."
+            : "Analyse multi-pages: extraction séquentielle + complétion automatique des catégories manquantes.",
         ],
         resume_projet: resumeProjet,
       };
@@ -2937,8 +2954,12 @@ Retourne le JSON structuré COMPLET.`;
           model: 'claude-sonnet-4-20250514',
           max_tokens: 8192,
           temperature: 0,
-          system: SYSTEM_PROMPT_EXTRACTION,
-          messages: [{ role: 'user', content: extractionPrompt }],
+          system: `${SYSTEM_PROMPT_EXTRACTION}\n\n${lang?.startsWith("en")
+            ? "IMPORTANT: Respond ONLY in ENGLISH. All strings in the JSON must be in English."
+            : "IMPORTANT: Réponds UNIQUEMENT en FRANÇAIS. Tous les champs texte du JSON doivent être en français."}`,
+          messages: [{ role: 'user', content: `${extractionPrompt}\n\n${lang?.startsWith("en")
+            ? "LANGUAGE: English only."
+            : "LANGUE: Français uniquement."}` }],
         }),
       });
 
@@ -3061,10 +3082,14 @@ function transformToLegacyFormat(data: any, finishQuality: string, lang: string 
   const totaux = data.totaux || {};
   const validation = data.validation || {};
 
+  const isEnglish = lang.startsWith("en");
+
   const categories = (extraction.categories || []).map((cat: any) => ({
     name: cat.nom || cat.name,
     budget: cat.sous_total_categorie || cat.budget || 0,
-    description: `${cat.items?.length || 0} items - Main-d'œuvre: ${cat.heures_main_oeuvre || 0}h`,
+    description: isEnglish
+      ? `${cat.items?.length || 0} items - Labor: ${cat.heures_main_oeuvre || 0}h`
+      : `${cat.items?.length || 0} items - Main-d'œuvre: ${cat.heures_main_oeuvre || 0}h`,
     items: (cat.items || []).map((item: any) => ({
       name: `${item.description} (${item.source || 'N/A'})`,
       cost: item.total || item.cost || 0,
@@ -3076,10 +3101,15 @@ function transformToLegacyFormat(data: any, finishQuality: string, lang: string 
   // Add budget imprévu and taxes as categories
   if (totaux.contingence_5_pourcent) {
     categories.push({
-      name: "Budget imprévu (5%)",
+      name: isEnglish ? "Contingency budget (5%)" : "Budget imprévu (5%)",
       budget: totaux.contingence_5_pourcent,
-      description: "Budget imprévu",
-      items: [{ name: "Budget imprévu 5%", cost: totaux.contingence_5_pourcent, quantity: "1", unit: "forfait" }]
+      description: isEnglish ? "Contingency" : "Budget imprévu",
+      items: [{
+        name: isEnglish ? "Contingency 5%" : "Budget imprévu 5%",
+        cost: totaux.contingence_5_pourcent,
+        quantity: "1",
+        unit: isEnglish ? "flat" : "forfait",
+      }]
     });
   }
 
@@ -3089,10 +3119,10 @@ function transformToLegacyFormat(data: any, finishQuality: string, lang: string 
     categories.push({
       name: "Taxes",
       budget: tps + tvq,
-      description: "TPS 5% + TVQ 9.975%",
+      description: isEnglish ? "GST 5% + QST 9.975%" : "TPS 5% + TVQ 9.975%",
       items: [
-        { name: "TPS (5%)", cost: tps, quantity: "1", unit: "taxe" },
-        { name: "TVQ (9.975%)", cost: tvq, quantity: "1", unit: "taxe" }
+        { name: isEnglish ? "GST (5%)" : "TPS (5%)", cost: tps, quantity: "1", unit: isEnglish ? "tax" : "taxe" },
+        { name: isEnglish ? "QST (9.975%)" : "TVQ (9.975%)", cost: tvq, quantity: "1", unit: isEnglish ? "tax" : "taxe" }
       ]
     });
   }
@@ -3128,7 +3158,6 @@ function transformToLegacyFormat(data: any, finishQuality: string, lang: string 
     fireSeparation: "🔥 FIRE SEPARATION: Verify fire separation requirements between garage and dwelling",
   };
 
-  const isEnglish = lang.startsWith("en");
   const w = isEnglish ? warningsEn : warningsFr;
 
   const warnings = [

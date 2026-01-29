@@ -39,6 +39,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePdfToImage } from "@/hooks/use-pdf-to-image";
 import { mapAnalysisToStepCategories, type ProjectConfig } from "@/lib/budgetCategories";
 import { compressImageFileToJpeg } from "@/lib/imageCompression";
+import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
+import { translateRecommendations, translateWarnings } from "@/lib/budgetWarningsI18n";
 
 import type { 
   BudgetCategory, 
@@ -152,6 +154,37 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       projectConfig
     );
   }, [analysis, projectConfig]);
+
+  const translatedWarnings = useMemo(() => {
+    if (!analysis?.warnings?.length) return [];
+    return translateWarnings(t, analysis.warnings);
+  }, [analysis?.warnings, t]);
+
+  const translatedRecommendations = useMemo(() => {
+    if (!analysis?.recommendations?.length) return [];
+    return translateRecommendations(t, analysis.recommendations);
+  }, [analysis?.recommendations, t]);
+
+  const translatedProjectSummary = useMemo(() => {
+    const summary = analysis?.projectSummary || "";
+    if (!summary) return summary;
+
+    const mergedMatch = summary.match(/(?:Analyse fusionnée de|Merged analysis from)\s*(\d+)\s*plan\(s\)/i);
+    const constructionMatch = summary.match(
+      /(?:Construction neuve de|New construction of)\s*([\d\s]+)\s*(?:pi²|sq ft)\s*(?:sur|on)\s*(\d+)\s*(?:étage\(s\)|floor\(s\))/i
+    );
+
+    let out = "";
+    if (mergedMatch) out += t("budgetAnalysis.mergedAnalysis", { count: Number(mergedMatch[1]) });
+    if (constructionMatch) {
+      const sqft = constructionMatch[1].replace(/\s/g, "");
+      const floors = Number(constructionMatch[2]);
+      if (out) out += " - ";
+      out += t("budgetAnalysis.newConstruction", { sqft, floors });
+    }
+
+    return out || summary;
+  }, [analysis?.projectSummary, t]);
 
   // Expose reset function to parent via ref
   // Track if we just reset to prevent auto-import from immediately re-triggering
@@ -932,11 +965,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual" className="gap-2">
               <Settings className="h-4 w-4" />
-              {t("planAnalyzer.manualConfig")}
+                {t("planAnalyzer.tabs.manual")}
             </TabsTrigger>
             <TabsTrigger value="plan" className="gap-2">
               <Image className="h-4 w-4" />
-              {t("planAnalyzer.planAnalysis")}
+                {t("planAnalyzer.tabs.plan")}
             </TabsTrigger>
           </TabsList>
           
@@ -1709,7 +1742,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               </div>
             </div>
 
-            <p className="text-muted-foreground">{analysis.projectSummary}</p>
+            <p className="text-muted-foreground">{translatedProjectSummary}</p>
 
             {/* Categories preview */}
             {(() => {
@@ -1730,7 +1763,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                         <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium">
                           {index + 1}
                         </span>
-                        <span className="font-medium">{cat.name}</span>
+                        <span className="font-medium">{getCategoryLabel(t, cat.name)}</span>
                       </div>
                       <span className="text-muted-foreground font-medium text-sm">
                         {Math.round(cat.budget * 0.90).toLocaleString()} $ - {Math.round(cat.budget * 1.10).toLocaleString()} $
@@ -1767,7 +1800,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               );
             })()}
             <p className="text-xs text-muted-foreground text-center">
-              {t("planAnalyzer.categoriesCount", { count: orderedAnalysisCategories.length })}
+              {t("planAnalyzer.summaryLine", { count: orderedAnalysisCategories.length })}
             </p>
 
             {/* Warnings */}
@@ -1775,10 +1808,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                 <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium mb-1">
                   <AlertTriangle className="h-4 w-4" />
-                  {t("planAnalyzer.warnings")}
+                  {t("planAnalyzer.warningsTitle")}
                 </div>
                 <ul className="text-sm text-amber-800 dark:text-amber-300 space-y-1">
-                  {analysis.warnings.map((warning, i) => (
+                  {translatedWarnings.map((warning, i) => (
                     <li key={i}>• {warning}</li>
                   ))}
                 </ul>
@@ -1790,10 +1823,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-medium mb-1">
                   <Sparkles className="h-4 w-4" />
-                  {t("planAnalyzer.recommendations")}
+                  {t("planAnalyzer.recommendationsTitle")}
                 </div>
                 <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                  {analysis.recommendations.map((rec, i) => (
+                  {translatedRecommendations.map((rec, i) => (
                     <li key={i}>• {rec}</li>
                   ))}
                 </ul>

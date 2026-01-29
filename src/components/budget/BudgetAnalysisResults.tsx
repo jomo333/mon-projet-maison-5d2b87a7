@@ -707,7 +707,7 @@ export function BudgetAnalysisResults({
                         if (tasksToRender.length === 0) {
                           return (
                             <p className="text-sm text-muted-foreground italic">
-                              Aucune tâche définie pour cette catégorie.
+                              {t("budget.noTasksDefined")}
                             </p>
                           );
                         }
@@ -722,20 +722,20 @@ export function BudgetAnalysisResults({
                                 <Wrench className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-sm">{displayTaskTitle}</span>
                                 <Badge variant="outline" className="text-xs">
-                                  {taskItems.length} élément{taskItems.length > 1 ? "s" : ""}
+                                  {t("budget.itemCount", { count: taskItems.length })}
                                 </Badge>
                               </div>
 
                               {taskItems.length === 0 ? (
                                 <p className="text-sm text-muted-foreground italic">
-                                  Aucun élément détecté pour cette tâche.
+                                  {t("budget.noItemsDetected")}
                                 </p>
                               ) : (
                                 <>
                                   <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
-                                    <div className="col-span-5">Élément</div>
-                                    <div className="col-span-3 text-center">Quantité</div>
-                                    <div className="col-span-4 text-right">Coût</div>
+                                    <div className="col-span-5">{t("budget.element")}</div>
+                                    <div className="col-span-3 text-center">{t("budget.quantity")}</div>
+                                    <div className="col-span-4 text-right">{t("budget.cost")}</div>
                                   </div>
 
                                   {taskItems.map((item, itemIndex) => {

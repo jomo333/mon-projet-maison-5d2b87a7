@@ -11,6 +11,7 @@ import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency } from "@/lib/i18n";
+import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
 
 interface Plan {
   id: string;
@@ -205,10 +206,10 @@ export default function Plans() {
 
                     <CardHeader className="text-center pb-4">
                       <CardTitle className="text-xl font-semibold">
-                        {plan.name}
+                        {getTranslatedPlanName(t, plan.name)}
                       </CardTitle>
                       <CardDescription className="text-sm mt-2">
-                        {plan.description}
+                        {getTranslatedPlanDescription(t, plan.name, plan.description)}
                       </CardDescription>
                     </CardHeader>
 
@@ -237,7 +238,7 @@ export default function Plans() {
 
                       {/* Features */}
                       <ul className="space-y-3">
-                        {plan.features.map((feature, index) => (
+                        {getTranslatedPlanFeatures(t, plan.name, plan.features).map((feature, index) => (
                           <li key={index} className="flex items-start gap-3">
                             <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                             <span className="text-sm text-foreground">

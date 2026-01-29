@@ -1408,7 +1408,50 @@
     "benefit5Title": "Decide at the right time",
     "benefit5Desc": "Make more thoughtful decisions, without pressure.",
     "choosePlan": "Choose this plan",
-    "startFree": "Start for free"
+    "startFree": "Start for free",
+    "tiers": {
+      "decouverte": {
+        "name": "Discovery",
+        "description": "To understand and structure the basics of your project",
+        "features": [
+          "1 project",
+          "Construction guide (read-only)",
+          "Schedule (read-only)",
+          "Budget (read-only)",
+          "Upload of 2 documents",
+          "Access to building code (1 search)",
+          "1 AI analysis per month",
+          "Storage: 1 GB"
+        ]
+      },
+      "essentiel": {
+        "name": "Essential",
+        "description": "To actively manage your owner-building project",
+        "features": [
+          "1 project",
+          "10 AI analyses per month",
+          "Editable schedule",
+          "Editable budget",
+          "Document upload and management",
+          "Full access to construction guide",
+          "Access to building code (reasonable searches)",
+          "Storage: 5 GB"
+        ]
+      },
+      "gestionComplete": {
+        "name": "Complete Management",
+        "description": "For complete control of your build from A to Z",
+        "features": [
+          "1 active project",
+          "25 AI analyses per month",
+          "Detailed analysis by step and trade",
+          "Detection of inconsistencies and critical omissions",
+          "Complete document centralization",
+          "Extended access to building code",
+          "Storage: 10 GB"
+        ]
+      }
+    }
   },
   "trades": {
     "excavation": "Excavation",

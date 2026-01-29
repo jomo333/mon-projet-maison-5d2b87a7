@@ -39,7 +39,10 @@
     "upload": "Téléverser",
     "retry": "Réessayer",
     "refresh": "Actualiser",
-    "unknownDate": "Date inconnue"
+    "unknownDate": "Date inconnue",
+    "placeholder": {
+      "amount": "0.00"
+    }
   },
   "nav": {
     "myProjects": "Mes Projets",
@@ -589,7 +592,9 @@
     "goToBudget": "Voir le budget",
     "goToSchedule": "Voir l'échéancier",
     "goToSteps": "Voir les étapes",
-    "plansReady": "{{count}} plan(s) prêt(s)"
+    "plansReady": "{{count}} plan(s) prêt(s)",
+    "plansReadyForAnalysis": "{{count}} plan(s) prêt(s) pour l'analyse",
+    "noPlanSelected": "Aucun plan sélectionné"
   },
   "plans": {
     "title": "Forfaits",

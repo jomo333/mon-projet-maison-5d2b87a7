@@ -39,7 +39,10 @@
     "upload": "Upload",
     "retry": "Retry",
     "refresh": "Refresh",
-    "unknownDate": "Unknown date"
+    "unknownDate": "Unknown date",
+    "placeholder": {
+      "amount": "0.00"
+    }
   },
   "nav": {
     "myProjects": "My Projects",
@@ -589,7 +592,9 @@
     "goToBudget": "View budget",
     "goToSchedule": "View schedule",
     "goToSteps": "View steps",
-    "plansReady": "{{count}} plan(s) ready"
+    "plansReady": "{{count}} plan(s) ready",
+    "plansReadyForAnalysis": "{{count}} plan(s) ready for analysis",
+    "noPlanSelected": "No plan selected"
   },
   "plans": {
     "title": "Plans",

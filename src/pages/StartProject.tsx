@@ -969,7 +969,7 @@ const StartProject = () => {
               {/* Uploaded plans preview */}
               {uploadedPlans.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-sm font-medium">{uploadedPlans.length} plan(s) prêt(s)</p>
+                  <p className="text-sm font-medium">{t("startProject.plansReady", { count: uploadedPlans.length })}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {uploadedPlans.map((plan, index) => (
                       <div

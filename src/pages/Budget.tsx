@@ -731,7 +731,7 @@ const Budget = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="amount">{t("budget.amount")}</Label>
-                    <Input id="amount" type="number" placeholder="0.00" />
+                    <Input id="amount" type="number" placeholder={t("common.placeholder.amount")} />
                   </div>
                   <div className="flex items-end">
                     <Button variant="accent" className="w-full">
@@ -890,7 +890,7 @@ const Budget = () => {
                                   variant="ghost" 
                                   size="icon" 
                                   onClick={(e) => handleEditCategory(category, e)}
-                                  title="Gérer budget et soumissions"
+                                  title={t("budget.manageBudgetSubmissions")}
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </Button>

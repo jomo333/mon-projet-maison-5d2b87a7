@@ -1381,7 +1381,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     </div>
                     <p className="text-xs text-primary flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />
-                      {selectedPlanUrls.length} plan(s) prêt(s) pour l'analyse
+                      {t("startProject.plansReadyForAnalysis", { count: selectedPlanUrls.length })}
                     </p>
                   </div>
                 )}
@@ -1389,7 +1389,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                 {selectedPlanUrls.length === 0 && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
-                    Aucun plan sélectionné
+                    {t("startProject.noPlanSelected")}
                   </p>
                 )}
               </div>

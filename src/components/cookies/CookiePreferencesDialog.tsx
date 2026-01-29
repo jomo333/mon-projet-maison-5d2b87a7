@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -21,44 +22,45 @@ interface CookiePreferencesDialogProps {
   onSave: (preferences: CookiePreferences) => void;
 }
 
-const cookieCategories = [
-  {
-    key: "essential" as const,
-    title: "Cookies essentiels",
-    description: "Ces cookies sont nécessaires au fonctionnement du site et ne peuvent pas être désactivés. Ils permettent notamment la navigation, la sécurité et l'authentification.",
-    icon: Shield,
-    required: true,
-  },
-  {
-    key: "analytics" as const,
-    title: "Cookies analytiques",
-    description: "Ces cookies nous aident à comprendre comment les visiteurs utilisent le site en collectant des informations de manière anonyme. Ils permettent d'améliorer nos services.",
-    icon: BarChart3,
-    required: false,
-  },
-  {
-    key: "marketing" as const,
-    title: "Cookies marketing",
-    description: "Ces cookies sont utilisés pour vous présenter des publicités pertinentes et mesurer l'efficacité de nos campagnes marketing.",
-    icon: Megaphone,
-    required: false,
-  },
-  {
-    key: "functional" as const,
-    title: "Cookies fonctionnels",
-    description: "Ces cookies permettent d'améliorer les fonctionnalités du site, comme la mémorisation de vos préférences (langue, région, etc.).",
-    icon: Wrench,
-    required: false,
-  },
-];
-
 export const CookiePreferencesDialog = ({
   open,
   onOpenChange,
   preferences,
   onSave,
 }: CookiePreferencesDialogProps) => {
+  const { t } = useTranslation();
   const [localPreferences, setLocalPreferences] = useState<CookiePreferences>(preferences);
+
+  const cookieCategories = [
+    {
+      key: "essential" as const,
+      title: t("cookies.categories.essential"),
+      description: t("cookies.categories.essentialDesc"),
+      icon: Shield,
+      required: true,
+    },
+    {
+      key: "analytics" as const,
+      title: t("cookies.categories.analytics"),
+      description: t("cookies.categories.analyticsDesc"),
+      icon: BarChart3,
+      required: false,
+    },
+    {
+      key: "marketing" as const,
+      title: t("cookies.categories.marketing"),
+      description: t("cookies.categories.marketingDesc"),
+      icon: Megaphone,
+      required: false,
+    },
+    {
+      key: "functional" as const,
+      title: t("cookies.categories.functional"),
+      description: t("cookies.categories.functionalDesc"),
+      icon: Wrench,
+      required: false,
+    },
+  ];
 
   useEffect(() => {
     setLocalPreferences(preferences);
@@ -104,12 +106,12 @@ export const CookiePreferencesDialog = ({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            Paramètres des cookies
+            {t("cookies.settingsTitle")}
           </DialogTitle>
           <DialogDescription>
-            Personnalisez vos préférences en matière de cookies. Vous pouvez modifier ces paramètres à tout moment.{" "}
+            {t("cookies.settingsDescription")}{" "}
             <Link to="/politique-cookies" className="text-primary hover:underline">
-              Consulter notre politique de cookies
+              {t("cookies.viewPolicy")}
             </Link>
           </DialogDescription>
         </DialogHeader>
@@ -145,7 +147,7 @@ export const CookiePreferencesDialog = ({
                         </Label>
                         {category.required && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                            Requis
+                            {t("cookies.required")}
                           </span>
                         )}
                       </div>
@@ -172,20 +174,20 @@ export const CookiePreferencesDialog = ({
             onClick={handleRefuseAll}
             className="w-full sm:w-auto"
           >
-            Tout refuser
+            {t("cookies.refuseAll")}
           </Button>
           <Button
             variant="outline"
             onClick={handleAcceptAll}
             className="w-full sm:w-auto"
           >
-            Tout accepter
+            {t("cookies.acceptAll")}
           </Button>
           <Button 
             onClick={handleSave}
             className="w-full sm:w-auto"
           >
-            Enregistrer mes choix
+            {t("cookies.savePreferences")}
           </Button>
         </DialogFooter>
       </DialogContent>

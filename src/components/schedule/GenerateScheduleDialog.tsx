@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { format, addDays } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enCA } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -73,8 +74,10 @@ export function GenerateScheduleDialog({
   generateAlerts,
   onSuccess,
 }: GenerateScheduleDialogProps) {
+  const { t, i18n } = useTranslation();
   const [targetDate, setTargetDate] = useState<Date | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
+  const dateLocale = i18n.language === 'en' ? enCA : fr;
 
   // Récupérer le projet pour obtenir starting_step_id
   const { data: project } = useQuery({
@@ -149,7 +152,7 @@ export function GenerateScheduleDialog({
 
   const handleGenerate = async () => {
     if (!targetDate) {
-      toast.error("Veuillez sélectionner une date visée pour le début des travaux");
+      toast.error(t("generateSchedule.pleaseSelectDate"));
       return;
     }
 
@@ -160,21 +163,21 @@ export function GenerateScheduleDialog({
       const result = await generateProjectSchedule(projectId, targetDateStr, startingStepId);
 
       if (!result.success) {
-        toast.error(result.error || "Erreur lors de la génération de l'échéancier");
+        toast.error(result.error || t("errors.generic"));
         return;
       }
 
       if (result.warning) {
         toast.warning(result.warning, { duration: 8000 });
       } else {
-        toast.success("Échéancier généré avec succès!");
+        toast.success(t("toasts.saved"));
       }
 
       onSuccess?.();
       onOpenChange(false);
     } catch (error) {
       console.error("Error generating schedule:", error);
-      toast.error("Erreur lors de la génération de l'échéancier");
+      toast.error(t("errors.generic"));
     } finally {
       setIsGenerating(false);
     }
@@ -186,11 +189,10 @@ export function GenerateScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-primary" />
-            Générer l'échéancier
+            {t("generateSchedule.title")}
           </DialogTitle>
           <DialogDescription>
-            La préparation (planification, financement, permis) commencera <strong>aujourd'hui</strong>.
-            Choisissez la date visée pour le <strong>début des travaux</strong> (jour 1 de l'excavation).
+            {t("generateSchedule.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +200,7 @@ export function GenerateScheduleDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Date visée pour le début des travaux
+                {t("generateSchedule.targetDate")}
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -211,8 +213,8 @@ export function GenerateScheduleDialog({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {targetDate
-                      ? format(targetDate, "PPP", { locale: fr })
-                      : "Sélectionner une date"}
+                      ? format(targetDate, "PPP", { locale: dateLocale })
+                      : t("generateSchedule.selectDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -233,30 +235,30 @@ export function GenerateScheduleDialog({
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Date impossible!</strong> La préparation nécessite {preparationDays} jours ouvrables.
-                  La date la plus tôt pour débuter les travaux est le{" "}
-                  <strong>{format(dateAnalysis.earliestWorkStart, "d MMMM yyyy", { locale: fr })}</strong>{" "}
-                  (+{dateAnalysis.delayDays} jours).
+                  <strong>{t("generateSchedule.impossibleDate")}</strong> {t("generateSchedule.preparationNeeds", { days: preparationDays })}
+                  {" "}{t("generateSchedule.earliestDate")}{" "}
+                  <strong>{format(dateAnalysis.earliestWorkStart, "d MMMM yyyy", { locale: dateLocale })}</strong>{" "}
+                  (+{dateAnalysis.delayDays} {t("schedule.days")}).
                 </AlertDescription>
               </Alert>
             )}
 
             {targetDate && (
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <p className="text-sm font-medium">Résumé de l'échéancier :</p>
+                <p className="text-sm font-medium">{t("generateSchedule.summary")}</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   {preparationDays > 0 && (
-                    <li>• Préparation: {preparationDays} jours ouvrables (commence aujourd'hui)</li>
+                    <li>• {t("generateSchedule.preparation", { days: preparationDays })}</li>
                   )}
-                  <li>• {stepsToSchedule.length} étapes seront créées</li>
+                  <li>• {t("generateSchedule.stepsCreated", { count: stepsToSchedule.length })}</li>
                   <li>
-                    • Durée totale:{" "}
-                    {stepsToSchedule.reduce((sum, step) => sum + (defaultDurations[step.id] || 5), 0)}{" "}
-                    jours ouvrables
+                    • {t("generateSchedule.totalDuration", {
+                      days: stepsToSchedule.reduce((sum, step) => sum + (defaultDurations[step.id] || 5), 0)
+                    })}
                   </li>
                   {dateAnalysis?.isDatePossible && (
                     <li className="text-primary font-medium">
-                      ✓ Date réalisable - travaux le {format(targetDate, "d MMM yyyy", { locale: fr })}
+                      ✓ {t("generateSchedule.dateAchievable", { date: format(targetDate, "d MMM yyyy", { locale: dateLocale }) })}
                     </li>
                   )}
                 </ul>
@@ -271,7 +273,7 @@ export function GenerateScheduleDialog({
             onClick={() => onOpenChange(false)}
             disabled={isGenerating}
           >
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleGenerate}
@@ -280,12 +282,12 @@ export function GenerateScheduleDialog({
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Génération...
+                {t("generateSchedule.generating")}
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Générer l'échéancier
+                {t("generateSchedule.generate")}
               </>
             )}
           </Button>

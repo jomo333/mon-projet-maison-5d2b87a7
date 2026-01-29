@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enCA } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -88,7 +89,9 @@ export const AddScheduleDialog = ({
   onAdd,
   calculateEndDate,
 }: AddScheduleDialogProps) => {
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
+  const dateLocale = i18n.language === 'en' ? enCA : fr;
 
   // Récupérer le projet pour obtenir starting_step_id
   const { data: project } = useQuery({
@@ -200,22 +203,22 @@ export const AddScheduleDialog = ({
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Ajouter une étape
+          {t("schedule.addStep")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter une étape à l'échéancier</DialogTitle>
+          <DialogTitle>{t("scheduleDialog.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           {/* Sélection de l'étape */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Étape de construction</Label>
+              <Label>{t("scheduleDialog.constructionStep")}</Label>
               <Select value={formData.step_id} onValueChange={handleStepChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une étape" />
+                  <SelectValue placeholder={t("scheduleDialog.selectStep")} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableSteps.map((step) => (
@@ -227,13 +230,13 @@ export const AddScheduleDialog = ({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Métier</Label>
+              <Label>{t("scheduleDialog.trade")}</Label>
               <Select
                 value={formData.trade_type}
                 onValueChange={handleTradeChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un métier" />
+                  <SelectValue placeholder={t("scheduleDialog.selectTrade")} />
                 </SelectTrigger>
                 <SelectContent>
                   {tradeTypes.map((trade) => (
@@ -255,7 +258,7 @@ export const AddScheduleDialog = ({
           {/* Durée et dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Durée estimée (jours ouvrables)</Label>
+              <Label>{t("scheduleDialog.estimatedDays")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -269,7 +272,7 @@ export const AddScheduleDialog = ({
               />
             </div>
             <div className="space-y-2">
-              <Label>Date de début</Label>
+              <Label>{t("scheduleDialog.startDate")}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -282,9 +285,9 @@ export const AddScheduleDialog = ({
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.start_date
                       ? format(parseISO(formData.start_date), "PPP", {
-                          locale: fr,
+                          locale: dateLocale,
                         })
-                      : "Choisir une date (optionnel)"}
+                      : t("scheduleDialog.chooseDate")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -310,10 +313,10 @@ export const AddScheduleDialog = ({
 
           {/* Fournisseur */}
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-4">Fournisseur</h4>
+            <h4 className="font-medium mb-4">{t("scheduleDialog.supplier")}</h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Nom du fournisseur</Label>
+                <Label>{t("scheduleDialog.supplierName")}</Label>
                 <Input
                   value={formData.supplier_name}
                   onChange={(e) =>
@@ -323,7 +326,7 @@ export const AddScheduleDialog = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Téléphone</Label>
+                <Label>{t("scheduleDialog.supplierPhone")}</Label>
                 <Input
                   value={formData.supplier_phone}
                   onChange={(e) =>
@@ -333,7 +336,7 @@ export const AddScheduleDialog = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Appeler X jours avant</Label>
+                <Label>{t("scheduleDialog.callDaysBefore")}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -352,9 +355,9 @@ export const AddScheduleDialog = ({
 
           {/* Fabrication */}
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-4">Fabrication</h4>
+            <h4 className="font-medium mb-4">{t("scheduleDialog.fabrication")}</h4>
             <div className="space-y-2">
-              <Label>Délai de fabrication (jours ouvrables)</Label>
+              <Label>{t("scheduleDialog.fabricationLeadDays")}</Label>
               <Input
                 type="number"
                 min={0}
@@ -372,7 +375,7 @@ export const AddScheduleDialog = ({
 
           {/* Mesures */}
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-4">Mesures</h4>
+            <h4 className="font-medium mb-4">{t("scheduleDialog.measurements")}</h4>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -386,13 +389,13 @@ export const AddScheduleDialog = ({
                   }
                 />
                 <Label htmlFor="measurement_required">
-                  Mesures requises par le fournisseur
+                  {t("scheduleDialog.measurementRequired")}
                 </Label>
               </div>
               {formData.measurement_required && (
                 <>
                   <div className="space-y-2">
-                    <Label>Prendre les mesures après quelle étape?</Label>
+                    <Label>{t("scheduleDialog.measurementAfter")}</Label>
                     <Select
                       value={formData.measurement_after_step_id}
                       onValueChange={(value) =>
@@ -403,7 +406,7 @@ export const AddScheduleDialog = ({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une étape" />
+                        <SelectValue placeholder={t("scheduleDialog.selectStep")} />
                       </SelectTrigger>
                       <SelectContent>
                         {availableSteps.map((step) => (
@@ -415,7 +418,7 @@ export const AddScheduleDialog = ({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Notes pour les mesures</Label>
+                    <Label>{t("scheduleDialog.measurementNotes")}</Label>
                     <Textarea
                       value={formData.measurement_notes}
                       onChange={(e) =>
@@ -434,13 +437,13 @@ export const AddScheduleDialog = ({
 
           {/* Notes */}
           <div className="border-t pt-4">
-            <Label>Notes générales</Label>
+            <Label>{t("scheduleDialog.generalNotes")}</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Notes additionnelles..."
+              placeholder={t("scheduleDialog.notesPlaceholder")}
               className="mt-2"
             />
           </div>
@@ -448,13 +451,13 @@ export const AddScheduleDialog = ({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!formData.step_id || !formData.trade_type}
           >
-            Ajouter
+            {t("common.add")}
           </Button>
         </div>
       </DialogContent>

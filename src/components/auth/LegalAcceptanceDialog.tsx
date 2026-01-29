@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +26,13 @@ interface LegalAcceptanceDialogProps {
 }
 
 export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAcceptanceDialogProps) {
+  const { t } = useTranslation();
   const [accepted, setAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAccept = async () => {
     if (!accepted) {
-      toast.error("Veuillez accepter les conditions pour continuer");
+      toast.error(t("legalAcceptance.pleaseAccept"));
       return;
     }
 
@@ -55,15 +57,15 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
 
       if (error) {
         console.error("Error saving consent:", error);
-        toast.error("Erreur lors de l'enregistrement. Veuillez réessayer.");
+        toast.error(t("legalAcceptance.saveError"));
         return;
       }
 
-      toast.success("Merci d'avoir accepté nos conditions");
+      toast.success(t("legalAcceptance.thankYou"));
       onAccepted();
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Une erreur est survenue");
+      toast.error(t("errors.generic"));
     } finally {
       setIsLoading(false);
     }
@@ -83,11 +85,11 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
                 <Shield className="h-5 w-5 text-primary" />
               </div>
               <DialogTitle className="font-display text-lg">
-                Acceptation requise
+                {t("legalAcceptance.title")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm">
-              Pour utiliser Monprojetmaison.ca, vous devez accepter nos conditions.
+              {t("legalAcceptance.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -101,7 +103,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
             >
               <Link to="/conditions" target="_blank">
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
-                <span className="text-xs sm:text-sm">Lire les Conditions d'utilisation</span>
+                <span className="text-xs sm:text-sm">{t("legalAcceptance.readTerms")}</span>
               </Link>
             </Button>
             <Button
@@ -112,7 +114,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
             >
               <Link to="/confidentialite" target="_blank">
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
-                <span className="text-xs sm:text-sm">Lire la Politique de confidentialité</span>
+                <span className="text-xs sm:text-sm">{t("legalAcceptance.readPrivacy")}</span>
               </Link>
             </Button>
           </div>
@@ -128,15 +130,15 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
               htmlFor="legal-acceptance" 
               className="text-sm leading-relaxed cursor-pointer"
             >
-              J'accepte les{" "}
-              <span className="font-medium text-primary">Conditions d'utilisation</span>
-              {" "}et la{" "}
-              <span className="font-medium text-primary">Politique de confidentialité</span>
+              {t("legalAcceptance.acceptLabel")}{" "}
+              <span className="font-medium text-primary">{t("legalAcceptance.termsOfUse")}</span>
+              {" "}{t("common.and")}{" "}
+              <span className="font-medium text-primary">{t("legalAcceptance.privacyPolicy")}</span>
             </Label>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Votre acceptation sera enregistrée pour des raisons légales.
+            {t("legalAcceptance.recordNote")}
           </p>
 
           <Button 
@@ -146,7 +148,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
             size="lg"
           >
             {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Continuer
+            {t("legalAcceptance.continue")}
           </Button>
         </div>
       </DialogContent>

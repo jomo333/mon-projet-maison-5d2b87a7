@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Cookie, Settings } from "lucide-react";
@@ -87,6 +88,7 @@ export const CookieConsentProvider = ({ children }: { children: ReactNode }) => 
 };
 
 export const CookieConsent = () => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -175,15 +177,15 @@ export const CookieConsent = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-display font-semibold text-lg mb-2">
-                      Gestion des cookies
+                      {t("cookies.title")}
                     </h3>
                     <p className="text-muted-foreground text-sm leading-relaxed">
-                      Nous utilisons des cookies pour améliorer votre expérience, analyser le trafic et offrir du contenu pertinent. Vous pouvez accepter, refuser ou personnaliser vos préférences à tout moment.{" "}
+                      {t("cookies.description")}{" "}
                       <Link 
                         to="/politique-cookies" 
                         className="text-primary hover:underline"
                       >
-                        En savoir plus
+                        {t("cookies.learnMore")}
                       </Link>
                     </p>
                   </div>
@@ -194,14 +196,14 @@ export const CookieConsent = () => {
                     onClick={handleAcceptAll}
                     className="flex-1 sm:flex-none"
                   >
-                    Accepter
+                    {t("cookies.accept")}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={handleRefuseAll}
                     className="flex-1 sm:flex-none"
                   >
-                    Refuser
+                    {t("cookies.refuse")}
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -209,7 +211,7 @@ export const CookieConsent = () => {
                     className="flex-1 sm:flex-none gap-2"
                   >
                     <Settings className="h-4 w-4" />
-                    Paramétrer
+                    {t("cookies.customize")}
                   </Button>
                 </div>
               </div>

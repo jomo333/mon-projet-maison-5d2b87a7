@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,22 +16,12 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getSignedUrl } from "@/hooks/useSignedUrl";
+
 interface TaskAttachmentsProps {
   stepId: string;
   taskId: string;
   projectId?: string;
 }
-
-const categories = [
-  { value: "plan", label: "Plan", color: "bg-blue-500" },
-  { value: "permis", label: "Permis", color: "bg-green-500" },
-  { value: "devis", label: "Devis", color: "bg-orange-500" },
-  { value: "soumission", label: "Soumission", color: "bg-amber-500" },
-  { value: "contract", label: "Contrat", color: "bg-purple-500" },
-  { value: "facture", label: "Facture", color: "bg-red-500" },
-  { value: "photo", label: "Photo", color: "bg-cyan-500" },
-  { value: "other", label: "Autre", color: "bg-gray-500" },
-];
 
 function getFileIcon(fileType: string) {
   if (fileType.startsWith("image/")) return Image;
@@ -45,6 +36,7 @@ function formatFileSize(bytes: number) {
 }
 
 export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsProps) {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("other");
   const [isUploading, setIsUploading] = useState(false);
   const [showBudgetSuggestion, setShowBudgetSuggestion] = useState(false);
@@ -53,6 +45,17 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const categories = [
+    { value: "plan", label: t("gallery.documentCategories.plan"), color: "bg-blue-500" },
+    { value: "permis", label: t("gallery.documentCategories.permit"), color: "bg-green-500" },
+    { value: "devis", label: t("gallery.documentCategories.devis"), color: "bg-orange-500" },
+    { value: "soumission", label: t("gallery.documentCategories.soumission"), color: "bg-amber-500" },
+    { value: "contract", label: t("gallery.documentCategories.contract"), color: "bg-purple-500" },
+    { value: "facture", label: t("gallery.documentCategories.facture"), color: "bg-red-500" },
+    { value: "photo", label: t("gallery.documentCategories.photo"), color: "bg-cyan-500" },
+    { value: "other", label: t("gallery.documentCategories.other"), color: "bg-gray-500" },
+  ];
 
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["task-attachments", stepId, taskId, projectId ?? null],
@@ -103,7 +106,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      if (!user) throw new Error("Non authentifié");
+      if (!user) throw new Error(t("auth.notAuthenticated"));
       
       const fileExt = file.name.split(".").pop();
       const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -149,14 +152,14 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-attachments", stepId, taskId, projectId ?? null] });
-      toast.success("Fichier ajouté avec succès");
+      toast.success(t("attachments.uploadSuccess"));
       
       // Show budget suggestion after any file upload
       setShowBudgetSuggestion(true);
     },
     onError: (error) => {
       console.error("Upload error:", error);
-      toast.error("Erreur lors de l'upload du fichier");
+      toast.error(t("attachments.uploadError"));
     },
   });
 
@@ -177,11 +180,11 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-attachments", stepId, taskId, projectId ?? null] });
-      toast.success("Fichier supprimé");
+      toast.success(t("attachments.deleteSuccess"));
     },
     onError: (error) => {
       console.error("Delete error:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error(t("attachments.deleteError"));
     },
   });
 
@@ -210,7 +213,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
     <div className="mt-4 space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Paperclip className="h-4 w-4" />
-        <span>Pièces jointes</span>
+        <span>{t("attachments.title")}</span>
         {attachments.length > 0 && (
           <Badge variant="secondary" className="ml-1">
             {attachments.length}
@@ -222,7 +225,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
       <div className="flex flex-wrap items-center gap-2">
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Catégorie" />
+            <SelectValue placeholder={t("attachments.category")} />
           </SelectTrigger>
           <SelectContent>
             {categories.map((cat) => (
@@ -257,7 +260,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
           ) : (
             <Upload className="h-4 w-4" />
           )}
-          Ajouter un fichier
+          {t("attachments.addFile")}
         </Button>
       </div>
 
@@ -265,7 +268,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement...
+          {t("common.loading")}
         </div>
       ) : attachments.length > 0 ? (
         <div className="space-y-2">
@@ -316,7 +319,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
         </div>
       ) : (
         <p className="text-sm text-muted-foreground italic">
-          Aucune pièce jointe. Ajoutez vos plans, permis, soumissions...
+          {t("attachments.noAttachments")}
         </p>
       )}
 
@@ -329,10 +332,10 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
             </div>
             <div className="flex-1">
               <h4 className="font-medium text-green-800 dark:text-green-200">
-                Document téléversé avec succès!
+                {t("attachments.budgetSuggestion.title")}
               </h4>
               <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                Vous pouvez maintenant créer un budget détaillé pour estimer les coûts de votre projet de construction.
+                {t("attachments.budgetSuggestion.description")}
               </p>
               <div className="flex items-center gap-2 mt-3">
                 <Button 
@@ -340,7 +343,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
                   onClick={() => navigate(projectId ? `/budget?project=${projectId}&autoAnalyze=1` : "/budget?autoAnalyze=1")}
                   className="gap-2 bg-green-600 hover:bg-green-700"
                 >
-                  Créer mon budget
+                  {t("attachments.budgetSuggestion.cta")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button 
@@ -349,7 +352,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
                   onClick={() => setShowBudgetSuggestion(false)}
                   className="text-green-700 dark:text-green-300"
                 >
-                  Plus tard
+                  {t("attachments.budgetSuggestion.later")}
                 </Button>
               </div>
             </div>

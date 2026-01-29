@@ -3431,5 +3431,21 @@
         }
       }
     }
+  },
+  "chatAssistant": {
+    "welcomeBubble": "👋 Hi! I'm the MonProjetMaison assistant! I can help you with just one click!",
+    "close": "Close",
+    "title": "MonProjetMaison Assistant",
+    "welcomeTitle": "👋 Welcome to MonProjetMaison.ca!",
+    "welcomeMessage": "I can help you use the site. Click on an option or write to me directly.",
+    "inputPlaceholder": "Write your message...",
+    "connectionError": "Connection error",
+    "errorMessage": "Sorry, an error occurred. Please try again in a moment.",
+    "quickActions": {
+      "createProject": "Create a project",
+      "uploadQuote": "Upload a quote",
+      "understandAnalysis": "Understand my analysis",
+      "technicalIssue": "Technical issue"
+    }
   }
 }

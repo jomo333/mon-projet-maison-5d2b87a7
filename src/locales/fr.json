@@ -3431,5 +3431,21 @@
         }
       }
     }
+  },
+  "chatAssistant": {
+    "welcomeBubble": "👋 Salut ! Je suis l'assistant MonProjetMaison ! Je peux t'aider en un seul clic !",
+    "close": "Fermer",
+    "title": "Assistant MonProjetMaison",
+    "welcomeTitle": "👋 Bienvenue sur MonProjetMaison.ca !",
+    "welcomeMessage": "Je peux t'aider à utiliser le site. Clique sur une option ou écris-moi directement.",
+    "inputPlaceholder": "Écris ton message...",
+    "connectionError": "Erreur de connexion",
+    "errorMessage": "Désolé, une erreur est survenue. Réessaie dans un moment.",
+    "quickActions": {
+      "createProject": "Créer un projet",
+      "uploadQuote": "Téléverser une soumission",
+      "understandAnalysis": "Comprendre mon analyse",
+      "technicalIssue": "Problème technique"
+    }
   }
 }

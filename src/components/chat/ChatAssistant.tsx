@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { MessageCircle, X, Send, Loader2, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,20 +10,22 @@ type Message = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-assistant`;
 
-const QUICK_ACTIONS = [
-  "Créer un projet",
-  "Téléverser une soumission",
-  "Comprendre mon analyse",
-  "Problème technique",
-];
-
 export function ChatAssistant() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Quick actions with translations
+  const quickActions = [
+    { key: "createProject", label: t("chatAssistant.quickActions.createProject") },
+    { key: "uploadQuote", label: t("chatAssistant.quickActions.uploadQuote") },
+    { key: "understandAnalysis", label: t("chatAssistant.quickActions.understandAnalysis") },
+    { key: "technicalIssue", label: t("chatAssistant.quickActions.technicalIssue") },
+  ];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -41,7 +44,7 @@ export function ChatAssistant() {
     });
 
     if (!resp.ok || !resp.body) {
-      throw new Error("Erreur de connexion");
+      throw new Error(t("chatAssistant.connectionError"));
     }
 
     const reader = resp.body.getReader();
@@ -104,7 +107,7 @@ export function ChatAssistant() {
       console.error(error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Désolé, une erreur est survenue. Réessaie dans un moment." },
+        { role: "assistant", content: t("chatAssistant.errorMessage") },
       ]);
     } finally {
       setIsLoading(false);
@@ -128,14 +131,14 @@ export function ChatAssistant() {
                 setShowWelcome(false);
               }}
               className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Fermer"
+              aria-label={t("chatAssistant.close")}
             >
               <X className="h-3 w-3" />
             </button>
             <div className="flex items-start gap-2">
               <Bot className="h-5 w-5 mt-0.5 shrink-0" />
               <p className="text-sm font-medium leading-relaxed">
-                👋 Salut ! Je suis l'assistant MonProjetMaison ! Je peux t'aider en un seul clic !
+                {t("chatAssistant.welcomeBubble")}
               </p>
             </div>
             {/* Bubble tail */}
@@ -161,7 +164,7 @@ export function ChatAssistant() {
       <div className="flex items-center justify-between p-3 border-b bg-primary/5">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
-          <span className="font-medium text-sm">Assistant MonProjetMaison</span>
+          <span className="font-medium text-sm">{t("chatAssistant.title")}</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
           <X className="h-4 w-4" />
@@ -177,20 +180,20 @@ export function ChatAssistant() {
                 <Bot className="h-4 w-4 text-primary" />
               </div>
               <div className="text-sm bg-muted p-3 rounded-lg">
-                <p className="font-medium mb-2">👋 Bienvenue sur MonProjetMaison.ca !</p>
-                <p className="text-muted-foreground mb-3">Je peux t'aider à utiliser le site. Clique sur une option ou écris-moi directement.</p>
+                <p className="font-medium mb-2">{t("chatAssistant.welcomeTitle")}</p>
+                <p className="text-muted-foreground mb-3">{t("chatAssistant.welcomeMessage")}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {QUICK_ACTIONS.map((action) => (
+              {quickActions.map((action) => (
                 <Button
-                  key={action}
+                  key={action.key}
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  onClick={() => sendMessage(action)}
+                  onClick={() => sendMessage(action.label)}
                 >
-                  {action}
+                  {action.label}
                 </Button>
               ))}
             </div>
@@ -250,7 +253,7 @@ export function ChatAssistant() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Écris ton message..."
+            placeholder={t("chatAssistant.inputPlaceholder")}
             disabled={isLoading}
             className="text-sm"
           />

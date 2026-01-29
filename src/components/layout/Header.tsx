@@ -1,4 +1,5 @@
-import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug, Menu, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
@@ -35,11 +43,20 @@ export function Header() {
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, loading } = useAuth();
   const { isAdmin } = useAdmin();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const navItems = getNavItems(t);
   
   // Get project ID from URL if available
   const projectId = searchParams.get("project") || location.pathname.match(/\/projet\/([^/]+)/)?.[1];
+  
+  // Helper to get href with project param
+  const getHref = (href: string) => {
+    if (projectId && (href === "/galerie" || href === "/dashboard" || href === "/budget")) {
+      return `${href}?project=${projectId}`;
+    }
+    return href;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -59,6 +76,60 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
+        {/* Mobile menu button */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">{t("nav.menu")}</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="border-b p-4">
+              <SheetTitle className="flex items-center gap-2">
+                <img src={logo} alt="MonProjetMaison.ca" className="h-8 w-auto" />
+              </SheetTitle>
+            </SheetHeader>
+            <nav className="flex flex-col p-4 gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={getHref(item.href)}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-accent/10 text-accent"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                    location.pathname.startsWith("/admin")
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Shield className="h-5 w-5" />
+                  {t("nav.admin")}
+                </Link>
+              )}
+            </nav>
+          </SheetContent>
+        </Sheet>
+
         <Link to="/" className="flex items-center">
           <img src={logo} alt="MonProjetMaison.ca" className="h-10 w-auto" />
         </Link>
@@ -69,21 +140,10 @@ export function Header() {
             const isActive = location.pathname === item.href || 
               (item.href === "/galerie" && location.pathname === "/galerie");
             
-            // Add project parameter for relevant pages
-            let href = item.href;
-            if (
-              projectId &&
-              (item.href === "/galerie" ||
-                item.href === "/dashboard" ||
-                item.href === "/budget")
-            ) {
-              href = `${item.href}?project=${projectId}`;
-            }
-            
             return (
               <Link
                 key={item.href}
-                to={href}
+                to={getHref(item.href)}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive

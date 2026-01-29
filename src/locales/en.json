@@ -296,6 +296,7 @@
     "socialProof": "owner-builders trust us in Quebec"
   },
   "nav": {
+    "menu": "Menu",
     "myProjects": "My Projects",
     "steps": "Steps",
     "myFiles": "My Files",

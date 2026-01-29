@@ -961,26 +961,26 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Type de fondation pour garage détaché uniquement */}
               {(projectType === "garage" || projectType === "garage-etage") && (
                 <div className="space-y-2">
-                  <Label>Type de fondation</Label>
+                  <Label>{t("planAnalyzer.foundationType")}</Label>
                   <Select value={garageFoundationType} onValueChange={(v: "dalle-monolithique" | "fondation") => setGarageFoundationType(v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dalle-monolithique">Dalle monolithique</SelectItem>
-                      <SelectItem value="fondation">Fondation standard</SelectItem>
+                      <SelectItem value="dalle-monolithique">{t("planAnalyzer.foundationTypes.dalleMonolithique")}</SelectItem>
+                      <SelectItem value="fondation">{t("planAnalyzer.foundationTypes.fondation")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {garageFoundationType === "dalle-monolithique" 
-                      ? "Dalle et murs coulés ensemble (plus économique)" 
-                      : "Murs de fondation avec dalle séparée"}
+                      ? t("planAnalyzer.monolithicDesc") 
+                      : t("planAnalyzer.standardFoundationDesc")}
                   </p>
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="sqft">Superficie totale (pi²)</Label>
+                <Label htmlFor="sqft">{t("planAnalyzer.totalSqft")}</Label>
                 <Input
                   id="sqft"
                   type="number"
@@ -993,7 +993,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Nombre d'étages - masqué pour garage détaché (mais visible pour garage avec étage) */}
               {projectType !== "garage" && (
                 <div className="space-y-2">
-                  <Label>Nombre d'étages</Label>
+                  <Label>{t("planAnalyzer.numberOfFloors")}</Label>
                   <Select 
                     value={numberOfFloors} 
                     onValueChange={(v) => {
@@ -1006,9 +1006,9 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 étage (plain-pied)</SelectItem>
-                      <SelectItem value="2">2 étages</SelectItem>
-                      <SelectItem value="3">3 étages</SelectItem>
+                      <SelectItem value="1">{t("planAnalyzer.floors.one")}</SelectItem>
+                      <SelectItem value="2">{t("planAnalyzer.floors.two")}</SelectItem>
+                      <SelectItem value="3">{t("planAnalyzer.floors.three")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1017,7 +1017,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Superficie fondation - masqué pour garage détaché */}
               {projectType !== "garage" && projectType !== "garage-etage" && (
                 <div className="space-y-2">
-                  <Label htmlFor="foundation">Superficie fondation (pi²)</Label>
+                  <Label htmlFor="foundation">{t("planAnalyzer.foundationSqft")}</Label>
                   <Input
                     id="foundation"
                     type="number"
@@ -1031,7 +1031,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Superficie par étage - masqué pour garage détaché */}
               {projectType !== "garage" && projectType !== "garage-etage" && parseInt(numberOfFloors) > 1 && floorSqftDetails.map((_, index) => (
                 <div key={index} className="space-y-2">
-                  <Label>Superficie étage {index + 1} (pi²)</Label>
+                  <Label>{t("planAnalyzer.floorSqft", { number: index + 1 })}</Label>
                   <Input
                     type="number"
                     value={floorSqftDetails[index]}
@@ -1040,7 +1040,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       newDetails[index] = e.target.value;
                       setFloorSqftDetails(newDetails);
                     }}
-                    placeholder={`Superficie étage ${index + 1}`}
+                    placeholder={t("planAnalyzer.floorSqft", { number: index + 1 })}
                   />
                 </div>
               ))}
@@ -1048,7 +1048,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Garage - masqué si le projet est déjà un garage */}
               {projectType !== "garage" && projectType !== "garage-etage" && (
                 <div className="space-y-2">
-                  <Label>Garage</Label>
+                  <Label>{t("planAnalyzer.garage")}</Label>
                   <div className="flex items-center space-x-2 h-10">
                     <Checkbox
                       id="garage"
@@ -1060,7 +1060,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                     >
                       <Car className="h-4 w-4" />
-                      Inclure un garage
+                      {t("planAnalyzer.includeGarage")}
                     </label>
                   </div>
                 </div>
@@ -1069,7 +1069,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {/* Qualité des finitions - masqué pour les projets garage */}
               {projectType !== "garage" && projectType !== "garage-etage" && (
                 <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-                  <Label>Qualité des finitions intérieures</Label>
+                  <Label>{t("planAnalyzer.finishQuality")}</Label>
                   <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
                     <SelectTrigger>
                       <SelectValue />
@@ -1077,44 +1077,44 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     <SelectContent>
                       <SelectItem value="economique">
                         <div className="flex flex-col items-start">
-                          <span className="font-medium">🏷️ Économique</span>
-                          <span className="text-xs text-muted-foreground">Matériaux de base, plancher flottant, armoires mélamine, comptoirs stratifiés</span>
+                          <span className="font-medium">{t("planAnalyzer.qualityLevels.economique")}</span>
+                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.economiqueDesc")}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="standard">
                         <div className="flex flex-col items-start">
-                          <span className="font-medium">⭐ Standard</span>
-                          <span className="text-xs text-muted-foreground">Bois franc ingénierie, armoires semi-custom, comptoirs quartz</span>
+                          <span className="font-medium">{t("planAnalyzer.qualityLevels.standard")}</span>
+                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.standardDesc")}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="haut-de-gamme">
                         <div className="flex flex-col items-start">
-                          <span className="font-medium">💎 Haut de gamme</span>
-                          <span className="text-xs text-muted-foreground">Bois franc massif, armoires sur mesure, comptoirs granite/marbre</span>
+                          <span className="font-medium">{t("planAnalyzer.qualityLevels.hautDeGamme")}</span>
+                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.hautDeGammeDesc")}</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Ce choix affecte les coûts des planchers, armoires, comptoirs, quincaillerie et finitions.
+                    {t("planAnalyzer.qualityNote")}
                   </p>
                 </div>
               )}
               
               {/* Notes additionnelles (pré-remplies depuis la tâche Besoins) */}
               <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-                <Label htmlFor="additionalNotes">Notes sur vos besoins (optionnel)</Label>
+                <Label htmlFor="additionalNotes">{t("planAnalyzer.needsNotes")}</Label>
                 <textarea
                   id="additionalNotes"
                   value={additionalNotes}
                   onChange={(e) => setAdditionalNotes(e.target.value)}
-                  placeholder="Ex: Cuisine ouverte sur salon, 3 chambres dont 1 suite parentale, sous-sol fini avec salle de cinéma..."
+                  placeholder={t("planAnalyzer.needsPlaceholder")}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 {besoinsNote && (
                   <p className="text-xs text-primary flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Pré-rempli depuis vos besoins définis à l'étape 1
+                    {t("planAnalyzer.prefilledFromStep1")}
                   </p>
                 )}
               </div>
@@ -1125,10 +1125,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                   <div>
                     <Label className="flex items-center gap-2">
                       <Image className="h-4 w-4" />
-                      Images de référence (optionnel)
+                      {t("planAnalyzer.referenceImages")}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Ajoutez des photos ou croquis pour aider l'analyse (plans, inspiration, etc.)
+                      {t("planAnalyzer.referenceImagesDesc")}
                     </p>
                   </div>
                   <Button
@@ -1142,7 +1142,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    <span className="ml-2">Ajouter</span>
+                    <span className="ml-2">{t("planAnalyzer.add")}</span>
                   </Button>
                   <input
                     ref={manualImageInputRef}
@@ -1214,7 +1214,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                 {manualReferenceImages.length > 0 && (
                   <p className="text-xs text-primary flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    {manualReferenceImages.length} image(s) ajoutée(s) pour l'analyse
+                    {t("planAnalyzer.imagesAdded", { count: manualReferenceImages.length })}
                   </p>
                 )}
               </div>
@@ -1225,7 +1225,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           <TabsContent value="plan" className="mt-4 space-y-4">
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-sm text-foreground">
-                <strong>💡 Analyse enrichie</strong> : Téléversez vos plans ET ajoutez des informations complémentaires pour obtenir l'estimation la plus précise possible.
+                <strong>{t("planAnalyzer.enrichedAnalysis")}</strong> : {t("planAnalyzer.enrichedAnalysisDesc")}
               </p>
             </div>
             
@@ -1234,10 +1234,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
                 <div className="flex items-center gap-2 text-primary">
                   <FileImage className="h-5 w-5 animate-pulse" />
-                  <span className="font-medium">Conversion du PDF en cours...</span>
+                  <span className="font-medium">{t("planAnalyzer.convertingPdf")}</span>
                 </div>
                 <Progress value={progress} className="h-2" />
-                <p className="text-xs text-muted-foreground">{progress}% terminé</p>
+                <p className="text-xs text-muted-foreground">{t("planAnalyzer.percentComplete", { percent: progress })}</p>
               </div>
             )}
             
@@ -1246,10 +1246,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="space-y-3 p-4 rounded-lg border bg-card">
                 <div className="flex items-center gap-2">
                   <Badge variant="default" className="text-xs">1</Badge>
-                  <Label className="text-base font-semibold">Plans de construction</Label>
+                  <Label className="text-base font-semibold">{t("planAnalyzer.constructionPlans")}</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Plans trouvés : <span className="font-medium">{plans.length}</span> — Ajoutez tous les plans (étages, élévations, coupes) pour une analyse complète.
+                  {t("planAnalyzer.plansFound")} : <span className="font-medium">{plans.length}</span> — {t("planAnalyzer.plansFoundDesc")}
                 </p>
 
                 {plans.length > 0 && selectedPlanUrls.length === 0 && (
@@ -1265,12 +1265,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       className="gap-2"
                     >
                       <FileText className="h-4 w-4" />
-                      Importer le dernier plan
+                      {t("planAnalyzer.importLatestPlan")}
                     </Button>
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
                   <Select
                     value="none"
                     onValueChange={(v) => {
@@ -1280,10 +1279,10 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     }}
                   >
                     <SelectTrigger className="flex-1 min-w-[200px]">
-                      <SelectValue placeholder="Ajouter un plan existant..." />
+                      <SelectValue placeholder={t("planAnalyzer.addExistingPlan")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Ajouter un plan existant...</SelectItem>
+                      <SelectItem value="none">{t("planAnalyzer.addExistingPlan")}</SelectItem>
                       {plans
                         .filter((plan) => {
                           const url = plan.file_url;
@@ -1332,7 +1331,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    {isConverting ? "Conversion..." : "Téléverser"}
+                    {isConverting ? t("planAnalyzer.converting") : t("planAnalyzer.upload")}
                   </Button>
 
                   {selectedPlanUrls.length > 0 && (
@@ -1343,7 +1342,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       className="gap-2 text-destructive hover:text-destructive"
                     >
                       <X className="h-4 w-4" />
-                      Effacer
+                      {t("planAnalyzer.clear")}
                     </Button>
                   )}
                 </div>
@@ -1363,8 +1362,8 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                               <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium">
                                 {index + 1}
                               </span>
-                              <span className="text-sm truncate max-w-[180px]">
-                                {plan?.file_name || `Plan ${index + 1}`}
+                          <span className="text-sm truncate max-w-[180px]">
+                                {plan?.file_name || `${t("planAnalyzer.plan")} ${index + 1}`}
                               </span>
                             </div>
                             <Button
@@ -1398,24 +1397,24 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="space-y-3 p-4 rounded-lg border bg-card">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">2</Badge>
-                  <Label className="text-base font-semibold">Choix de matériaux et finitions (recommandé)</Label>
+                  <Label className="text-base font-semibold">{t("planAnalyzer.materialsAndFinishes")}</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ces détails ne sont généralement pas visibles sur les plans. Précisez-les pour une estimation plus réaliste.
+                  {t("planAnalyzer.materialsAndFinishesDesc")}
                 </p>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {/* Qualité générale */}
                   <div className="space-y-2">
-                    <Label>Qualité générale des finitions</Label>
+                    <Label>{t("planAnalyzer.generalFinishQuality")}</Label>
                     <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="economique">🏷️ Économique</SelectItem>
-                        <SelectItem value="standard">⭐ Standard</SelectItem>
-                        <SelectItem value="haut-de-gamme">💎 Haut de gamme</SelectItem>
+                        <SelectItem value="economique">{t("planAnalyzer.qualityLevels.economique")}</SelectItem>
+                        <SelectItem value="standard">{t("planAnalyzer.qualityLevels.standard")}</SelectItem>
+                        <SelectItem value="haut-de-gamme">{t("planAnalyzer.qualityLevels.hautDeGamme")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1650,13 +1649,13 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {batchProgress 
-                  ? `Lot ${batchProgress.current}/${batchProgress.total}...` 
-                  : "Analyse en cours..."}
+                  ? t("planAnalyzer.batchAnalysis", { current: batchProgress.current, total: batchProgress.total })
+                  : t("planAnalyzer.analyzing")}
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                {analysisMode === "manual" ? "Générer le budget" : "Analyser le plan"}
+                {analysisMode === "manual" ? t("planAnalyzer.generateBudget") : t("planAnalyzer.analyzePlan")}
               </>
             )}
           </Button>
@@ -1666,19 +1665,19 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               {batchProgress && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Analyse par lots ({batchProgress.current}/{batchProgress.total})</span>
+                    <span>{t("planAnalyzer.batchAnalysisProgress", { current: batchProgress.current, total: batchProgress.total })}</span>
                     <span>{Math.round((batchProgress.current / batchProgress.total) * 100)}%</span>
                   </div>
                   <Progress value={(batchProgress.current / batchProgress.total) * 100} className="h-2" />
                   <p className="text-xs text-muted-foreground">
-                    Plans {batchProgress.completed + 1} à {Math.min(batchProgress.completed + 3, selectedPlanUrls.length)} sur {selectedPlanUrls.length}
+                    {t("planAnalyzer.plansProgress", { start: batchProgress.completed + 1, end: Math.min(batchProgress.completed + 3, selectedPlanUrls.length), total: selectedPlanUrls.length })}
                   </p>
                 </div>
               )}
               <p className="text-sm text-muted-foreground animate-pulse">
                 ⏳ {batchProgress 
-                  ? `Analyse de ${selectedPlanUrls.length} plans en ${batchProgress.total} lot(s) pour éviter les timeouts...`
-                  : "L'analyse peut prendre quelques minutes selon la complexité des plans..."}
+                  ? t("planAnalyzer.batchAnalysisNote", { count: selectedPlanUrls.length, batches: batchProgress.total })
+                  : t("planAnalyzer.analysisNote")}
               </p>
             </div>
           )}
@@ -1690,14 +1689,14 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                Résultat de l'analyse
+                {t("planAnalyzer.analysisResult")}
               </h3>
               <div className="flex flex-col items-end">
                 <Badge variant="secondary" className="text-lg px-4 py-1">
                   <DollarSign className="h-4 w-4 mr-1" />
                   {Math.round(analysis.estimatedTotal * 0.90).toLocaleString()} $ à {Math.round(analysis.estimatedTotal * 1.10).toLocaleString()} $
                 </Badge>
-                <span className="text-xs text-muted-foreground mt-1">Fourchette ±10%</span>
+                <span className="text-xs text-muted-foreground mt-1">{t("planAnalyzer.rangeNote")}</span>
               </div>
             </div>
 
@@ -1736,7 +1735,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center font-medium">
                         %
                       </span>
-                      <span className="font-medium text-amber-700 dark:text-amber-400">Budget imprévu (5%)</span>
+                      <span className="font-medium text-amber-700 dark:text-amber-400">{t("planAnalyzer.contingencyBudget")}</span>
                     </div>
                     <span className="text-amber-700 dark:text-amber-400 font-medium text-sm">
                       {Math.round(contingence * 0.90).toLocaleString()} $ - {Math.round(contingence * 1.10).toLocaleString()} $
@@ -1749,7 +1748,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs flex items-center justify-center font-medium">
                         $
                       </span>
-                      <span className="font-medium text-blue-700 dark:text-blue-400">Taxes (TPS 5% + TVQ 9,975%)</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-400">{t("planAnalyzer.taxesLabel")}</span>
                     </div>
                     <span className="text-blue-700 dark:text-blue-400 font-medium text-sm">
                       {Math.round(taxes * 0.90).toLocaleString()} $ - {Math.round(taxes * 1.10).toLocaleString()} $
@@ -1759,7 +1758,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               );
             })()}
             <p className="text-xs text-muted-foreground text-center">
-              {orderedAnalysisCategories.length} poste(s) + Contingence + Taxes • Fourchette ±10%
+              {t("planAnalyzer.categoriesCount", { count: orderedAnalysisCategories.length })}
             </p>
 
             {/* Warnings */}
@@ -1767,7 +1766,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                 <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium mb-1">
                   <AlertTriangle className="h-4 w-4" />
-                  Avertissements
+                  {t("planAnalyzer.warnings")}
                 </div>
                 <ul className="text-sm text-amber-800 dark:text-amber-300 space-y-1">
                   {analysis.warnings.map((warning, i) => (
@@ -1782,7 +1781,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-medium mb-1">
                   <Sparkles className="h-4 w-4" />
-                  Recommandations
+                  {t("planAnalyzer.recommendations")}
                 </div>
                 <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
                   {analysis.recommendations.map((rec, i) => (
@@ -1796,7 +1795,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               onClick={handleApplyBudget}
               className="w-full gap-2"
             >
-              Appliquer ce budget
+              {t("planAnalyzer.applyBudget")}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

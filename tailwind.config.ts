@@ -69,6 +69,29 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Blueprint Premium colors
+        navy: {
+          DEFAULT: "hsl(222, 47%, 11%)",
+          light: "hsl(217, 33%, 17%)",
+        },
+        slate: {
+          200: "hsl(214, 32%, 91%)",
+          300: "hsl(213, 27%, 84%)",
+          400: "hsl(215, 20%, 65%)",
+          500: "hsl(215, 16%, 47%)",
+          600: "hsl(215, 19%, 35%)",
+          700: "hsl(215, 25%, 27%)",
+          800: "hsl(217, 33%, 17%)",
+        },
+        amber: {
+          400: "hsl(43, 96%, 56%)",
+          500: "hsl(38, 92%, 50%)",
+          600: "hsl(32, 95%, 44%)",
+        },
+        emerald: {
+          500: "hsl(160, 84%, 39%)",
+          600: "hsl(161, 94%, 30%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -96,6 +119,10 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        fadeUp: {
+          from: { opacity: "0", transform: "translateY(20px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -103,6 +130,7 @@ export default {
         "fade-in": "fade-in 0.5s ease-out forwards",
         "slide-in-right": "slide-in-right 0.5s ease-out forwards",
         "scale-in": "scale-in 0.3s ease-out forwards",
+        "fade-up": "fadeUp 0.6s ease-out forwards",
       },
     },
   },

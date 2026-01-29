@@ -45,6 +45,83 @@
       "amount": "0.00"
     }
   },
+  "construction": {
+    "tasks": {
+      "implantation": { "title": "Implantation de la maison" },
+      "deboisement": { "title": "Déboisement" },
+      "excavation-creusage": { "title": "Creusage et excavation" },
+
+      "coulage-fondation": { "title": "Coulage des fondations" },
+      "drain-remblai": { "title": "Drain et remblai" },
+
+      "plancher": { "title": "Plancher du rez-de-chaussée" },
+      "murs": { "title": "Érection des murs" },
+      "etage": { "title": "Structure de l'étage" },
+      "fermes-toit": { "title": "Installation des fermes de toit" },
+      "pontage": { "title": "Pontage de toit" },
+      "etancheite": { "title": "Étanchéité" },
+
+      "membrane": { "title": "Membrane et bardeaux" },
+
+      "fenetres": { "title": "Installation des fenêtres" },
+      "portes-ext": { "title": "Portes extérieures" },
+
+      "isolation-murs": { "title": "Isolation des murs" },
+      "isolation-toit": { "title": "Isolation du toit/comble" },
+      "insonorisation": { "title": "Insonorisation" },
+      "pare-vapeur": { "title": "Pare-vapeur" },
+      "fourrures-clouage": { "title": "Fourrures de bois et fond de clouage" },
+
+      "plomberie-sous-dalle-visite": { "title": "Plomberie sous dalle - première visite" },
+      "preparation-dalle": { "title": "Préparation du sol" },
+      "coulage-dalle": { "title": "Coulage du béton" },
+
+      "construire-escalier": { "title": "Construire escalier" },
+      "ossature-murs": { "title": "Ossature des murs" },
+      "cadrage-portes": { "title": "Cadrage des portes" },
+
+      "plomberie-brute": { "title": "Plomberie brute" },
+      "chauffe-eau": { "title": "Chauffe-eau" },
+      "conduite-gaz": { "title": "Conduite pour gaz" },
+      "branchements": { "title": "Branchements municipaux" },
+
+      "entree-electrique": { "title": "Entrée électrique" },
+      "filage": { "title": "Filage brut" },
+      "inspection-electrique": { "title": "Inspection électrique" },
+
+      "chauffage": { "title": "Système de chauffage" },
+      "vrc": { "title": "Ventilateur récupérateur de chaleur (VRC) (échangeur d'air)" },
+      "conduits": { "title": "Conduits de ventilation" },
+
+      "revetement": { "title": "Revêtement extérieur" },
+      "fascia-soffite": { "title": "Fascia et soffite" },
+      "balcons-terrasses": { "title": "Balcons et terrasses" },
+      "amenagement": { "title": "Aménagement paysager" },
+
+      "pose-gypse": { "title": "Pose du gypse" },
+      "tirage-joints": { "title": "Tirage de joints" },
+      "peinture": { "title": "Peinture" },
+
+      "plancher-bois": { "title": "Plancher de bois ou stratifié" },
+      "ceramique": { "title": "Céramique" },
+
+      "armoires": { "title": "Armoires de cuisine et vanités" },
+      "comptoirs": { "title": "Comptoirs" },
+
+      "portes-int": { "title": "Portes intérieures" },
+      "moulures": { "title": "Moulures et plinthes" },
+      "escalier": { "title": "Escalier" },
+      "peinture-finition": { "title": "Peinture de finition" },
+
+      "prises-interrupteurs": { "title": "Prises et interrupteurs" },
+      "luminaires": { "title": "Luminaires" },
+      "appareils-electriques": { "title": "Raccordement des appareils" },
+
+      "robinetterie": { "title": "Robinetterie" },
+      "toilettes-lavabos": { "title": "Toilettes et lavabos" },
+      "douche-bain": { "title": "Douche et baignoire" }
+    }
+  },
   "stepPhotoUpload": {
     "title": "Photos de suivi - {{stepTitle}}",
     "addPhotos": "Ajouter des photos",

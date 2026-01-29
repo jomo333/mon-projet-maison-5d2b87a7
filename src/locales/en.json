@@ -45,6 +45,83 @@
       "amount": "0.00"
     }
   },
+  "construction": {
+    "tasks": {
+      "implantation": { "title": "House staking (layout)" },
+      "deboisement": { "title": "Clearing (tree removal)" },
+      "excavation-creusage": { "title": "Digging and excavation" },
+
+      "coulage-fondation": { "title": "Pouring the foundations" },
+      "drain-remblai": { "title": "French drain and backfill" },
+
+      "plancher": { "title": "Main floor framing" },
+      "murs": { "title": "Wall framing" },
+      "etage": { "title": "Second-floor structure" },
+      "fermes-toit": { "title": "Roof trusses installation" },
+      "pontage": { "title": "Roof sheathing" },
+      "etancheite": { "title": "Weatherproofing" },
+
+      "membrane": { "title": "Membrane and shingles" },
+
+      "fenetres": { "title": "Window installation" },
+      "portes-ext": { "title": "Exterior doors" },
+
+      "isolation-murs": { "title": "Wall insulation" },
+      "isolation-toit": { "title": "Attic/roof insulation" },
+      "insonorisation": { "title": "Soundproofing" },
+      "pare-vapeur": { "title": "Vapour barrier" },
+      "fourrures-clouage": { "title": "Furring strips and blocking" },
+
+      "plomberie-sous-dalle-visite": { "title": "Under-slab plumbing (first visit)" },
+      "preparation-dalle": { "title": "Sub-base preparation" },
+      "coulage-dalle": { "title": "Concrete pour" },
+
+      "construire-escalier": { "title": "Build staircase" },
+      "ossature-murs": { "title": "Partition wall framing" },
+      "cadrage-portes": { "title": "Door framing" },
+
+      "plomberie-brute": { "title": "Rough plumbing" },
+      "chauffe-eau": { "title": "Water heater" },
+      "conduite-gaz": { "title": "Gas line rough-in" },
+      "branchements": { "title": "Municipal connections" },
+
+      "entree-electrique": { "title": "Electrical service entry" },
+      "filage": { "title": "Rough wiring" },
+      "inspection-electrique": { "title": "Electrical inspection" },
+
+      "chauffage": { "title": "Heating system" },
+      "vrc": { "title": "HRV (air exchanger)" },
+      "conduits": { "title": "Ventilation ducts" },
+
+      "revetement": { "title": "Exterior cladding" },
+      "fascia-soffite": { "title": "Fascia and soffit" },
+      "balcons-terrasses": { "title": "Balconies and decks" },
+      "amenagement": { "title": "Landscaping" },
+
+      "pose-gypse": { "title": "Drywall installation" },
+      "tirage-joints": { "title": "Taping and mudding" },
+      "peinture": { "title": "Painting" },
+
+      "plancher-bois": { "title": "Wood or laminate flooring" },
+      "ceramique": { "title": "Ceramic tile" },
+
+      "armoires": { "title": "Kitchen cabinets and vanities" },
+      "comptoirs": { "title": "Countertops" },
+
+      "portes-int": { "title": "Interior doors" },
+      "moulures": { "title": "Trim and baseboards" },
+      "escalier": { "title": "Staircase finishing" },
+      "peinture-finition": { "title": "Final coat of paint" },
+
+      "prises-interrupteurs": { "title": "Outlets and switches" },
+      "luminaires": { "title": "Light fixtures" },
+      "appareils-electriques": { "title": "Appliance hookups" },
+
+      "robinetterie": { "title": "Faucets and fixtures" },
+      "toilettes-lavabos": { "title": "Toilets and sinks" },
+      "douche-bain": { "title": "Shower and bathtub" }
+    }
+  },
   "stepPhotoUpload": {
     "title": "Progress Photos - {{stepTitle}}",
     "addPhotos": "Add photos",

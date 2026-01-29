@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/i18n";
 import { groupItemsByTask } from "@/lib/budgetTaskMapping";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
+import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import {
   mapAnalysisToStepCategories,
   defaultCategories as libDefaultCategories,
@@ -845,6 +846,9 @@ const Budget = () => {
                     const isExpanded = expandedCategories.includes(category.name);
                     const stepTasks = Array.from(new Set(stepTasksByCategory[category.name] ?? []));
                     const stepTasksText = stepTasks.join(", ");
+                     const stepTasksDisplay = stepTasks.map((task) =>
+                       translateBudgetTaskTitle(t, category.name, task)
+                     );
                     const showAnalysisSummary =
                       !!category.description &&
                       category.description.trim().length > 0 &&
@@ -931,8 +935,8 @@ const Budget = () => {
                                             {t("budget.includedTasks")}
                                           </div>
                                           <ul className="list-disc pl-5 space-y-1 text-sm">
-                                            {stepTasks.map((task) => (
-                                              <li key={task} className="text-muted-foreground">
+                                            {stepTasksDisplay.map((task, idx) => (
+                                              <li key={`${category.name}__task__${idx}`} className="text-muted-foreground">
                                                 {task}
                                               </li>
                                             ))}
@@ -969,7 +973,7 @@ const Budget = () => {
                                                    (hasItems ? "text-primary" : "text-muted-foreground")
                                                  }
                                                />
-                                               {taskTitle}
+                                                {translateBudgetTaskTitle(t, category.name, taskTitle)}
                                              </div>
 
                                              {hasItems ? (

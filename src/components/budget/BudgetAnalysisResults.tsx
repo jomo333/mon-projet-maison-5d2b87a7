@@ -62,6 +62,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { groupItemsByTask, getTasksForCategory } from "@/lib/budgetTaskMapping";
+import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import { 
   mapAnalysisToStepCategories, 
   defaultCategories,
@@ -668,7 +669,11 @@ export function BudgetAnalysisResults({
                         <div>
                           <h3 className="font-semibold">{translateCategoryName(cat.name)}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {stepTasksByCategory[cat.name]?.join(", ") || cat.description}
+                            {(stepTasksByCategory[cat.name]?.length
+                              ? stepTasksByCategory[cat.name]
+                                  .map((task) => translateBudgetTaskTitle(t, cat.name, task))
+                                  .join(", ")
+                              : cat.description) || ""}
                           </p>
                         </div>
                       </div>
@@ -709,12 +714,13 @@ export function BudgetAnalysisResults({
 
                         return tasksToRender.map((taskTitle) => {
                           const taskItems = groupedByTask.get(taskTitle) ?? [];
+                          const displayTaskTitle = translateBudgetTaskTitle(t, cat.name, taskTitle);
 
                           return (
                             <div key={taskTitle} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <Wrench className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-sm">{taskTitle}</span>
+                                <span className="font-medium text-sm">{displayTaskTitle}</span>
                                 <Badge variant="outline" className="text-xs">
                                   {taskItems.length} élément{taskItems.length > 1 ? "s" : ""}
                                 </Badge>

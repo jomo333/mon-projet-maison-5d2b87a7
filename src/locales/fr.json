@@ -945,5 +945,710 @@
     "viewAll": "Voir tous mes projets",
     "deleteTitle": "Supprimer ce projet?",
     "deleteDescription": "Cette action est irréversible. Toutes les données du projet \"{{name}}\" seront définitivement supprimées, y compris le budget et les pièces jointes."
+  },
+  "steps": {
+    "phases": {
+      "preConstruction": "Pré-construction",
+      "grosOeuvre": "Gros œuvre",
+      "secondOeuvre": "Second œuvre",
+      "finitions": "Finitions"
+    },
+    "planification": {
+      "title": "Planification du projet",
+      "description": "Définissez vos besoins, votre budget et vos objectifs avant de commencer.",
+      "duration": "4-5 jours",
+      "tasks": {
+        "besoins": {
+          "title": "Définir vos besoins",
+          "description": "Listez le nombre de chambres, salles de bain, espaces de rangement et caractéristiques souhaitées.",
+          "tips": [
+            "Pensez à vos besoins futurs (famille qui s'agrandit, télétravail)",
+            "Visitez des maisons modèles pour vous inspirer"
+          ]
+        },
+        "budget-initial": {
+          "title": "Établir le budget préliminaire",
+          "description": "Calculez votre capacité financière incluant le terrain, la construction et les imprévus.",
+          "tips": [
+            "Prévoyez 10-15% du budget pour les imprévus",
+            "Incluez les frais de branchements (électricité, eau, égouts)"
+          ]
+        },
+        "terrain": {
+          "title": "Recherche et achat du terrain",
+          "description": "Trouvez un terrain qui correspond à vos critères et vérifiez le zonage.",
+          "tips": [
+            "Vérifiez les règlements d'urbanisme de la municipalité",
+            "Faites faire une étude de sol avant l'achat"
+          ],
+          "documents": ["Certificat de localisation", "Acte de vente", "Étude géotechnique"]
+        },
+        "preapprobation-planification": {
+          "title": "Pré-approbation hypothécaire",
+          "description": "Obtenez une pré-approbation de votre institution financière pour connaître votre capacité d'emprunt maximale.",
+          "tips": [
+            "Comparez les offres de plusieurs banques et courtiers",
+            "Une pré-approbation est généralement valide 90 à 120 jours",
+            "Préparez vos preuves de revenus et relevés bancaires"
+          ],
+          "documents": ["Talons de paie", "Avis de cotisation", "Relevés bancaires"]
+        }
+      }
+    },
+    "plans-permis": {
+      "title": "Plans et permis",
+      "description": "Faites préparer vos plans et obtenez tous les permis nécessaires.",
+      "duration": "6-8 semaines",
+      "tasks": {
+        "plans-architecture": {
+          "title": "Plans d'architecture",
+          "description": "Engagez un architecte ou technologue pour dessiner vos plans.",
+          "tips": [
+            "Envisagez l'achat de plans préconçus pour accélérer le processus et réduire les coûts",
+            "Assurez-vous que les plans sont conformes au Code du bâtiment",
+            "Incluez les plans de structure et mécanique",
+            "Dès l'obtention de vos plans, commencez à solliciter des soumissions"
+          ],
+          "documents": ["Plans d'architecture", "Plans de structure", "Plans mécaniques"]
+        },
+        "test-sol": {
+          "title": "Test de sol (étude géotechnique)",
+          "description": "Faites réaliser une étude géotechnique pour déterminer la capacité portante du sol.",
+          "tips": [
+            "Obligatoire pour obtenir le permis dans plusieurs municipalités",
+            "Permet de déterminer le type de fondation approprié",
+            "Identifie les risques de nappe phréatique élevée"
+          ],
+          "documents": ["Rapport géotechnique", "Recommandations de fondation"]
+        },
+        "services-publics": {
+          "title": "Validation des services (eau, égouts)",
+          "description": "Vérifiez la disponibilité des services municipaux ou planifiez les installations privées.",
+          "tips": [
+            "Contactez la municipalité pour connaître les services disponibles",
+            "Si hors réseau: prévoir étude de sol pour installation septique",
+            "Le champ d'épuration nécessite une superficie de terrain adéquate"
+          ],
+          "documents": ["Certificat de conformité septique", "Permis d'installation septique", "Analyse d'eau (puits)"]
+        },
+        "permis-construction": {
+          "title": "Demande de permis de construction",
+          "description": "Soumettez votre demande à la municipalité avec tous les documents requis.",
+          "tips": [
+            "Le délai varie selon les municipalités (2-8 semaines)",
+            "Certaines municipalités exigent un engagement d'un professionnel"
+          ],
+          "documents": ["Formulaire de demande", "Plans certifiés", "Certificat de localisation"]
+        }
+      }
+    },
+    "soumissions": {
+      "title": "Soumissions",
+      "description": "Obtenez et comparez les soumissions des différents corps de métier.",
+      "duration": "2-3 semaines",
+      "tasks": {
+        "obtenir-soumissions": {
+          "title": "Obtenir les soumissions",
+          "description": "Demandez des soumissions détaillées aux différents corps de métier.",
+          "tips": [
+            "Obtenez au moins 3 soumissions par spécialité",
+            "Ne choisissez pas uniquement sur le prix le plus bas",
+            "Vérifiez les références des entrepreneurs",
+            "Demandez des preuves d'assurance responsabilité",
+            "Vérifiez les licences RBQ des entrepreneurs"
+          ],
+          "documents": ["Soumissions signées", "Preuves d'assurance", "Licences RBQ"]
+        },
+        "assurance-chantier": {
+          "title": "Assurance chantier",
+          "description": "Souscrivez une assurance chantier pour protéger votre projet.",
+          "tips": [
+            "⚠️ IMPORTANT : Assurez-vous que la couverture débute AVANT le premier coup de pelle",
+            "L'assurance chantier couvre les dommages pendant la construction",
+            "Vérifiez que la couverture inclut le vol, le vandalisme et les intempéries"
+          ],
+          "documents": ["Police d'assurance chantier", "Certificats d'assurance des entrepreneurs"]
+        }
+      }
+    },
+    "financement": {
+      "title": "Financement",
+      "description": "Obtenez votre financement et préparez votre montage financier.",
+      "duration": "2-4 semaines",
+      "tasks": {
+        "pret-construction": {
+          "title": "Prêt construction",
+          "description": "Négociez votre prêt construction avec déboursements progressifs.",
+          "tips": [
+            "Les fonds sont débloqués par étapes selon l'avancement",
+            "Prévoyez des fonds propres pour les premières dépenses"
+          ],
+          "documents": ["Soumissions des entrepreneurs", "Plans et devis", "Budget détaillé"]
+        }
+      }
+    },
+    "excavation": {
+      "title": "Excavation",
+      "description": "Préparation du terrain et creusage pour les fondations.",
+      "duration": "3-5 jours",
+      "tasks": {
+        "implantation": {
+          "title": "Implantation de la maison",
+          "description": "L'arpenteur positionne la maison sur le terrain selon les plans.",
+          "tips": [
+            "Respectez les marges de recul exigées",
+            "Faites vérifier avant l'excavation"
+          ],
+          "documents": ["Certificat d'implantation"]
+        },
+        "deboisement": {
+          "title": "Déboisement",
+          "description": "Abattage des arbres et défrichage de la zone de construction.",
+          "tips": [
+            "Vérifiez les règlements municipaux concernant l'abattage d'arbres",
+            "Certaines municipalités exigent un permis de coupe"
+          ]
+        },
+        "excavation-creusage": {
+          "title": "Creusage et excavation",
+          "description": "Creusage pour le sous-sol et préparation du terrain.",
+          "tips": [
+            "Prévoyez l'entreposage de la terre excavée",
+            "Protégez l'excavation de la pluie"
+          ]
+        }
+      }
+    },
+    "fondation": {
+      "title": "Fondation",
+      "description": "Construction des fondations et imperméabilisation.",
+      "duration": "1-2 semaines",
+      "tasks": {
+        "coulage-fondation": {
+          "title": "Coulage des fondations",
+          "description": "Installation des coffrages et coulage du béton pour les semelles et murs.",
+          "tips": [
+            "Cure du béton: attendez au moins 21 jours avant de charger",
+            "Imperméabilisez les murs de fondation avec une membrane"
+          ]
+        },
+        "drain-remblai": {
+          "title": "Drain et remblai",
+          "description": "Installation du drain français et remblayage autour des fondations.",
+          "tips": [
+            "Utilisez un drain de PVC perforé avec des cheminées"
+          ],
+          "documents": ["Rapport d'inspection des fondations"]
+        }
+      }
+    },
+    "structure": {
+      "title": "Structure et charpente",
+      "description": "Érection de la structure en bois ou acier de la maison.",
+      "duration": "2-4 semaines",
+      "tasks": {
+        "plancher": {
+          "title": "Plancher du rez-de-chaussée",
+          "description": "Installation des solives et du sous-plancher.",
+          "tips": [
+            "Protégez le sous-plancher des intempéries",
+            "Vérifiez le niveau avant de continuer",
+            "Utilisez des poutrelles ajourées pour le passage des fils et conduits"
+          ]
+        },
+        "murs": {
+          "title": "Érection des murs",
+          "description": "Construction et levage des murs extérieurs et intérieurs porteurs.",
+          "tips": [
+            "Respectez les ouvertures prévues aux plans",
+            "Installez les linteaux au-dessus des ouvertures"
+          ]
+        },
+        "etage": {
+          "title": "Structure de l'étage",
+          "description": "Si applicable, construction du plancher et des murs de l'étage.",
+          "tips": [
+            "Utilisez des poutrelles ajourées pour faciliter le passage des fils et conduits"
+          ]
+        },
+        "fermes-toit": {
+          "title": "Installation des fermes de toit",
+          "description": "Pose des fermes préfabriquées ou construction de la charpente traditionnelle.",
+          "documents": ["Plans de fermes certifiés"]
+        },
+        "pontage": {
+          "title": "Pontage de toit",
+          "description": "Installation du contreplaqué sur les fermes de toit pour fermer la structure.",
+          "tips": [
+            "Protégez le pontage des intempéries rapidement",
+            "Vérifiez l'alignement des panneaux"
+          ]
+        },
+        "etancheite": {
+          "title": "Étanchéité",
+          "description": "Installation des membranes d'étanchéité et protection contre les infiltrations.",
+          "tips": [
+            "Assurez-vous que toutes les jonctions sont bien scellées",
+            "Vérifiez l'étanchéité autour des ouvertures"
+          ]
+        }
+      }
+    },
+    "toiture": {
+      "title": "Toiture",
+      "description": "Installation de la membrane et du revêtement de toiture.",
+      "duration": "2 jours",
+      "tasks": {
+        "membrane": {
+          "title": "Membrane et bardeaux",
+          "description": "Pose de la membrane d'étanchéité et des bardeaux d'asphalte.",
+          "tips": [
+            "Installez les solins autour des cheminées et évents",
+            "Appliquez une membrane autocollante dans les premiers 4 pieds des rebords"
+          ]
+        }
+      }
+    },
+    "fenetres-portes": {
+      "title": "Fenêtres et portes extérieures",
+      "description": "Installation de la fenestration et des portes pour fermer l'enveloppe.",
+      "duration": "2 jours",
+      "tasks": {
+        "fenetres": {
+          "title": "Installation des fenêtres",
+          "description": "Pose des fenêtres avec isolation et étanchéité du pourtour.",
+          "tips": [
+            "Utilisez de la mousse isolante basse expansion",
+            "Installez les solins de fenêtre correctement"
+          ]
+        },
+        "portes-ext": {
+          "title": "Portes extérieures",
+          "description": "Installation des portes d'entrée, garage et patio."
+        }
+      }
+    },
+    "isolation": {
+      "title": "Isolation et pare-vapeur",
+      "description": "Installation de l'isolation thermique et du pare-vapeur.",
+      "duration": "1-2 semaines",
+      "tasks": {
+        "isolation-murs": {
+          "title": "Isolation des murs",
+          "description": "Pose de l'isolant dans les murs extérieurs.",
+          "tips": [
+            "R-24 minimum pour les murs au Québec",
+            "Évitez les ponts thermiques"
+          ]
+        },
+        "isolation-toit": {
+          "title": "Isolation du toit/comble",
+          "description": "Isolation du plafond du dernier étage.",
+          "tips": [
+            "R-41 minimum pour les toits au Québec",
+            "Maintenez une ventilation adéquate du comble"
+          ]
+        },
+        "insonorisation": {
+          "title": "Insonorisation",
+          "description": "Installation de l'isolation acoustique entre les pièces.",
+          "tips": [
+            "Priorisez les murs entre les chambres et les salles de bain",
+            "L'insonorisation des planchers réduit les bruits d'impact"
+          ]
+        },
+        "pare-vapeur": {
+          "title": "Pare-vapeur",
+          "description": "Installation du polyéthylène 6 mil sur le côté chaud de l'isolant.",
+          "tips": [
+            "Scellez tous les joints et pénétrations",
+            "Le test d'infiltrométrie vérifiera l'étanchéité"
+          ],
+          "documents": ["Rapport de test d'infiltrométrie"]
+        },
+        "fourrures-clouage": {
+          "title": "Fourrures de bois et fond de clouage",
+          "description": "Installation des fourrures et fonds de clouage pour la fixation des revêtements.",
+          "tips": [
+            "Assurez-vous que les fourrures sont bien nivelées",
+            "Prévoyez les fonds de clouage aux emplacements des armoires"
+          ]
+        }
+      }
+    },
+    "plomberie-sous-dalle": {
+      "title": "Plomberie sous dalle",
+      "description": "Installation de la plomberie sous la dalle de béton avant le coulage.",
+      "duration": "1 jour",
+      "tasks": {
+        "plomberie-sous-dalle-visite": {
+          "title": "Plomberie sous dalle - première visite",
+          "description": "Installation des drains et tuyaux de plomberie sous la dalle.",
+          "tips": [
+            "Cette étape doit être complétée avant le coulage de la dalle",
+            "Vérifiez les pentes de drainage et les raccordements"
+          ]
+        }
+      }
+    },
+    "dalle-sous-sol": {
+      "title": "Coulée de dalle du sous-sol",
+      "description": "Coulage de la dalle de béton du sous-sol après l'installation de la plomberie brute.",
+      "duration": "2-3 jours",
+      "tasks": {
+        "preparation-dalle": {
+          "title": "Préparation du sol",
+          "description": "Nivellement, compaction et installation de la membrane pare-vapeur.",
+          "tips": [
+            "Assurez-vous que le drainage est bien en place",
+            "Installez un isolant rigide sous la dalle"
+          ]
+        },
+        "coulage-dalle": {
+          "title": "Coulage du béton",
+          "description": "Coulage et nivellement de la dalle de béton.",
+          "tips": [
+            "Prévoyez les joints de contrôle pour éviter les fissures",
+            "Cure du béton: gardez humide pendant 7 jours minimum"
+          ]
+        }
+      }
+    },
+    "murs-division": {
+      "title": "Murs de division",
+      "description": "Construction des murs de division intérieurs non porteurs.",
+      "duration": "2-3 jours",
+      "tasks": {
+        "construire-escalier": {
+          "title": "Construire escalier",
+          "description": "Construction et installation des escaliers intérieurs.",
+          "tips": [
+            "Respectez les normes du Code du bâtiment",
+            "Prévoyez un garde-corps temporaire pendant les travaux"
+          ]
+        },
+        "ossature-murs": {
+          "title": "Ossature des murs",
+          "description": "Installation de l'ossature pour les murs de division.",
+          "tips": [
+            "Utilisez des montants de 2x4 pour les murs non porteurs",
+            "Prévoyez l'emplacement des portes et ouvertures"
+          ]
+        },
+        "cadrage-portes": {
+          "title": "Cadrage des portes",
+          "description": "Installation des cadres de porte dans les murs de division.",
+          "tips": [
+            "Vérifiez le niveau et l'aplomb des cadres",
+            "Prévoyez l'espace pour les portes coulissantes si désiré"
+          ]
+        }
+      }
+    },
+    "plomberie-roughin": {
+      "title": "Plomberie - Rough-in",
+      "description": "Installation de la plomberie brute avant la fermeture des murs.",
+      "duration": "4 jours",
+      "tasks": {
+        "plomberie-brute": {
+          "title": "Plomberie brute",
+          "description": "Installation des tuyaux d'alimentation et de drainage.",
+          "tips": [
+            "Le PEX est plus facile à installer et moins dispendieux que le cuivre",
+            "Respectez les pentes de drainage"
+          ]
+        },
+        "chauffe-eau": {
+          "title": "Chauffe-eau",
+          "description": "Installation du chauffe-eau.",
+          "tips": [
+            "Installez un bac de récupération raccordé au drain"
+          ]
+        },
+        "conduite-gaz": {
+          "title": "Conduite pour gaz",
+          "description": "Installation des conduites de gaz pour le foyer et la cuisinière.",
+          "tips": [
+            "Faites appel à un installateur certifié",
+            "Prévoyez l'emplacement des appareils avant l'installation"
+          ]
+        },
+        "branchements": {
+          "title": "Branchements municipaux",
+          "description": "Raccordement à l'aqueduc et aux égouts.",
+          "documents": ["Permis de branchement", "Test d'étanchéité"]
+        }
+      }
+    },
+    "electricite-roughin": {
+      "title": "Électricité - Rough-in",
+      "description": "Installation du filage électrique brut avant la fermeture des murs.",
+      "duration": "4 jours",
+      "tasks": {
+        "entree-electrique": {
+          "title": "Entrée électrique",
+          "description": "Installation du panneau électrique et branchement Hydro-Québec.",
+          "tips": [
+            "Prévoir suffisamment d'ampérage pour vos besoins futurs",
+            "200A est le standard pour une maison moderne"
+          ],
+          "documents": ["Demande de branchement Hydro-Québec"]
+        },
+        "filage": {
+          "title": "Filage brut",
+          "description": "Passage des fils dans les murs avant la pose du gypse.",
+          "tips": [
+            "Planifiez l'emplacement des prises et interrupteurs",
+            "Prévoyez des circuits dédiés (cuisine, salle de lavage)"
+          ]
+        },
+        "inspection-electrique": {
+          "title": "Inspection électrique",
+          "description": "Inspection obligatoire avant de fermer les murs.",
+          "tips": [
+            "Prendre des photos de tous les emplacements de boîtiers électriques"
+          ]
+        }
+      }
+    },
+    "hvac": {
+      "title": "Chauffage et ventilation",
+      "description": "Installation des systèmes de chauffage, climatisation et ventilation.",
+      "duration": "2-3 jours",
+      "tasks": {
+        "chauffage": {
+          "title": "Système de chauffage",
+          "description": "Installation des plinthes électriques, plancher radiant ou thermopompe.",
+          "tips": [
+            "Positionnez les plinthes sous les fenêtres",
+            "Calculez les besoins de chauffage par pièce"
+          ]
+        },
+        "vrc": {
+          "title": "Ventilateur récupérateur de chaleur (VRC)",
+          "description": "Installation obligatoire pour assurer la qualité de l'air.",
+          "tips": [
+            "Le VRC est obligatoire dans les constructions neuves",
+            "Prévoyez des conduits vers chaque pièce"
+          ]
+        },
+        "conduits": {
+          "title": "Conduits de ventilation",
+          "description": "Installation des conduits pour la hotte, sécheuse et ventilateurs.",
+          "tips": [
+            "Le conduit doit être isolé dans l'entretoit"
+          ]
+        }
+      }
+    },
+    "exterieur": {
+      "title": "Revêtement extérieur",
+      "description": "Finition de l'enveloppe extérieure de la maison.",
+      "duration": "3-4 semaines",
+      "tasks": {
+        "revetement": {
+          "title": "Revêtement extérieur",
+          "description": "Installation du parement (vinyle, fibrociment, brique, bois).",
+          "tips": [
+            "Installez une membrane pare-air avant le revêtement",
+            "Toujours prévoir une lame d'air derrière le revêtement"
+          ]
+        },
+        "fascia-soffite": {
+          "title": "Fascia et soffite",
+          "description": "Installation des bordures de toit et de la ventilation du comble."
+        },
+        "balcons-terrasses": {
+          "title": "Balcons et terrasses",
+          "description": "Construction des balcons, galeries et terrasses.",
+          "tips": [
+            "Appliquez une membrane d'étanchéité sur la lisse d'assise"
+          ]
+        },
+        "amenagement": {
+          "title": "Aménagement paysager",
+          "description": "Nivellement final, entrée de garage, gazon et plantations."
+        }
+      }
+    },
+    "gypse": {
+      "title": "Gypse et peinture",
+      "description": "Finition des murs et plafonds intérieurs.",
+      "duration": "10-12 jours",
+      "tasks": {
+        "pose-gypse": {
+          "title": "Pose du gypse",
+          "description": "Installation des panneaux de gypse sur tous les murs et plafonds.",
+          "tips": [
+            "Utilisez du gypse résistant à l'humidité dans les salles de bain",
+            "Gypse 5/8 sur les murs du garage obligatoire"
+          ]
+        },
+        "tirage-joints": {
+          "title": "Tirage de joints",
+          "description": "Application du composé à joints et sablage.",
+          "tips": [
+            "3 couches minimum pour une belle finition",
+            "Niveau 4 ou 5 selon la finition désirée"
+          ]
+        },
+        "peinture": {
+          "title": "Peinture",
+          "description": "Application de l'apprêt et de la peinture.",
+          "tips": [
+            "Un bon apprêt est essentiel",
+            "Après l'apprêt, inspectez tous les murs et réparez les défauts"
+          ]
+        }
+      }
+    },
+    "revetements-sol": {
+      "title": "Revêtements de sol",
+      "description": "Installation des planchers dans toutes les pièces.",
+      "duration": "5-7 jours",
+      "tasks": {
+        "plancher-bois": {
+          "title": "Plancher de bois ou stratifié",
+          "description": "Installation dans les aires de vie.",
+          "tips": [
+            "Acclimatez le bois 48-72h avant l'installation",
+            "Laissez un espace d'expansion au périmètre"
+          ]
+        },
+        "ceramique": {
+          "title": "Céramique",
+          "description": "Pose de la céramique dans les salles de bain, cuisine et entrée.",
+          "tips": [
+            "Ajouter un contreplaqué de 5/8\" avant la pose",
+            "Utilisez une membrane d'étanchéité dans la douche"
+          ]
+        }
+      }
+    },
+    "cuisine-sdb": {
+      "title": "Travaux ébénisterie",
+      "description": "Installation des armoires, comptoirs et appareils sanitaires.",
+      "duration": "3-5 jours",
+      "tasks": {
+        "armoires": {
+          "title": "Armoires de cuisine et vanités",
+          "description": "Installation des armoires et meubles-lavabos.",
+          "tips": [
+            "Valider les mesures avec votre cuisiniste après le plâtre"
+          ]
+        },
+        "comptoirs": {
+          "title": "Comptoirs",
+          "description": "Installation des comptoirs de cuisine et salle de bain.",
+          "tips": [
+            "Mesurage après l'installation des armoires",
+            "Délai de fabrication: 2-4 semaines"
+          ]
+        }
+      }
+    },
+    "finitions-int": {
+      "title": "Finitions intérieures",
+      "description": "Derniers détails pour compléter l'intérieur.",
+      "duration": "1-2 semaines",
+      "tasks": {
+        "portes-int": {
+          "title": "Portes intérieures",
+          "description": "Installation des portes, cadres et quincaillerie.",
+          "tips": [
+            "Prévoir une porte coupe-feu entre le garage et la maison"
+          ]
+        },
+        "moulures": {
+          "title": "Moulures et plinthes",
+          "description": "Pose des plinthes, cadrages et moulures décoratives."
+        },
+        "escalier": {
+          "title": "Escalier",
+          "description": "Finition de l'escalier (marches, contremarches, rampe)."
+        },
+        "peinture-finition": {
+          "title": "Peinture de finition",
+          "description": "Application de la couche finale de peinture.",
+          "tips": [
+            "Cette étape permet de corriger les retouches après la pose des moulures"
+          ]
+        }
+      }
+    },
+    "electricite-finition": {
+      "title": "Électricité - Finition",
+      "description": "Installation finale des appareils électriques.",
+      "duration": "3 jours",
+      "tasks": {
+        "prises-interrupteurs": {
+          "title": "Prises et interrupteurs",
+          "description": "Installation des plaques de prises et interrupteurs.",
+          "tips": [
+            "Vérifiez le fonctionnement de chaque circuit",
+            "Utilisez des plaques assorties à votre décor"
+          ]
+        },
+        "luminaires": {
+          "title": "Luminaires",
+          "description": "Installation de tous les luminaires."
+        },
+        "appareils-electriques": {
+          "title": "Raccordement des appareils",
+          "description": "Branchement des électroménagers et équipements."
+        }
+      }
+    },
+    "plomberie-finition": {
+      "title": "Plomberie - Finition",
+      "description": "Installation finale des appareils sanitaires.",
+      "duration": "3 jours",
+      "tasks": {
+        "robinetterie": {
+          "title": "Robinetterie",
+          "description": "Installation des robinets.",
+          "tips": [
+            "Vérifiez l'étanchéité de chaque raccord",
+            "Privilégiez des marques reconnues avec garantie à vie"
+          ]
+        },
+        "toilettes-lavabos": {
+          "title": "Toilettes et lavabos",
+          "description": "Installation des toilettes, lavabos et vanités."
+        },
+        "douche-bain": {
+          "title": "Douche et baignoire",
+          "description": "Raccordement final des douches et baignoires.",
+          "tips": [
+            "Prévoir un installateur spécialisé pour les portes de douche"
+          ]
+        }
+      }
+    },
+    "inspections-finales": {
+      "title": "Inspections finales",
+      "description": "Dernières vérifications et obtention du certificat d'occupation.",
+      "duration": "2 jours",
+      "tasks": {
+        "inspection-municipale": {
+          "title": "Inspection municipale finale",
+          "description": "Inspection obligatoire pour obtenir le certificat d'occupation.",
+          "documents": ["Certificat d'occupation"]
+        },
+        "inspection-garantie": {
+          "title": "Inspection pré-réception",
+          "description": "Inspection complète pour identifier les déficiences.",
+          "tips": [
+            "Engagez un inspecteur indépendant",
+            "Documentez tout avec photos"
+          ]
+        },
+        "certificat-localisation": {
+          "title": "Certificat de localisation final",
+          "description": "Mise à jour du certificat de localisation avec la construction terminée.",
+          "documents": ["Certificat de localisation final"]
+        }
+      }
+    }
   }
 }

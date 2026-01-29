@@ -46,7 +46,6 @@ import {
   FolderArchive
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
-import JSZip from "jszip";
 import { toast } from "sonner";
 
 const ProjectGallery = () => {
@@ -184,36 +183,56 @@ const ProjectGallery = () => {
     }
   };
 
-  // Download all files as organized ZIP
-  const downloadAllAsZip = async () => {
+  // Download all files to a folder using File System Access API
+  const downloadAllToFolder = async () => {
     if (!project || (!photos.length && !documents.length)) {
-      toast.error(t("gallery.noFilesToDownload", "Aucun fichier à télécharger"));
+      toast.error(t("gallery.noFilesToDownload"));
+      return;
+    }
+
+    // Check if File System Access API is supported
+    if (!("showDirectoryPicker" in window)) {
+      toast.error(t("gallery.browserNotSupported", "Votre navigateur ne supporte pas cette fonctionnalité. Utilisez Chrome ou Edge."));
       return;
     }
 
     setIsDownloadingAll(true);
-    const zip = new JSZip();
-    const projectName = project.name.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").trim() || "projet";
-    
-    const addedFiles = new Set<string>(); // Track added files to avoid duplicates
+    const addedFiles = new Set<string>();
+    let downloadCount = 0;
 
     try {
-      // Add photos organized by step
-      const photosFolder = zip.folder("Photos");
-      if (photosFolder) {
+      // Request access to a folder
+      const dirHandle = await (window as any).showDirectoryPicker({
+        mode: "readwrite",
+        startIn: "downloads"
+      });
+
+      const projectName = project.name.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").trim() || "Projet";
+      
+      // Create main project folder
+      const projectFolder = await dirHandle.getDirectoryHandle(projectName, { create: true });
+
+      // Create Photos folder and subfolders by step
+      if (photos.length > 0) {
+        const photosFolder = await projectFolder.getDirectoryHandle("Photos", { create: true });
+        
         for (const photo of photos) {
           const stepName = getStepTitle(photo.step_id).replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").trim() || photo.step_id;
-          const stepFolder = photosFolder.folder(stepName);
+          const stepFolder = await photosFolder.getDirectoryHandle(stepName, { create: true });
           
-          if (stepFolder) {
+          if (!addedFiles.has(photo.file_url)) {
             const signedUrl = photoSignedUrls.get(photo.id) || await getSignedUrl("project-photos", photo.file_url);
-            if (signedUrl && !addedFiles.has(photo.file_url)) {
+            if (signedUrl) {
               try {
                 const response = await fetch(signedUrl);
                 if (response.ok) {
                   const blob = await response.blob();
-                  stepFolder.file(photo.file_name, blob);
+                  const fileHandle = await stepFolder.getFileHandle(photo.file_name, { create: true });
+                  const writable = await fileHandle.createWritable();
+                  await writable.write(blob);
+                  await writable.close();
                   addedFiles.add(photo.file_url);
+                  downloadCount++;
                 }
               } catch (e) {
                 console.error("Error downloading photo:", e);
@@ -223,9 +242,9 @@ const ProjectGallery = () => {
         }
       }
 
-      // Add documents organized by category
-      const docsFolder = zip.folder("Documents");
-      if (docsFolder) {
+      // Create Documents folder and subfolders by category
+      if (documents.length > 0) {
+        const docsFolder = await projectFolder.getDirectoryHandle("Documents", { create: true });
         const categoryNames: Record<string, string> = {
           plan: "Plans",
           devis: "Devis",
@@ -241,9 +260,9 @@ const ProjectGallery = () => {
 
         for (const doc of documents) {
           const categoryName = categoryNames[doc.category] || "Autres";
-          const catFolder = docsFolder.folder(categoryName);
+          const catFolder = await docsFolder.getDirectoryHandle(categoryName, { create: true });
           
-          if (catFolder && !addedFiles.has(doc.file_url)) {
+          if (!addedFiles.has(doc.file_url)) {
             const signedUrl = docSignedUrls.get(doc.id) || await getSignedUrlFromPublicUrl(doc.file_url);
             const urlToUse = signedUrl || doc.file_url;
             
@@ -251,8 +270,12 @@ const ProjectGallery = () => {
               const response = await fetch(urlToUse);
               if (response.ok) {
                 const blob = await response.blob();
-                catFolder.file(doc.file_name, blob);
+                const fileHandle = await catFolder.getFileHandle(doc.file_name, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
                 addedFiles.add(doc.file_url);
+                downloadCount++;
               }
             } catch (e) {
               console.error("Error downloading document:", e);
@@ -261,21 +284,14 @@ const ProjectGallery = () => {
         }
       }
 
-      // Generate ZIP and download
-      const content = await zip.generateAsync({ type: "blob" });
-      const url = window.URL.createObjectURL(content);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${projectName}_dossiers.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success(t("gallery.downloadSuccess", "Téléchargement terminé !"));
-    } catch (error) {
-      console.error("ZIP download error:", error);
-      toast.error(t("gallery.downloadError", "Erreur lors du téléchargement"));
+      toast.success(t("gallery.downloadSuccessCount", { count: downloadCount }));
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        // User cancelled the folder picker
+        return;
+      }
+      console.error("Download error:", error);
+      toast.error(t("gallery.downloadError"));
     } finally {
       setIsDownloadingAll(false);
     }
@@ -602,7 +618,7 @@ const ProjectGallery = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={downloadAllAsZip}
+                onClick={downloadAllToFolder}
                 disabled={isDownloadingAll || (!photos.length && !documents.length)}
                 className="gap-2"
               >

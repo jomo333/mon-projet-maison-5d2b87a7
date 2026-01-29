@@ -1225,8 +1225,10 @@
     "downloadAll": "Tout télécharger",
     "downloading": "Téléchargement...",
     "downloadSuccess": "Téléchargement terminé !",
+    "downloadSuccessCount": "{{count}} fichiers téléchargés !",
     "downloadError": "Erreur lors du téléchargement",
-    "noFilesToDownload": "Aucun fichier à télécharger"
+    "noFilesToDownload": "Aucun fichier à télécharger",
+    "browserNotSupported": "Votre navigateur ne supporte pas cette fonctionnalité. Utilisez Chrome ou Edge."
   },
   "startProject": {
     "title": "Créer un nouveau projet",

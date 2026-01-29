@@ -1225,8 +1225,10 @@
     "downloadAll": "Download all",
     "downloading": "Downloading...",
     "downloadSuccess": "Download complete!",
+    "downloadSuccessCount": "{{count}} files downloaded!",
     "downloadError": "Error downloading files",
-    "noFilesToDownload": "No files to download"
+    "noFilesToDownload": "No files to download",
+    "browserNotSupported": "Your browser doesn't support this feature. Use Chrome or Edge."
   },
   "startProject": {
     "title": "Create a new project",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { compressImageFileToJpeg } from "@/lib/imageCompression";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
@@ -233,6 +234,7 @@ interface UsePlanAnalysisOptions {
 
 export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
   const { projectId, onUrlsOptimized } = options;
+  const { t } = useTranslation();
   const { canUseAI, refetch: refetchLimits } = usePlanLimits();
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -311,12 +313,12 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
 
     try {
       // Optimize images first
-      toast.info("Optimisation des plans (compression JPEG) avant analyse...");
+      toast.info(t("toasts.optimizingPlans"));
       const { optimized: planUrlsForAnalysis, changed } = await ensureOptimizedUrls(planUrls, projectId);
       
       if (changed) {
         onUrlsOptimized?.(planUrlsForAnalysis);
-        toast.success("Plans optimisés. Lancement de l'analyse...");
+        toast.success(t("toasts.plansOptimized"));
       }
 
       // Batch analysis - 1 image at a time to avoid timeouts
@@ -338,7 +340,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
           completed: startIdx,
         });
 
-        toast.info(`Analyse du lot ${batchIndex + 1}/${totalBatches} (plans ${startIdx + 1}-${endIdx})...`);
+        toast.info(t("toasts.analyzingBatch", { current: batchIndex + 1, total: totalBatches, start: startIdx + 1, end: endIdx }));
 
         const body = {
           mode: "plan",
@@ -359,7 +361,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
 
         if (error) {
           console.error(`Batch ${batchIndex + 1} error:`, error);
-          toast.error(`Erreur sur le lot ${batchIndex + 1}: ${error.message}`);
+          toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message }));
           failedBatches++;
           continue;
         }
@@ -378,10 +380,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
       // Report partial failures to user
       const succeededBatches = totalBatches - failedBatches;
       if (failedBatches > 0 && succeededBatches > 0) {
-        toast.warning(
-          `${succeededBatches} plan(s) analysé(s) sur ${totalBatches}, ${failedBatches} en échec. ` +
-          `Les résultats sont partiels.`
-        );
+        toast.warning(t("toasts.partialAnalysis", { succeeded: succeededBatches, total: totalBatches, failed: failedBatches }));
       }
 
       if (batchResults.length === 0) {
@@ -415,7 +414,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
         }
       } else {
         // Multiple batches - server merge required
-        toast.info("Fusion des résultats de tous les lots...");
+        toast.info(t("toasts.mergingResults"));
 
         const { data: mergedData, error: mergeError } = await supabase.functions.invoke("analyze-plan", {
           body: {

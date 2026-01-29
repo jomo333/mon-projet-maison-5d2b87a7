@@ -595,7 +595,8 @@
     "goToSteps": "Voir les étapes",
     "plansReady": "{{count}} plan(s) prêt(s)",
     "plansReadyForAnalysis": "{{count}} plan(s) prêt(s) pour l'analyse",
-    "noPlanSelected": "Aucun plan sélectionné"
+    "noPlanSelected": "Aucun plan sélectionné",
+    "analysisComplete": "Analyse terminée!"
   },
   "plans": {
     "title": "Forfaits",

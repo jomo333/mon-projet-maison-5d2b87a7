@@ -224,7 +224,7 @@ const StartProject = () => {
 
   const saveProject = async (): Promise<string | null> => {
     if (!user) {
-      toast.error("Vous devez être connecté pour créer un projet");
+      toast.error(t("toasts.mustBeLoggedIn"));
       navigate("/auth");
       return null;
     }
@@ -260,7 +260,7 @@ const StartProject = () => {
       return data.id;
     } catch (error: any) {
       console.error("Error saving project:", error);
-      toast.error("Erreur lors de la création du projet: " + error.message);
+      toast.error(t("toasts.projectCreateError") + ": " + error.message);
       return null;
     }
   };
@@ -411,12 +411,12 @@ const StartProject = () => {
         await supabase.from("project_budgets").insert(budgetInserts);
       }
 
-      setAnalysisProgress("Analyse terminée!");
-      toast.success("Projet analysé avec succès!");
+      setAnalysisProgress(t("startProject.analysisComplete"));
+      toast.success(t("toasts.projectAnalyzed"));
       
     } catch (error) {
       console.error("Error during analysis:", error);
-      toast.error("Erreur lors de l'analyse");
+      toast.error(t("toasts.analysisError"));
     } finally {
       setIsAnalyzing(false);
       setAnalysisProgress("");
@@ -456,7 +456,7 @@ const StartProject = () => {
             );
           }
         }
-        toast.success("Plans téléversés avec succès!");
+        toast.success(t("toasts.plansUploaded"));
       }
 
       // Générer échéancier et budget automatiquement
@@ -466,14 +466,14 @@ const StartProject = () => {
       setCurrentStep(7);
     } catch (error: any) {
       console.error("Error uploading plans:", error);
-      toast.error("Erreur lors du téléversement des plans");
+      toast.error(t("toasts.uploadError"));
     } finally {
       setIsSaving(false);
     }
   };
 
   const finalizeAndRedirect = async (projectId: string | null, action?: NextAction) => {
-    toast.success("Projet créé avec succès!");
+    toast.success(t("toasts.projectCreated"));
     
     // Navigate based on selected action
     const selectedAction = action || nextAction;
@@ -523,7 +523,7 @@ const StartProject = () => {
           // Mark that this is a new planification project with uncertain dates
           localStorage.setItem(`project_${projectId}_planification_alert`, "true");
           
-          toast.success("Projet créé avec succès!");
+          toast.success(t("toasts.projectCreated"));
           const guideStepId = stageToGuideStep[projectData.currentStage] || "planification";
           navigate(`/etapes?step=${guideStepId}&project=${projectId}`);
         }

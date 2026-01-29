@@ -595,7 +595,8 @@
     "goToSteps": "View steps",
     "plansReady": "{{count}} plan(s) ready",
     "plansReadyForAnalysis": "{{count}} plan(s) ready for analysis",
-    "noPlanSelected": "No plan selected"
+    "noPlanSelected": "No plan selected",
+    "analysisComplete": "Analysis complete!"
   },
   "plans": {
     "title": "Plans",

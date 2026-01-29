@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.search-building-code]
 verify_jwt = false
+
+[functions.get-user-emails]
+verify_jwt = false

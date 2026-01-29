@@ -66,6 +66,7 @@ interface UserWithSubscription {
   id: string; // profile id
   user_id: string;
   display_name: string | null;
+  email: string | null;
   created_at: string;
   isAdmin: boolean;
   session: UserSession | null;
@@ -106,11 +107,39 @@ export default function AdminSubscribers() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsersWithEmails();
     fetchPlans();
   }, []);
 
-  async function fetchUsers() {
+  async function fetchUserEmails(): Promise<Record<string, string>> {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return {};
+
+      const response = await supabase.functions.invoke("get-user-emails", {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        console.error("Error fetching emails:", response.error);
+        return {};
+      }
+
+      return response.data?.emails || {};
+    } catch (error) {
+      console.error("Error fetching user emails:", error);
+      return {};
+    }
+  }
+
+  async function fetchUsersWithEmails() {
+    const emailMap = await fetchUserEmails();
+    await fetchUsers(emailMap);
+  }
+
+  async function fetchUsers(emailMap: Record<string, string> = {}) {
     try {
       // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
@@ -168,11 +197,12 @@ export default function AdminSubscribers() {
         }
       });
 
-      // Combine profiles with their subscriptions and admin status
+      // Combine profiles with their subscriptions, admin status and email
       const usersWithSubs: UserWithSubscription[] = (profiles || []).map((profile) => ({
         id: profile.id,
         user_id: profile.user_id,
         display_name: profile.display_name,
+        email: emailMap[profile.user_id] || null,
         created_at: profile.created_at,
         isAdmin: adminUserIds.has(profile.user_id),
         session: sessionStatsMap.get(profile.user_id) || null,
@@ -202,9 +232,11 @@ export default function AdminSubscribers() {
   }
 
   const filteredUsers = users.filter((user) => {
+    const searchLower = search.toLowerCase();
     const matchesSearch =
-      user.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-      user.user_id.toLowerCase().includes(search.toLowerCase());
+      user.display_name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower) ||
+      user.user_id.toLowerCase().includes(searchLower);
     
     const userStatus = user.subscription?.status || "free";
     const matchesStatus = statusFilter === "all" || userStatus === statusFilter;
@@ -383,9 +415,9 @@ export default function AdminSubscribers() {
   };
 
   const exportCSV = () => {
-    const headers = ["ID Utilisateur", "Nom", "Statut", "Forfait", "Dernière connexion", "Temps total (min)", "Date inscription"];
+    const headers = ["Courriel", "Nom", "Statut", "Forfait", "Dernière connexion", "Temps total (min)", "Date inscription"];
     const rows = filteredUsers.map((user) => [
-      user.user_id,
+      user.email || "N/A",
       user.display_name || "N/A",
       user.subscription?.status || "Gratuit",
       user.subscription?.plans?.name || "Gratuit",
@@ -455,7 +487,7 @@ export default function AdminSubscribers() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Rechercher par nom ou ID..."
+                    placeholder="Rechercher par nom ou courriel..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9"
@@ -534,7 +566,7 @@ export default function AdminSubscribers() {
                           <TableCell className="font-medium">
                             {user.display_name || "Utilisateur"}
                             <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {user.user_id}
+                              {user.email || "—"}
                             </div>
                           </TableCell>
                           <TableCell>

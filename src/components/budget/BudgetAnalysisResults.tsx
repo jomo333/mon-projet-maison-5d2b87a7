@@ -63,6 +63,7 @@ import {
 import { cn } from "@/lib/utils";
 import { groupItemsByTask, getTasksForCategory } from "@/lib/budgetTaskMapping";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
+import { translateWarnings, translateRecommendations } from "@/lib/budgetWarningsI18n";
 import { 
   mapAnalysisToStepCategories, 
   defaultCategories,
@@ -270,6 +271,16 @@ export function BudgetAnalysisResults({
   const hasWarnings = analysis.warnings && analysis.warnings.length > 0;
   const hasRecommendations = analysis.recommendations && analysis.recommendations.length > 0;
 
+  // Translate warnings and recommendations from French to user's language
+  const translatedWarnings = useMemo(
+    () => (hasWarnings ? translateWarnings(t, analysis.warnings) : []),
+    [analysis.warnings, hasWarnings, t]
+  );
+  const translatedRecommendations = useMemo(
+    () => (hasRecommendations ? translateRecommendations(t, analysis.recommendations) : []),
+    [analysis.recommendations, hasRecommendations, t]
+  );
+
   return (
     <div className="space-y-6">
       {/* Alerts and Recommendations Section - TOP */}
@@ -285,7 +296,7 @@ export function BudgetAnalysisResults({
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analysis.warnings.map((warning, i) => (
+                  {translatedWarnings.map((warning, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-300">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <span>{warning}</span>
@@ -306,7 +317,7 @@ export function BudgetAnalysisResults({
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analysis.recommendations.map((rec, i) => (
+                  {translatedRecommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-300">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
                       <span>{rec}</span>

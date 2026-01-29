@@ -635,6 +635,13 @@
     "materialAnalysis": "Analyse des matériaux DIY"
   },
   "budgetAnalysis": {
+    "analysisResult": "Résultat de l'analyse",
+    "rangePlusMinus10": "Fourchette ±10%",
+    "mergedAnalysis": "Analyse fusionnée de {{count}} plan(s)",
+    "newConstruction": "Construction neuve de {{sqft}} pi² sur {{floors}} étage(s)",
+    "categoryCountWithContingencyTaxes": "{{count}} catégorie(s) + Contingence + Taxes • Fourchette ±10%",
+    "warnings": "Avertissements",
+    "to": "à",
     "allCategories": "Toutes les catégories",
     "alertsWarnings": "Alertes et Avertissements",
     "recommendations": "Recommandations",

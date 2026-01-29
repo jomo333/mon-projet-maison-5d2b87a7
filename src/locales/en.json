@@ -635,6 +635,13 @@
     "materialAnalysis": "DIY Material Analysis"
   },
   "budgetAnalysis": {
+    "analysisResult": "Analysis result",
+    "rangePlusMinus10": "Range ±10%",
+    "mergedAnalysis": "Merged analysis from {{count}} plan(s)",
+    "newConstruction": "New construction of {{sqft}} sq ft on {{floors}} floor(s)",
+    "categoryCountWithContingencyTaxes": "{{count}} category(ies) + Contingency + Taxes • Range ±10%",
+    "warnings": "Warnings",
+    "to": "to",
     "allCategories": "All categories",
     "alertsWarnings": "Alerts and Warnings",
     "recommendations": "Recommendations",

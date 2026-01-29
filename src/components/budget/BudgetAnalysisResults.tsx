@@ -302,7 +302,7 @@ export function BudgetAnalysisResults({
                 <>
                   <CardTitle className="text-2xl flex items-baseline gap-2 flex-wrap">
                     <span className="text-primary">{formatCurrency(Math.round(calculatedGrandTotal * 0.90))}</span>
-                    <span className="text-muted-foreground text-lg">à</span>
+                    <span className="text-muted-foreground text-lg">{t("budgetAnalysis.to")}</span>
                     <span className="text-primary">{formatCurrency(Math.round(calculatedGrandTotal * 1.10))}</span>
                     <TooltipProvider>
                       <RadixTooltip>
@@ -321,7 +321,7 @@ export function BudgetAnalysisResults({
                     </TooltipProvider>
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">±10%</Badge>
+                    <Badge variant="outline" className="text-xs">{t("budgetAnalysis.rangePlusMinus10")}</Badge>
                     {t("budgetAnalysis.preliminaryEstimate")} • {t("budgetAnalysis.includesTaxesContingency")} • {analysis.projectSummary}
                   </CardDescription>
                 </>
@@ -358,12 +358,12 @@ export function BudgetAnalysisResults({
               )}
               {analysis.finishQuality && (
                 <Badge variant="secondary">
-                  {analysis.finishQuality === "economique" ? "🏷️ Économique" :
-                   analysis.finishQuality === "haut-de-gamme" ? "💎 Haut de gamme" : "⭐ Standard"}
+                  {analysis.finishQuality === "economique" ? t("planAnalyzer.qualityLevels.economique") :
+                   analysis.finishQuality === "haut-de-gamme" ? t("planAnalyzer.qualityLevels.hautDeGamme") : t("planAnalyzer.qualityLevels.standard")}
                 </Badge>
               )}
               {analysis.newSquareFootage && (
-                <Badge variant="outline">{analysis.newSquareFootage} pi²</Badge>
+                <Badge variant="outline">{analysis.newSquareFootage} {t("common.locale") === "en-CA" ? "sq ft" : "pi²"}</Badge>
               )}
             </div>
           </div>

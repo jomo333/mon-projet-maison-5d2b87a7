@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,8 @@ import { cn } from "@/lib/utils";
 import { constructionSteps } from "@/data/constructionSteps";
 import { tradeTypes, getTradeColor } from "@/data/tradeTypes";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
+import { supabase } from "@/integrations/supabase/client";
+import { getStepsFromStartingPoint } from "@/lib/startingStepOptions";
 
 interface AddScheduleDialogProps {
   projectId: string;
@@ -86,6 +89,26 @@ export const AddScheduleDialog = ({
   calculateEndDate,
 }: AddScheduleDialogProps) => {
   const [open, setOpen] = useState(false);
+
+  // Récupérer le projet pour obtenir starting_step_id
+  const { data: project } = useQuery({
+    queryKey: ["project-starting-step", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("starting_step_id")
+        .eq("id", projectId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && open,
+  });
+
+  // Filtrer les étapes disponibles selon le point de départ
+  const availableSteps = getStepsFromStartingPoint(project?.starting_step_id);
+
   const [formData, setFormData] = useState({
     step_id: "",
     step_name: "",
@@ -195,7 +218,7 @@ export const AddScheduleDialog = ({
                   <SelectValue placeholder="Sélectionner une étape" />
                 </SelectTrigger>
                 <SelectContent>
-                  {constructionSteps.map((step) => (
+                  {availableSteps.map((step) => (
                     <SelectItem key={step.id} value={step.id}>
                       {step.title}
                     </SelectItem>
@@ -383,7 +406,7 @@ export const AddScheduleDialog = ({
                         <SelectValue placeholder="Sélectionner une étape" />
                       </SelectTrigger>
                       <SelectContent>
-                        {constructionSteps.map((step) => (
+                        {availableSteps.map((step) => (
                           <SelectItem key={step.id} value={step.id}>
                             {step.title}
                           </SelectItem>

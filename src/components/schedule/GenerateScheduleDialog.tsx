@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { constructionSteps } from "@/data/constructionSteps";
 import { toast } from "sonner";
 import { generateProjectSchedule, calculateTotalProjectDuration } from "@/lib/scheduleGenerator";
+import { supabase } from "@/integrations/supabase/client";
+import { getStepsFromStartingPoint, preparationStepIds } from "@/lib/startingStepOptions";
 
 interface GenerateScheduleDialogProps {
   open: boolean;
@@ -33,28 +36,32 @@ interface GenerateScheduleDialogProps {
   onSuccess?: () => void;
 }
 
-// Étapes de préparation
-const preparationSteps = ["planification", "financement", "plans-permis"];
-
 // Durées par défaut
 const defaultDurations: Record<string, number> = {
-  planification: 15,
-  financement: 20,
-  "plans-permis": 30,
-  "excavation-fondation": 15,
-  structure: 15,
-  toiture: 7,
-  "fenetres-portes": 5,
-  electricite: 7,
-  plomberie: 7,
+  planification: 5,
+  "plans-permis": 40,
+  soumissions: 15,
+  financement: 15,
+  excavation: 5,
+  fondation: 5,
+  structure: 8,
+  toiture: 2,
+  "fenetres-portes": 2,
+  isolation: 8,
+  "plomberie-sous-dalle": 1,
+  "dalle-sous-sol": 2,
+  "murs-division": 3,
+  "plomberie-roughin": 4,
+  "electricite-roughin": 4,
   hvac: 7,
-  isolation: 5,
+  exterieur: 18,
   gypse: 15,
   "revetements-sol": 7,
   "cuisine-sdb": 10,
-  "finitions-int": 10,
-  exterieur: 15,
-  "inspections-finales": 5,
+  "finitions-int": 8,
+  "electricite-finition": 3,
+  "plomberie-finition": 3,
+  "inspections-finales": 2,
 };
 
 export function GenerateScheduleDialog({
@@ -69,12 +76,31 @@ export function GenerateScheduleDialog({
   const [targetDate, setTargetDate] = useState<Date | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Calculer les jours de préparation nécessaires
+  // Récupérer le projet pour obtenir starting_step_id
+  const { data: project } = useQuery({
+    queryKey: ["project-starting-step", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("starting_step_id")
+        .eq("id", projectId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && open,
+  });
+
+  const startingStepId = project?.starting_step_id || "planification";
+  const stepsToSchedule = getStepsFromStartingPoint(startingStepId);
+
+  // Calculer les jours de préparation nécessaires (étapes de préparation à partir du point de départ)
   const preparationDays = useMemo(() => {
-    return constructionSteps
-      .filter(s => preparationSteps.includes(s.id))
+    return stepsToSchedule
+      .filter(s => preparationStepIds.includes(s.id))
       .reduce((total, step) => total + (defaultDurations[step.id] || 5), 0);
-  }, []);
+  }, [stepsToSchedule]);
 
   // Calculer si la date visée est réalisable
   const dateAnalysis = useMemo(() => {
@@ -82,6 +108,16 @@ export function GenerateScheduleDialog({
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    // Si pas d'étapes de préparation, on peut commencer immédiatement
+    if (preparationDays === 0) {
+      return {
+        prepEndDate: today,
+        earliestWorkStart: today,
+        isDatePossible: targetDate >= today,
+        delayDays: 0,
+      };
+    }
     
     // Calculer la date de fin de préparation si on commence aujourd'hui
     let prepEndDate = today;
@@ -121,7 +157,7 @@ export function GenerateScheduleDialog({
 
     try {
       const targetDateStr = format(targetDate, "yyyy-MM-dd");
-      const result = await generateProjectSchedule(projectId, targetDateStr);
+      const result = await generateProjectSchedule(projectId, targetDateStr, startingStepId);
 
       if (!result.success) {
         toast.error(result.error || "Erreur lors de la génération de l'échéancier");
@@ -209,15 +245,17 @@ export function GenerateScheduleDialog({
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                 <p className="text-sm font-medium">Résumé de l'échéancier :</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Préparation: {preparationDays} jours ouvrables (commence aujourd'hui)</li>
-                  <li>• {constructionSteps.length} étapes seront créées</li>
+                  {preparationDays > 0 && (
+                    <li>• Préparation: {preparationDays} jours ouvrables (commence aujourd'hui)</li>
+                  )}
+                  <li>• {stepsToSchedule.length} étapes seront créées</li>
                   <li>
                     • Durée totale:{" "}
-                    {Object.values(defaultDurations).reduce((a, b) => a + b, 0)}{" "}
+                    {stepsToSchedule.reduce((sum, step) => sum + (defaultDurations[step.id] || 5), 0)}{" "}
                     jours ouvrables
                   </li>
                   {dateAnalysis?.isDatePossible && (
-                    <li className="text-green-600 font-medium">
+                    <li className="text-primary font-medium">
                       ✓ Date réalisable - travaux le {format(targetDate, "d MMM yyyy", { locale: fr })}
                     </li>
                   )}

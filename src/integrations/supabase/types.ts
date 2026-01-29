@@ -412,6 +412,7 @@ export type Database = {
           number_of_floors: number | null
           project_type: string | null
           square_footage: number | null
+          starting_step_id: string | null
           status: string | null
           target_start_date: string | null
           total_budget: number | null
@@ -427,6 +428,7 @@ export type Database = {
           number_of_floors?: number | null
           project_type?: string | null
           square_footage?: number | null
+          starting_step_id?: string | null
           status?: string | null
           target_start_date?: string | null
           total_budget?: number | null
@@ -442,6 +444,7 @@ export type Database = {
           number_of_floors?: number | null
           project_type?: string | null
           square_footage?: number | null
+          starting_step_id?: string | null
           status?: string | null
           target_start_date?: string | null
           total_budget?: number | null

@@ -220,13 +220,17 @@ function calculateStartDateBackward(endDate: string, businessDays: number): stri
 /**
  * Génère automatiquement l'échéancier complet pour un projet
  * La préparation commence AUJOURD'HUI (jour de l'entrée des données)
- * La date visée correspond au JOUR 1 des travaux (excavation-fondation)
+ * La date visée correspond au JOUR 1 des travaux (excavation)
  * Les durées sont ajustées au prorata de la superficie du projet
+ * 
+ * @param projectId - ID du projet
+ * @param targetStartDate - Date visée pour le début des travaux
+ * @param startingStepId - ID de l'étape de départ (step_id de constructionSteps)
  */
 export async function generateProjectSchedule(
   projectId: string,
   targetStartDate: string,
-  currentStage?: string
+  startingStepId?: string
 ): Promise<{ success: boolean; error?: string; warning?: string }> {
   try {
     // Récupérer les durées de référence et la superficie du projet
@@ -235,18 +239,10 @@ export async function generateProjectSchedule(
       getProjectSquareFootage(projectId),
     ]);
 
-    // Mapping des stages utilisateur vers les étapes de construction
-    const stageToStepMapping: Record<string, string> = {
-      planification: "planification",
-      permis: "plans-permis",
-      fondation: "excavation-fondation",
-      structure: "structure",
-      finition: "gypse",
-    };
-
-    const startFromStep = currentStage ? stageToStepMapping[currentStage] : "planification";
-    
     // Trouver l'index de départ dans constructionSteps
+    // Si startingStepId est fourni, l'utiliser directement
+    // Sinon, commencer à "planification"
+    const startFromStep = startingStepId || "planification";
     const startIndex = constructionSteps.findIndex(s => s.id === startFromStep);
     const stepsToSchedule = startIndex >= 0 
       ? constructionSteps.slice(startIndex) 
@@ -427,21 +423,15 @@ async function generateScheduleAlerts(projectId: string, schedules: any[]): Prom
 /**
  * Calcule la durée totale estimée du projet en jours ouvrables
  * Utilise les durées par défaut (sans ajustement au prorata)
+ * 
+ * @param startingStepId - ID de l'étape de départ (step_id de constructionSteps)
  */
-export function calculateTotalProjectDuration(currentStage?: string): {
+export function calculateTotalProjectDuration(startingStepId?: string): {
   preparationDays: number;
   constructionDays: number;
   totalDays: number;
 } {
-  const stageToStepMapping: Record<string, string> = {
-    planification: "planification",
-    permis: "plans-permis",
-    fondation: "excavation-fondation",
-    structure: "structure",
-    finition: "gypse",
-  };
-
-  const startFromStep = currentStage ? stageToStepMapping[currentStage] : "planification";
+  const startFromStep = startingStepId || "planification";
   const startIndex = constructionSteps.findIndex(s => s.id === startFromStep);
   const stepsToCount = startIndex >= 0 
     ? constructionSteps.slice(startIndex) 
@@ -464,10 +454,13 @@ export function calculateTotalProjectDuration(currentStage?: string): {
 
 /**
  * Calcule la durée totale estimée au prorata de la superficie
+ * 
+ * @param projectId - ID du projet
+ * @param startingStepId - ID de l'étape de départ (step_id de constructionSteps)
  */
 export async function calculateTotalProjectDurationWithProrata(
   projectId: string,
-  currentStage?: string
+  startingStepId?: string
 ): Promise<{
   preparationDays: number;
   constructionDays: number;
@@ -480,15 +473,7 @@ export async function calculateTotalProjectDurationWithProrata(
     getProjectSquareFootage(projectId),
   ]);
 
-  const stageToStepMapping: Record<string, string> = {
-    planification: "planification",
-    permis: "plans-permis",
-    fondation: "excavation-fondation",
-    structure: "structure",
-    finition: "gypse",
-  };
-
-  const startFromStep = currentStage ? stageToStepMapping[currentStage] : "planification";
+  const startFromStep = startingStepId || "planification";
   const startIndex = constructionSteps.findIndex(s => s.id === startFromStep);
   const stepsToCount = startIndex >= 0 
     ? constructionSteps.slice(startIndex) 

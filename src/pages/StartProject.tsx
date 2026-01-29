@@ -22,20 +22,14 @@ import { usePdfToImage } from "@/hooks/use-pdf-to-image";
 import { generateProjectSchedule, calculateTotalProjectDuration } from "@/lib/scheduleGenerator";
 import { ProjectSummary } from "@/components/start/ProjectSummary";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { startingStepOptions, isPreparationStep } from "@/lib/startingStepOptions";
 import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
-
-type ProjectStage = 
-  | "planification" 
-  | "permis" 
-  | "fondation" 
-  | "structure" 
-  | "finition";
 
 interface ProjectData {
   projectName: string;
   projectType: string;
   municipality: string;
-  currentStage: ProjectStage | "";
+  currentStage: string; // Now uses step_id from constructionSteps
   targetStartDate: string;
 }
 
@@ -53,13 +47,8 @@ const projectTypes = [
   { value: "chalet", label: "Chalet", icon: Home },
 ];
 
-const projectStages = [
-  { value: "planification", label: "Planification", description: "Je réfléchis à mon projet" },
-  { value: "permis", label: "Demande de permis", description: "Je prépare ou attends mes permis" },
-  { value: "fondation", label: "Fondation", description: "Les travaux de fondation sont en cours" },
-  { value: "structure", label: "Structure", description: "La charpente et l'enveloppe" },
-  { value: "finition", label: "Finition", description: "Finitions intérieures et extérieures" },
-];
+// Utiliser les options de startingStepOptions pour les choix d'étapes
+// Ces options utilisent les mêmes ID que constructionSteps
 
 type NextAction = "budget" | "schedule" | "steps" | "";
 
@@ -254,8 +243,9 @@ const StartProject = () => {
           name: projectData.projectName,
           project_type: projectData.projectType,
           description: `Municipalité: ${projectData.municipality} | Étape: ${projectData.currentStage}`,
-          status: projectData.currentStage === "finition" ? "en_cours" : projectData.currentStage,
+          status: isPreparationStep(projectData.currentStage) ? projectData.currentStage : "en_cours",
           target_start_date: projectData.targetStartDate || null,
+          starting_step_id: projectData.currentStage || null,
         })
         .select()
         .single();
@@ -703,36 +693,136 @@ const StartProject = () => {
             </div>
             <RadioGroup
               value={projectData.currentStage}
-              onValueChange={(value) => setProjectData({ ...projectData, currentStage: value as ProjectStage })}
-              className="space-y-3 max-w-xl mx-auto"
+              onValueChange={(value) => setProjectData({ ...projectData, currentStage: value })}
+              className="space-y-3 max-w-xl mx-auto max-h-[50vh] overflow-y-auto pr-2"
             >
-              {projectStages.map((stage, index) => (
-                <Label
-                  key={stage.value}
-                  htmlFor={stage.value}
-                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    projectData.currentStage === stage.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <RadioGroupItem value={stage.value} id={stage.value} className="sr-only" />
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
-                    projectData.currentStage === stage.value 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{stage.label}</div>
-                    <div className="text-sm text-muted-foreground">{stage.description}</div>
-                  </div>
-                  {projectData.currentStage === stage.value && (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  )}
-                </Label>
-              ))}
+              {/* Pré-construction */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Pré-construction</p>
+                {startingStepOptions.filter(s => s.phase === "pre-construction").map((stage, index) => (
+                  <Label
+                    key={stage.value}
+                    htmlFor={stage.value}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      projectData.currentStage === stage.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value={stage.value} id={stage.value} className="sr-only" />
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                      projectData.currentStage === stage.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{stage.label}</div>
+                      <div className="text-sm text-muted-foreground">{stage.description}</div>
+                    </div>
+                    {projectData.currentStage === stage.value && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                  </Label>
+                ))}
+              </div>
+              
+              {/* Gros œuvre */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Gros œuvre</p>
+                {startingStepOptions.filter(s => s.phase === "gros-oeuvre").map((stage) => (
+                  <Label
+                    key={stage.value}
+                    htmlFor={stage.value}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      projectData.currentStage === stage.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value={stage.value} id={stage.value} className="sr-only" />
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                      projectData.currentStage === stage.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      <HardHat className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{stage.label}</div>
+                      <div className="text-sm text-muted-foreground">{stage.description}</div>
+                    </div>
+                    {projectData.currentStage === stage.value && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                  </Label>
+                ))}
+              </div>
+              
+              {/* Second œuvre */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Second œuvre</p>
+                {startingStepOptions.filter(s => s.phase === "second-oeuvre").map((stage) => (
+                  <Label
+                    key={stage.value}
+                    htmlFor={stage.value}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      projectData.currentStage === stage.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value={stage.value} id={stage.value} className="sr-only" />
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                      projectData.currentStage === stage.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      <Footprints className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{stage.label}</div>
+                      <div className="text-sm text-muted-foreground">{stage.description}</div>
+                    </div>
+                    {projectData.currentStage === stage.value && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                  </Label>
+                ))}
+              </div>
+              
+              {/* Finitions */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">Finitions</p>
+                {startingStepOptions.filter(s => s.phase === "finitions").map((stage) => (
+                  <Label
+                    key={stage.value}
+                    htmlFor={stage.value}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      projectData.currentStage === stage.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value={stage.value} id={stage.value} className="sr-only" />
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                      projectData.currentStage === stage.value 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      ✓
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{stage.label}</div>
+                      <div className="text-sm text-muted-foreground">{stage.description}</div>
+                    </div>
+                    {projectData.currentStage === stage.value && (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    )}
+                  </Label>
+                ))}
+              </div>
             </RadioGroup>
           </div>
         );

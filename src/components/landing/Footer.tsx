@@ -1,9 +1,11 @@
 import { Home, Mail, Phone, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCookieConsent } from "@/components/cookies/CookieConsent";
 import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
 
 const CookieSettingsButton = () => {
+  const { t } = useTranslation();
   const { openPreferences } = useCookieConsent();
   
   return (
@@ -12,12 +14,14 @@ const CookieSettingsButton = () => {
       className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
     >
       <Settings className="h-3.5 w-3.5" />
-      Gérer mes cookies
+      {t("footer.manageCookies")}
     </button>
   );
 };
 
 export function Footer() {
+  const { t } = useTranslation();
+  
   return (
     <footer className="border-t border-border bg-background">
       <div className="container py-12">
@@ -30,46 +34,46 @@ export function Footer() {
               <span className="font-display text-xl font-bold">MonProjetMaison</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-sm">
-              Votre assistant intelligent pour la construction résidentielle au Québec. Planifiez, budgétisez et construisez en toute confiance.
+              {t("footer.description")}
             </p>
           </div>
 
           <div>
-            <h4 className="font-display font-semibold mb-4">Navigation</h4>
+            <h4 className="font-display font-semibold mb-4">{t("footer.navigation")}</h4>
             <ul className="space-y-2">
               <li>
                 <Link to="/forfaits" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Forfaits
+                  {t("footer.plans")}
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Tableau de bord
+                  {t("footer.dashboard")}
                 </Link>
               </li>
               <li>
                 <Link to="/budget" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Budget
+                  {t("footer.budget")}
                 </Link>
               </li>
               <li>
                 <Link to="/guide" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Guide
+                  {t("footer.guide")}
                 </Link>
               </li>
               <li>
                 <Link to="/confidentialite" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Confidentialité
+                  {t("footer.privacy")}
                 </Link>
               </li>
               <li>
                 <Link to="/conditions" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Conditions d'utilisation
+                  {t("footer.terms")}
                 </Link>
               </li>
               <li>
                 <Link to="/politique-cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Politique de cookies
+                  {t("footer.cookiePolicy")}
                 </Link>
               </li>
               <li>
@@ -82,7 +86,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-display font-semibold mb-4">Contact</h4>
+            <h4 className="font-display font-semibold mb-4">{t("footer.contact")}</h4>
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4" />
@@ -98,10 +102,10 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} MonProjetMaison. Tous droits réservés.
+            © {new Date().getFullYear()} MonProjetMaison. {t("footer.allRightsReserved")}
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            Les informations fournies n'ont pas de valeur légale. Consultez toujours un professionnel.
+            {t("footer.disclaimer")}
           </p>
         </div>
       </div>

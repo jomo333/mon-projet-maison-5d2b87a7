@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Step, phases } from "@/data/constructionSteps";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ export function StepDetail({
   onToggleTask 
 }: StepDetailProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const phase = phases.find(p => p.id === step.phase);
   const IconComponent = iconMap[step.icon] || Circle;
   
@@ -155,13 +157,13 @@ export function StepDetail({
         notes: besoinsNote,
       });
       toast({
-        title: "Note sauvegardée",
-        description: "Vos besoins ont été enregistrés.",
+        title: t("stepDetail.noteSaved"),
+        description: t("stepDetail.needsSaved"),
       });
     } catch (error) {
       toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder la note",
+        title: t("common.error"),
+        description: t("stepDetail.noteSaveError"),
         variant: "destructive",
       });
     } finally {
@@ -181,15 +183,15 @@ export function StepDetail({
         notes: type,
       });
       toast({
-        title: "Choix enregistré",
+        title: t("stepDetail.choiceSaved"),
         description: type === "public" 
-          ? "Services municipaux sélectionnés (aqueduc, égouts)" 
-          : "Installation privée sélectionnée (puits, fosse septique)",
+          ? t("stepDetail.municipalServicesSelected")
+          : t("stepDetail.privateInstallationSelected"),
       });
     } catch (error) {
       toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder le choix",
+        title: t("common.error"),
+        description: t("stepDetail.choiceSaveError"),
         variant: "destructive",
       });
     } finally {
@@ -225,22 +227,24 @@ export function StepDetail({
         
         // Aussi afficher un toast destructif pour attirer l'attention
         toast({
-          title: "⚠️ ATTENTION - Conflit détecté",
+          title: t("stepDetail.conflictDetected"),
           description: result.warnings[0],
           variant: "destructive",
           duration: 10000,
         });
       } else {
         toast({
-          title: "🔒 Date verrouillée",
-          description: `La ${field === 'start_date' ? 'date de début' : 'date de fin'} a été enregistrée et verrouillée.`,
+          title: t("stepDetail.dateLocked"),
+          description: field === 'start_date' 
+            ? t("stepDetail.startDateSaved")
+            : t("stepDetail.endDateSaved"),
         });
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la date",
+        title: t("common.error"),
+        description: t("stepDetail.dateUpdateError"),
         variant: "destructive",
       });
     }
@@ -257,16 +261,16 @@ export function StepDetail({
       });
       
       toast({
-        title: newValue ? "🔒 Date verrouillée" : "🔓 Date déverrouillée",
+        title: newValue ? t("stepDetail.dateLocked") : t("stepDetail.dateUnlocked"),
         description: newValue 
-          ? "Cette date représente maintenant un engagement et ne sera pas modifiée automatiquement." 
-          : "Cette date peut maintenant être ajustée automatiquement lors des recalculs.",
+          ? t("stepDetail.dateLockedDescription")
+          : t("stepDetail.dateUnlockedDescription"),
       });
     } catch (error) {
       console.error("Erreur lors du verrouillage:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de modifier le verrouillage",
+        title: t("common.error"),
+        description: t("stepDetail.lockError"),
         variant: "destructive",
       });
     }
@@ -285,14 +289,14 @@ export function StepDetail({
       });
       
       toast({
-        title: "🔄 Dates réinitialisées",
-        description: "Les dates ont été recalculées automatiquement selon l'échéancier.",
+        title: t("stepDetail.datesReset"),
+        description: t("stepDetail.datesResetDescription"),
       });
     } catch (error) {
       console.error("Erreur lors de la réinitialisation:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de réinitialiser les dates",
+        title: t("common.error"),
+        description: t("stepDetail.resetError"),
         variant: "destructive",
       });
     }
@@ -316,7 +320,7 @@ export function StepDetail({
                 </div>
                 {projectId && (
                   <Badge variant={completedCount === filteredTasks.length ? "default" : "outline"} className="ml-auto">
-                    {completedCount}/{filteredTasks.length} tâches
+                    {t("stepDetail.tasksCount", { completed: completedCount, total: filteredTasks.length })}
                   </Badge>
                 )}
               </div>
@@ -334,22 +338,22 @@ export function StepDetail({
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-foreground font-medium mb-3">
                 <Clock className="h-4 w-4" />
-                <span>Planification de l'étape</span>
+                <span>{t("stepDetail.stepPlanning")}</span>
                 {isUpdating && (
-                  <span className="text-xs text-muted-foreground ml-2">(synchronisation...)</span>
+                  <span className="text-xs text-muted-foreground ml-2">({t("stepDetail.syncing")})</span>
                 )}
               </div>
               {currentSchedule ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-end gap-4">
                     <TaskDatePicker
-                      label="Date de début"
+                      label={t("stepDetail.startDate")}
                       value={currentSchedule.start_date || null}
                       onChange={(date) => handleStepDateChange('start_date', date)}
                       disabled={isUpdating}
                     />
                     <TaskDatePicker
-                      label="Date de fin"
+                      label={t("stepDetail.endDate")}
                       value={currentSchedule.end_date || null}
                       onChange={(date) => handleStepDateChange('end_date', date)}
                       disabled={isUpdating}
@@ -410,7 +414,7 @@ export function StepDetail({
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Cette étape n'est pas encore dans l'échéancier. Générez l'échéancier depuis la page Échéancier.
+                  {t("stepDetail.noSchedule")}
                 </p>
               )}
               
@@ -419,7 +423,7 @@ export function StepDetail({
                 <Alert variant="destructive" className="mt-4 border-2 border-destructive bg-destructive/10">
                   <AlertTriangle className="h-5 w-5" />
                   <AlertTitle className="flex items-center justify-between">
-                    <span className="text-lg font-bold">🚨 CONFLIT DE PLANIFICATION</span>
+                    <span className="text-lg font-bold">{t("stepDetail.planningConflict")}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -438,7 +442,7 @@ export function StepDetail({
                       </div>
                     ))}
                     <p className="text-xs text-muted-foreground mt-2 italic">
-                      💡 La date entrée manuellement a été conservée. Si ce conflit est intentionnel, vous pouvez fermer cet avertissement.
+                      {t("stepDetail.conflictNote")}
                     </p>
                   </AlertDescription>
                 </Alert>
@@ -453,7 +457,7 @@ export function StepDetail({
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" />
-            Tâches à réaliser
+            {t("stepDetail.tasksToComplete")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -551,8 +555,8 @@ export function StepDetail({
                         }}
                       >
                         <Calculator className="h-4 w-4 mr-1" />
-                        <span className="hidden sm:inline">Analyse de budget</span>
-                        <span className="sm:hidden">Analyse</span>
+                        <span className="hidden sm:inline">{t("stepDetail.budgetAnalysis")}</span>
+                        <span className="sm:hidden">{t("stepDetail.analysis")}</span>
                       </Button>
                     )}
                   </div>
@@ -567,13 +571,13 @@ export function StepDetail({
                         <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                           <div className="flex items-center gap-2 font-medium">
                             <FileText className="h-4 w-4 text-primary" />
-                            <span>Notes sur vos besoins</span>
+                            <span>{t("stepDetail.notesOnNeeds")}</span>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Décrivez vos besoins ici. Ces informations seront utilisées pour pré-remplir l'analyse de budget.
+                            {t("stepDetail.needsDescription")}
                           </p>
                           <Textarea
-                            placeholder="Ex: Maison 2 étages, 3 chambres, 2 salles de bain, garage double, sous-sol fini, cuisine ouverte..."
+                            placeholder={t("stepDetail.needsPlaceholder")}
                             value={besoinsNote}
                             onChange={(e) => setBesoinsNote(e.target.value)}
                             className="min-h-[100px]"
@@ -588,7 +592,7 @@ export function StepDetail({
                             ) : (
                               <Save className="h-4 w-4 mr-2" />
                             )}
-                            Sauvegarder
+                            {t("common.save")}
                           </Button>
                           
                           {/* Photos de style pour l'analyse */}
@@ -601,11 +605,11 @@ export function StepDetail({
                         <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                           <div className="flex items-center gap-2 font-medium">
                             <Waves className="h-4 w-4 text-primary" />
-                            <span>Type d'installation</span>
+                            <span>{t("stepDetail.installationType")}</span>
                             {isSavingServices && <Loader2 className="h-4 w-4 animate-spin" />}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Sélectionnez le type de services pour votre projet.
+                            {t("stepDetail.selectServicesType")}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Option Services publics */}
@@ -623,9 +627,9 @@ export function StepDetail({
                                   className="mt-1"
                                 />
                                 <div>
-                                  <p className="font-medium">Services municipaux</p>
+                                  <p className="font-medium">{t("stepDetail.municipalServices")}</p>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Aqueduc et égouts municipaux
+                                    {t("stepDetail.municipalServicesDesc")}
                                   </p>
                                 </div>
                               </div>
@@ -646,9 +650,9 @@ export function StepDetail({
                                   className="mt-1"
                                 />
                                 <div>
-                                  <p className="font-medium">Installation privée</p>
+                                  <p className="font-medium">{t("stepDetail.privateInstallation")}</p>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Puits artésien + Fosse septique + Champ d'épuration
+                                    {t("stepDetail.privateInstallationDesc")}
                                   </p>
                                 </div>
                               </div>
@@ -662,9 +666,9 @@ export function StepDetail({
                                 : "bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-300"
                             }`}>
                               {servicesType === "public" ? (
-                                <>✓ Prévoir les frais de branchement à l'aqueduc et aux égouts municipaux</>
+                                <>✓ {t("stepDetail.municipalServicesTip")}</>
                               ) : (
-                                <>✓ Prévoir: étude de sol pour installation septique, forage de puits, installation du champ d'épuration</>
+                                <>✓ {t("stepDetail.privateInstallationTip")}</>
                               )}
                             </div>
                           )}
@@ -682,7 +686,7 @@ export function StepDetail({
                         ) : (
                           <div className="p-4 bg-muted/50 rounded-lg text-center">
                             <p className="text-muted-foreground">
-                              Créez ou sélectionnez un projet pour gérer les soumissions.
+                              {t("stepDetail.createProjectForSoumissions")}
                             </p>
                           </div>
                         )
@@ -692,7 +696,7 @@ export function StepDetail({
                         <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4">
                           <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium mb-2">
                             <Lightbulb className="h-4 w-4" />
-                            <span>Conseils</span>
+                            <span>{t("stepDetail.tips")}</span>
                           </div>
                           <ul className="space-y-1">
                             {task.tips.map((tip, i) => (
@@ -709,7 +713,7 @@ export function StepDetail({
                         <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
                           <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-medium mb-2">
                             <FileText className="h-4 w-4" />
-                            <span>Documents requis</span>
+                            <span>{t("stepDetail.requiredDocuments")}</span>
                           </div>
                           <ul className="space-y-1">
                             {task.documents.map((doc, i) => (
@@ -752,14 +756,14 @@ export function StepDetail({
           className="gap-2"
         >
           <ChevronLeft className="h-4 w-4" />
-          Étape précédente
+          {t("stepDetail.previousStep")}
         </Button>
         <Button 
           onClick={onNext}
           disabled={!hasNext}
           className="gap-2"
         >
-          Étape suivante
+          {t("stepDetail.nextStep")}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

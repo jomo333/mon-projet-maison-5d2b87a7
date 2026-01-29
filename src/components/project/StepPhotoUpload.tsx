@@ -26,6 +26,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
@@ -176,8 +177,9 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Upload button */}
-          <div className="mb-4">
+          {/* Upload and Camera buttons */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {/* File upload input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -186,6 +188,33 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
               onChange={handleFileSelect}
               className="hidden"
             />
+            {/* Camera capture input */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={isUploading}
+              className="gap-2"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t("stepPhotoUpload.uploading")}
+                </>
+              ) : (
+                <>
+                  <Camera className="h-4 w-4" />
+                  {t("stepPhotoUpload.takePhoto")}
+                </>
+              )}
+            </Button>
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}

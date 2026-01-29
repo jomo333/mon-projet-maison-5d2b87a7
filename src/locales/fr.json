@@ -185,6 +185,7 @@
   },
   "stepPhotoUpload": {
     "title": "Photos de suivi - {{stepTitle}}",
+    "takePhoto": "Prendre une photo",
     "addPhotos": "Ajouter des photos",
     "uploading": "Téléversement...",
     "noPhotos": "Aucune photo pour cette étape",

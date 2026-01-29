@@ -185,6 +185,7 @@
   },
   "stepPhotoUpload": {
     "title": "Progress Photos - {{stepTitle}}",
+    "takePhoto": "Take a photo",
     "addPhotos": "Add photos",
     "uploading": "Uploading...",
     "noPhotos": "No photos for this step",

@@ -924,36 +924,36 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual" className="gap-2">
               <Settings className="h-4 w-4" />
-              Configuration manuelle
+              {t("planAnalyzer.manualConfig")}
             </TabsTrigger>
             <TabsTrigger value="plan" className="gap-2">
               <Image className="h-4 w-4" />
-              Analyse de plan
+              {t("planAnalyzer.planAnalysis")}
             </TabsTrigger>
           </TabsList>
           
           {/* Manual Mode */}
           <TabsContent value="manual" className="mt-4 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Entrez les détails de votre projet pour obtenir une estimation budgétaire basée sur les paramètres.
+              {t("planAnalyzer.manualConfigDesc")}
             </p>
             
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
-                <Label>Type de projet</Label>
+                <Label>{t("planAnalyzer.projectType")}</Label>
                 <Select value={projectType} onValueChange={setProjectType}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="maison-unifamiliale">Maison unifamiliale</SelectItem>
-                    <SelectItem value="bungalow">Bungalow</SelectItem>
-                    <SelectItem value="cottage">Cottage (2 étages)</SelectItem>
-                    <SelectItem value="jumelee">Maison jumelée</SelectItem>
-                    <SelectItem value="agrandissement">Agrandissement</SelectItem>
-                    <SelectItem value="garage">Garage détaché</SelectItem>
-                    <SelectItem value="garage-etage">Garage avec étage aménagé</SelectItem>
-                    <SelectItem value="chalet">Chalet</SelectItem>
+                    <SelectItem value="maison-unifamiliale">{t("planAnalyzer.projectTypes.maisonUnifamiliale")}</SelectItem>
+                    <SelectItem value="bungalow">{t("planAnalyzer.projectTypes.bungalow")}</SelectItem>
+                    <SelectItem value="cottage">{t("planAnalyzer.projectTypes.cottage")}</SelectItem>
+                    <SelectItem value="jumelee">{t("planAnalyzer.projectTypes.jumelee")}</SelectItem>
+                    <SelectItem value="agrandissement">{t("planAnalyzer.projectTypes.agrandissement")}</SelectItem>
+                    <SelectItem value="garage">{t("planAnalyzer.projectTypes.garage")}</SelectItem>
+                    <SelectItem value="garage-etage">{t("planAnalyzer.projectTypes.garageEtage")}</SelectItem>
+                    <SelectItem value="chalet">{t("planAnalyzer.projectTypes.chalet")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

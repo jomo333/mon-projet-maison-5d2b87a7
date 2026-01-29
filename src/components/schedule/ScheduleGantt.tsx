@@ -23,8 +23,9 @@ import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeColor } from "@/data/tradeTypes";
 import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
+import { getTranslatedStepName } from "@/lib/stepNameI18n";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
-import { constructionSteps } from "@/data/constructionSteps";
+import { useConstructionSteps } from "@/hooks/useConstructionSteps";
 import { getDateLocale } from "@/lib/i18n";
 
 // Délais obligatoires (cure du béton, etc.)
@@ -51,6 +52,7 @@ interface ScheduleGanttProps {
 export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUpdating }: ScheduleGanttProps) => {
   const { t } = useTranslation();
   const dateLocale = getDateLocale();
+  const localizedSteps = useConstructionSteps();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -304,7 +306,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                       style={{ backgroundColor: getTradeColor(schedule.trade_type) }}
                     />
                     <span className="truncate text-sm">
-                      {schedule.step_name}
+                      {getTranslatedStepName(t, schedule.step_id, schedule.step_name)}
                     </span>
                     {delayInfo && (
                       <Tooltip>
@@ -368,21 +370,20 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                             }}
                           >
                             <span className="text-xs text-white px-1 truncate block leading-6 font-medium drop-shadow-sm">
-                              ⏳ Cure {getCuringPeriod.days}j
+                              ⏳ {t("schedule.curingPeriod")} {getCuringPeriod.days}{t("schedule.days").charAt(0)}
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="space-y-1">
                             <p className="font-medium flex items-center gap-1">
-                              <Clock className="h-4 w-4" /> Cure du béton
+                              <Clock className="h-4 w-4" /> {t("schedule.concreteCuring")}
                             </p>
                             <p className="text-sm">
-                              Période obligatoire de {getCuringPeriod.days} jours pour la cure du béton
-                              avant de mettre une charge sur les murs de fondation.
+                              {t("schedule.curingDescription", { days: getCuringPeriod.days })}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              Minimum recommandé: 21 jours (3 semaines)
+                              {t("schedule.curingMinRecommended")}
                             </p>
                           </div>
                         </TooltipContent>
@@ -410,7 +411,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <div className="space-y-1">
-                          <p className="font-medium">{schedule.step_name}</p>
+                          <p className="font-medium">{getTranslatedStepName(t, schedule.step_id, schedule.step_name)}</p>
                           <p className="text-sm">
                             {getTranslatedTradeName(t, schedule.trade_type)}
                           </p>
@@ -429,7 +430,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                           </p>
                           {/* Afficher les tâches de l'étape */}
                           {(() => {
-                            const step = constructionSteps.find(s => s.id === schedule.step_id);
+                            const step = localizedSteps.find(s => s.id === schedule.step_id);
                             if (step?.tasks && step.tasks.length > 0) {
                               return (
                                 <div className="pt-1 border-t border-border/50 mt-1">

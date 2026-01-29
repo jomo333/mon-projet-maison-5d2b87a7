@@ -1,36 +1,41 @@
 import { FolderPlus, Receipt, TrendingUp, ArrowRight } from "lucide-react";
-
-const steps = [
-  {
-    number: "01",
-    icon: FolderPlus,
-    title: "Créez votre projet",
-    description: "En quelques clics, configurez votre projet avec les informations de base : type de construction, superficie, budget cible.",
-  },
-  {
-    number: "02",
-    icon: Receipt,
-    title: "Ajoutez vos coûts et soumissions",
-    description: "Importez vos devis, ajoutez vos dépenses par catégorie et gardez tout organisé au même endroit.",
-  },
-  {
-    number: "03",
-    icon: TrendingUp,
-    title: "Suivez et ajustez",
-    description: "Visualisez votre avancement, recevez des alertes et prenez des décisions éclairées tout au long du projet.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export function HowItWorksSection() {
+  const { t } = useTranslation();
+
+  const steps = [
+    {
+      number: "01",
+      icon: FolderPlus,
+      titleKey: "howItWorks.step1.title",
+      descKey: "howItWorks.step1.description",
+    },
+    {
+      number: "02",
+      icon: Receipt,
+      titleKey: "howItWorks.step2.title",
+      descKey: "howItWorks.step2.description",
+    },
+    {
+      number: "03",
+      icon: TrendingUp,
+      titleKey: "howItWorks.step3.title",
+      descKey: "howItWorks.step3.description",
+    },
+  ];
+
+  const stepLabel = t("common.step", "STEP");
+
   return (
     <section className="py-16 lg:py-24 bg-background">
       <div className="container">
         <div className="text-center mb-12 lg:mb-16">
           <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl animate-fade-up">
-            Comment ça marche?
+            {t("howItWorks.title")}
           </h2>
           <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto animate-fade-up-delay-1">
-            Trois étapes simples pour reprendre le contrôle de votre projet
+            {t("howItWorks.subtitle")}
           </p>
         </div>
 
@@ -50,7 +55,7 @@ export function HowItWorksSection() {
                   {/* Step number and icon */}
                   <div className="relative inline-flex flex-col items-center">
                     <span className="text-xs font-bold text-amber-500 mb-3 tracking-wider">
-                      ÉTAPE {step.number}
+                      {stepLabel} {step.number}
                     </span>
                     <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-navy text-white shadow-lg group-hover:scale-105 transition-transform duration-300">
                       <Icon className="h-8 w-8" />
@@ -69,10 +74,10 @@ export function HowItWorksSection() {
                   {/* Content */}
                   <div className="mt-6">
                     <h3 className="font-display text-lg font-semibold text-foreground">
-                      {step.title}
+                      {t(step.titleKey)}
                     </h3>
                     <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                      {step.description}
+                      {t(step.descKey)}
                     </p>
                   </div>
                 </div>

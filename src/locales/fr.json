@@ -1,0 +1,279 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "yes": "Oui",
+    "no": "Non",
+    "or": "ou",
+    "and": "et",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Attention",
+    "perMonth": "/mois",
+    "perYear": "/an",
+    "freeMonths": "(2 mois gratuits)",
+    "step": "ÉTAPE"
+  },
+  "nav": {
+    "myProjects": "Mes Projets",
+    "steps": "Étapes",
+    "myFiles": "Mes Dossiers",
+    "budget": "Budget",
+    "schedule": "Échéancier",
+    "buildingCode": "Code du bâtiment",
+    "guide": "Guide",
+    "plans": "Forfaits",
+    "admin": "Administration",
+    "login": "Connexion",
+    "logout": "Se déconnecter",
+    "getStarted": "Commencer"
+  },
+  "hero": {
+    "badge": "Pour les autoconstructeurs au Québec",
+    "title": "Votre copilote pour",
+    "titleHighlight": "construire en toute confiance",
+    "subtitle": "Planifiez, budgétisez et gérez votre projet de construction résidentielle. Évitez les dépassements de coûts et les erreurs de coordination.",
+    "cta": "Démarrer mon projet",
+    "ctaSecondary": "Voir les forfaits",
+    "feature1": "Conforme au Code du bâtiment",
+    "feature2": "Économisez du temps",
+    "feature3": "Réduisez les coûts"
+  },
+  "problem": {
+    "title": "Les défis de l'autoconstruction",
+    "subtitle": "Sans les bons outils, même les projets les mieux intentionnés peuvent dérailler.",
+    "item1": {
+      "title": "Retards imprévus",
+      "description": "Mauvaise coordination des sous-traitants et délais qui s'accumulent."
+    },
+    "item2": {
+      "title": "Dépassements de budget",
+      "description": "Coûts cachés, oublis et estimations trop optimistes."
+    },
+    "item3": {
+      "title": "Manque de visibilité",
+      "description": "Difficile de savoir où vous en êtes vraiment dans votre projet."
+    }
+  },
+  "solution": {
+    "title": "Une solution complète",
+    "subtitle": "Tous les outils dont vous avez besoin pour réussir votre autoconstruction.",
+    "budget": {
+      "title": "Budget détaillé",
+      "description": "Suivez vos dépenses par catégorie et anticipez les dépassements."
+    },
+    "schedule": {
+      "title": "Échéancier intelligent",
+      "description": "Planifiez chaque étape et coordonnez vos sous-traitants."
+    },
+    "quotes": {
+      "title": "Gestion des soumissions",
+      "description": "Comparez les devis et gardez tout au même endroit."
+    },
+    "tracking": {
+      "title": "Suivi et journal",
+      "description": "Documentez votre progression avec photos et notes."
+    }
+  },
+  "howItWorks": {
+    "title": "Comment ça fonctionne",
+    "subtitle": "Trois étapes simples pour prendre le contrôle de votre projet.",
+    "step1": {
+      "title": "Créez votre projet",
+      "description": "Entrez les informations de base : type, superficie, budget cible."
+    },
+    "step2": {
+      "title": "Ajoutez vos données",
+      "description": "Importez vos soumissions, définissez vos catégories de dépenses."
+    },
+    "step3": {
+      "title": "Suivez et ajustez",
+      "description": "Visualisez votre progression et adaptez votre plan en temps réel."
+    }
+  },
+  "pricing": {
+    "title": "Un forfait adapté à vos besoins",
+    "subtitle": "Commencez gratuitement, passez à Pro quand vous êtes prêt",
+    "mostPopular": "Le plus populaire",
+    "discovery": {
+      "name": "Découverte",
+      "description": "Pour explorer les fonctionnalités de base gratuitement.",
+      "cta": "Commencer gratuitement",
+      "features": [
+        "1 projet actif",
+        "Guide et structure en lecture seule",
+        "Stockage 10 Go",
+        "1 analyse IA par mois"
+      ]
+    },
+    "essential": {
+      "name": "Essentiel",
+      "description": "L'outil complet pour gérer votre autoconstruction.",
+      "cta": "Choisir Essentiel",
+      "features": [
+        "1 projet actif",
+        "Échéancier et budget modifiables",
+        "Guide complet avec suivi",
+        "Stockage 10 Go",
+        "10 analyses IA par mois"
+      ]
+    },
+    "complete": {
+      "name": "Gestion complète",
+      "description": "Pour une gestion avancée avec analyses spécialisées.",
+      "cta": "Choisir Gestion complète",
+      "features": [
+        "1 projet actif",
+        "Tout du forfait Essentiel",
+        "Analyses par corps de métier",
+        "Détection d'incohérences",
+        "Stockage 10 Go",
+        "20 analyses IA par mois"
+      ]
+    }
+  },
+  "faq": {
+    "title": "Questions fréquentes",
+    "subtitle": "Tout ce que vous devez savoir pour commencer.",
+    "q1": {
+      "question": "Comment MonProjetMaison aide à ne pas dépasser le budget ?",
+      "answer": "Notre outil de suivi budgétaire vous permet de catégoriser chaque dépense, comparer avec vos estimations initiales et recevoir des alertes en cas de dépassement. L'analyse IA peut aussi identifier les postes à risque."
+    },
+    "q2": {
+      "question": "Puis-je gérer plusieurs projets ?",
+      "answer": "Les forfaits actuels incluent 1 projet actif. Si vous avez besoin de gérer plusieurs projets simultanément, contactez-nous pour une solution personnalisée."
+    },
+    "q3": {
+      "question": "Mes données sont-elles sécurisées ?",
+      "answer": "Oui, toutes vos données sont chiffrées et stockées de manière sécurisée. Nous ne partageons jamais vos informations avec des tiers."
+    },
+    "q4": {
+      "question": "Comment fonctionnent les soumissions et devis ?",
+      "answer": "Vous pouvez téléverser vos soumissions en PDF ou les saisir manuellement. Notre IA peut analyser les documents pour extraire les informations clés et vous aider à comparer les offres."
+    },
+    "q5": {
+      "question": "Puis-je annuler ou changer de forfait ?",
+      "answer": "Vous pouvez changer de forfait ou annuler à tout moment. Les changements prennent effet à la prochaine période de facturation."
+    }
+  },
+  "cta": {
+    "title": "Prêt à commencer votre projet ?",
+    "subtitle": "Rejoignez les autoconstructeurs qui gèrent leur projet avec confiance.",
+    "button": "Démarrer mon projet gratuitement"
+  },
+  "footer": {
+    "tagline": "L'outil de planification pour les autoconstructeurs au Québec.",
+    "legal": "Légal",
+    "privacy": "Confidentialité",
+    "terms": "Conditions",
+    "cookies": "Cookies",
+    "reportBug": "Signaler un bug",
+    "copyright": "© {{year}} MonProjetMaison.ca. Tous droits réservés."
+  },
+  "auth": {
+    "login": "Connexion",
+    "signup": "Inscription",
+    "email": "Courriel",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "signupButton": "S'inscrire",
+    "loginButton": "Se connecter",
+    "orContinueWith": "Ou continuer avec",
+    "displayName": "Nom d'affichage",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "backToLogin": "Retour à la connexion"
+  },
+  "projects": {
+    "title": "Mes Projets",
+    "create": "Créer un projet",
+    "noProjects": "Aucun projet pour l'instant",
+    "noProjectsDesc": "Commencez par créer votre premier projet de construction.",
+    "projectName": "Nom du projet",
+    "projectType": "Type de projet",
+    "squareFootage": "Superficie (pi²)",
+    "totalBudget": "Budget total",
+    "startDate": "Date de début prévue",
+    "status": "Statut"
+  },
+  "budget": {
+    "title": "Budget",
+    "totalBudget": "Budget total",
+    "spent": "Dépensé",
+    "remaining": "Restant",
+    "categories": "Catégories",
+    "addCategory": "Ajouter une catégorie",
+    "addExpense": "Ajouter une dépense",
+    "subtotal": "Sous-total",
+    "contingency": "Imprévus (5%)",
+    "taxes": "Taxes (TPS + TVQ)",
+    "grandTotal": "Grand total"
+  },
+  "schedule": {
+    "title": "Échéancier",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "duration": "Durée",
+    "days": "jours",
+    "status": {
+      "notStarted": "Non débuté",
+      "inProgress": "En cours",
+      "completed": "Terminé",
+      "delayed": "En retard"
+    },
+    "gantt": "Gantt",
+    "calendar": "Calendrier",
+    "table": "Tableau"
+  },
+  "guide": {
+    "title": "Guide de construction",
+    "steps": "Étapes",
+    "tasks": "Tâches",
+    "markComplete": "Marquer comme terminé",
+    "notes": "Notes",
+    "attachments": "Pièces jointes"
+  },
+  "buildingCode": {
+    "title": "Code du bâtiment",
+    "search": "Rechercher dans le code...",
+    "searchPlaceholder": "Ex: hauteur garde-corps, isolation murs...",
+    "categories": {
+      "structure": "Structure",
+      "safety": "Sécurité",
+      "stairs": "Escaliers",
+      "insulation": "Isolation",
+      "plumbing": "Plomberie",
+      "electrical": "Électricité",
+      "ventilation": "Ventilation",
+      "finishes": "Finitions"
+    },
+    "importance": {
+      "critical": "Critique",
+      "high": "Haute",
+      "medium": "Moyenne"
+    },
+    "article": "Article",
+    "seeArticle": "Voir l'article complet",
+    "aiAssistant": "Assistant IA",
+    "askQuestion": "Posez votre question sur le code du bâtiment..."
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "overview": "Vue d'ensemble",
+    "progress": "Progression",
+    "upcomingTasks": "Prochaines tâches",
+    "recentActivity": "Activité récente"
+  }
+}

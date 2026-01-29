@@ -1,0 +1,279 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "freeMonths": "(2 months free)",
+    "step": "STEP"
+  },
+  "nav": {
+    "myProjects": "My Projects",
+    "steps": "Steps",
+    "myFiles": "My Files",
+    "budget": "Budget",
+    "schedule": "Schedule",
+    "buildingCode": "Building Code",
+    "guide": "Guide",
+    "plans": "Plans",
+    "admin": "Admin",
+    "login": "Log in",
+    "logout": "Log out",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "For owner-builders in Quebec",
+    "title": "Your co-pilot to",
+    "titleHighlight": "build with confidence",
+    "subtitle": "Plan, budget, and manage your residential construction project. Avoid cost overruns and coordination errors.",
+    "cta": "Start my project",
+    "ctaSecondary": "View plans",
+    "feature1": "Building Code compliant",
+    "feature2": "Save time",
+    "feature3": "Reduce costs"
+  },
+  "problem": {
+    "title": "Owner-building challenges",
+    "subtitle": "Without the right tools, even well-intentioned projects can go off track.",
+    "item1": {
+      "title": "Unexpected delays",
+      "description": "Poor coordination of subcontractors and accumulating delays."
+    },
+    "item2": {
+      "title": "Budget overruns",
+      "description": "Hidden costs, oversights, and overly optimistic estimates."
+    },
+    "item3": {
+      "title": "Lack of visibility",
+      "description": "Hard to know where you really stand in your project."
+    }
+  },
+  "solution": {
+    "title": "A complete solution",
+    "subtitle": "All the tools you need to succeed in your owner-build project.",
+    "budget": {
+      "title": "Detailed budget",
+      "description": "Track your expenses by category and anticipate overruns."
+    },
+    "schedule": {
+      "title": "Smart schedule",
+      "description": "Plan each step and coordinate your subcontractors."
+    },
+    "quotes": {
+      "title": "Quote management",
+      "description": "Compare estimates and keep everything in one place."
+    },
+    "tracking": {
+      "title": "Tracking and journal",
+      "description": "Document your progress with photos and notes."
+    }
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "subtitle": "Three simple steps to take control of your project.",
+    "step1": {
+      "title": "Create your project",
+      "description": "Enter basic information: type, square footage, target budget."
+    },
+    "step2": {
+      "title": "Add your data",
+      "description": "Upload your quotes, define your expense categories."
+    },
+    "step3": {
+      "title": "Track and adjust",
+      "description": "Visualize your progress and adapt your plan in real-time."
+    }
+  },
+  "pricing": {
+    "title": "A plan tailored to your needs",
+    "subtitle": "Start free, upgrade when you're ready",
+    "mostPopular": "Most popular",
+    "discovery": {
+      "name": "Discovery",
+      "description": "Explore basic features for free.",
+      "cta": "Start for free",
+      "features": [
+        "1 active project",
+        "Read-only guide and structure",
+        "10 GB storage",
+        "1 AI analysis per month"
+      ]
+    },
+    "essential": {
+      "name": "Essential",
+      "description": "The complete tool to manage your owner-build.",
+      "cta": "Choose Essential",
+      "features": [
+        "1 active project",
+        "Editable schedule and budget",
+        "Complete guide with tracking",
+        "10 GB storage",
+        "10 AI analyses per month"
+      ]
+    },
+    "complete": {
+      "name": "Complete Management",
+      "description": "Advanced management with specialized analyses.",
+      "cta": "Choose Complete Management",
+      "features": [
+        "1 active project",
+        "Everything in Essential",
+        "Trade-specific analyses",
+        "Inconsistency detection",
+        "10 GB storage",
+        "20 AI analyses per month"
+      ]
+    }
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "subtitle": "Everything you need to know to get started.",
+    "q1": {
+      "question": "How does MonProjetMaison help stay within budget?",
+      "answer": "Our budget tracking tool lets you categorize each expense, compare with initial estimates, and receive alerts for overruns. AI analysis can also identify at-risk items."
+    },
+    "q2": {
+      "question": "Can I manage multiple projects?",
+      "answer": "Current plans include 1 active project. If you need to manage multiple projects simultaneously, contact us for a customized solution."
+    },
+    "q3": {
+      "question": "Is my data secure?",
+      "answer": "Yes, all your data is encrypted and stored securely. We never share your information with third parties."
+    },
+    "q4": {
+      "question": "How do quotes and estimates work?",
+      "answer": "You can upload your quotes as PDFs or enter them manually. Our AI can analyze documents to extract key information and help you compare offers."
+    },
+    "q5": {
+      "question": "Can I cancel or change plans?",
+      "answer": "You can change plans or cancel anytime. Changes take effect at the next billing period."
+    }
+  },
+  "cta": {
+    "title": "Ready to start your project?",
+    "subtitle": "Join owner-builders who manage their projects with confidence.",
+    "button": "Start my project for free"
+  },
+  "footer": {
+    "tagline": "The planning tool for owner-builders in Quebec.",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "reportBug": "Report a bug",
+    "copyright": "© {{year}} MonProjetMaison.ca. All rights reserved."
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signupButton": "Sign up",
+    "loginButton": "Log in",
+    "orContinueWith": "Or continue with",
+    "displayName": "Display name",
+    "resetPassword": "Reset password",
+    "sendResetLink": "Send reset link",
+    "backToLogin": "Back to login"
+  },
+  "projects": {
+    "title": "My Projects",
+    "create": "Create a project",
+    "noProjects": "No projects yet",
+    "noProjectsDesc": "Start by creating your first construction project.",
+    "projectName": "Project name",
+    "projectType": "Project type",
+    "squareFootage": "Square footage",
+    "totalBudget": "Total budget",
+    "startDate": "Expected start date",
+    "status": "Status"
+  },
+  "budget": {
+    "title": "Budget",
+    "totalBudget": "Total budget",
+    "spent": "Spent",
+    "remaining": "Remaining",
+    "categories": "Categories",
+    "addCategory": "Add category",
+    "addExpense": "Add expense",
+    "subtotal": "Subtotal",
+    "contingency": "Contingency (5%)",
+    "taxes": "Taxes (GST + QST)",
+    "grandTotal": "Grand total"
+  },
+  "schedule": {
+    "title": "Schedule",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "duration": "Duration",
+    "days": "days",
+    "status": {
+      "notStarted": "Not started",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "delayed": "Delayed"
+    },
+    "gantt": "Gantt",
+    "calendar": "Calendar",
+    "table": "Table"
+  },
+  "guide": {
+    "title": "Construction guide",
+    "steps": "Steps",
+    "tasks": "Tasks",
+    "markComplete": "Mark as complete",
+    "notes": "Notes",
+    "attachments": "Attachments"
+  },
+  "buildingCode": {
+    "title": "Building Code",
+    "search": "Search the code...",
+    "searchPlaceholder": "E.g.: guard rail height, wall insulation...",
+    "categories": {
+      "structure": "Structure",
+      "safety": "Safety",
+      "stairs": "Stairs",
+      "insulation": "Insulation",
+      "plumbing": "Plumbing",
+      "electrical": "Electrical",
+      "ventilation": "Ventilation",
+      "finishes": "Finishes"
+    },
+    "importance": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium"
+    },
+    "article": "Article",
+    "seeArticle": "View full article",
+    "aiAssistant": "AI Assistant",
+    "askQuestion": "Ask your question about the building code..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "progress": "Progress",
+    "upcomingTasks": "Upcoming tasks",
+    "recentActivity": "Recent activity"
+  }
+}

@@ -1,15 +1,18 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
-const benefits = [
-  "Planification étape par étape",
-  "Suivi budgétaire en temps réel",
-  "Assistant IA disponible 24/7",
-  "Conforme aux normes québécoises",
-];
+import { useTranslation } from "react-i18next";
 
 export function BlueprintCTA() {
+  const { t } = useTranslation();
+
+  const benefits = [
+    t("ctaBenefits.planning", "Planification étape par étape"),
+    t("ctaBenefits.budget", "Suivi budgétaire en temps réel"),
+    t("ctaBenefits.ai", "Assistant IA disponible 24/7"),
+    t("ctaBenefits.compliant", "Conforme aux normes québécoises"),
+  ];
+
   return (
     <section className="py-16 lg:py-24 bg-muted/30">
       <div className="container">
@@ -40,10 +43,10 @@ export function BlueprintCTA() {
           <div className="relative grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
             <div>
               <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Prêt à construire votre maison de rêve?
+                {t("cta.title")}
               </h2>
               <p className="mt-4 text-lg text-slate-300">
-                Rejoignez des centaines d'autoconstructeurs qui utilisent MonProjetMaison pour réaliser leur projet en toute sérénité.
+                {t("cta.subtitle")}
               </p>
 
               <ul className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -59,12 +62,12 @@ export function BlueprintCTA() {
             <div className="flex flex-col items-center lg:items-end gap-4">
               <Link to="/start">
                 <Button variant="accent" size="xl" className="w-full sm:w-auto">
-                  Commencer gratuitement
+                  {t("cta.button")}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
               <p className="text-sm text-slate-400">
-                Aucune carte de crédit requise
+                {t("cta.noCreditCard", "Aucune carte de crédit requise")}
               </p>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,25 +13,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { LanguageSelector } from "./LanguageSelector";
 import logo from "@/assets/logo.png";
 
-const navItems = [
-  { href: "/mes-projets", label: "Mes Projets", icon: FolderOpen },
-  { href: "/dashboard", label: "Étapes", icon: LayoutDashboard },
-  { href: "/galerie", label: "Mes Dossiers", icon: FolderDown },
-  { href: "/budget", label: "Budget", icon: Calculator },
-  { href: "/echeancier", label: "Échéancier", icon: CalendarDays },
-  { href: "/code-batiment", label: "Code du bâtiment", icon: Scale },
-  { href: "/guide", label: "Guide", icon: BookOpen },
-  { href: "/forfaits", label: "Forfaits", icon: CreditCard },
+const getNavItems = (t: (key: string) => string) => [
+  { href: "/mes-projets", label: t("nav.myProjects"), icon: FolderOpen },
+  { href: "/dashboard", label: t("nav.steps"), icon: LayoutDashboard },
+  { href: "/galerie", label: t("nav.myFiles"), icon: FolderDown },
+  { href: "/budget", label: t("nav.budget"), icon: Calculator },
+  { href: "/echeancier", label: t("nav.schedule"), icon: CalendarDays },
+  { href: "/code-batiment", label: t("nav.buildingCode"), icon: Scale },
+  { href: "/guide", label: t("nav.guide"), icon: BookOpen },
+  { href: "/forfaits", label: t("nav.plans"), icon: CreditCard },
 ];
 
 export function Header() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, loading } = useAuth();
   const { isAdmin } = useAdmin();
+  
+  const navItems = getNavItems(t);
   
   // Get project ID from URL if available
   const projectId = searchParams.get("project") || location.pathname.match(/\/projet\/([^/]+)/)?.[1];
@@ -93,6 +98,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageSelector />
           {!loading && (
             <>
               {user ? (
@@ -119,25 +125,25 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate("/mes-projets")}>
                       <FolderOpen className="mr-2 h-4 w-4" />
-                      Mes projets
+                      {t("nav.myProjects")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(projectId ? `/dashboard?project=${projectId}` : "/dashboard")}>
                       <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Étapes
+                      {t("nav.steps")}
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => navigate("/admin")}>
                           <Shield className="mr-2 h-4 w-4" />
-                          Administration
+                          {t("nav.admin")}
                         </DropdownMenuItem>
                       </>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
-                      Se déconnecter
+                      {t("nav.logout")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -145,10 +151,10 @@ export function Header() {
                 <>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
                     <User className="h-4 w-4 mr-2" />
-                    Connexion
+                    {t("nav.login")}
                   </Button>
                   <Button variant="accent" size="sm" className="hidden sm:flex" onClick={() => navigate("/auth")}>
-                    Commencer
+                    {t("nav.getStarted")}
                   </Button>
                 </>
               )}

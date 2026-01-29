@@ -1,16 +1,18 @@
 import { ArrowRight, Shield, Clock, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import logoSlim from "@/assets/logo-slim.png";
-
-const features = [
-  { icon: Shield, text: "Conforme au Code du bâtiment" },
-  { icon: Clock, text: "Économisez du temps" },
-  { icon: PiggyBank, text: "Réduisez les coûts" },
-];
 
 export function BlueprintHero() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const features = [
+    { icon: Shield, textKey: "hero.feature1" },
+    { icon: Clock, textKey: "hero.feature2" },
+    { icon: PiggyBank, textKey: "hero.feature3" },
+  ];
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-navy blueprint-pattern">
@@ -58,19 +60,18 @@ export function BlueprintHero() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm text-slate-200 backdrop-blur-sm border border-white/10 animate-fade-up-delay-1">
             <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            Pour les autoconstructeurs au Québec
+            {t("hero.badge")}
           </div>
 
           {/* Main heading */}
           <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl xl:text-5xl animate-fade-up-delay-1">
-            Votre copilote pour
-            <span className="block mt-2 text-slate-300">construire en toute confiance</span>
+            {t("hero.title")}
+            <span className="block mt-2 text-slate-300">{t("hero.titleHighlight")}</span>
           </h1>
 
           {/* Subtitle */}
           <p className="mt-8 text-lg text-slate-400 sm:text-xl max-w-2xl mx-auto leading-relaxed animate-fade-up-delay-2">
-            Planifiez, budgétisez et gérez votre projet de construction résidentielle. 
-            Évitez les dépassements de coûts et les erreurs de coordination.
+            {t("hero.subtitle")}
           </p>
 
           {/* CTAs */}
@@ -81,7 +82,7 @@ export function BlueprintHero() {
               onClick={() => navigate("/start")}
               className="w-full sm:w-auto text-base"
             >
-              Démarrer mon projet
+              {t("hero.cta")}
               <ArrowRight className="h-5 w-5" />
             </Button>
             <Button 
@@ -90,7 +91,7 @@ export function BlueprintHero() {
               className="w-full sm:w-auto border-slate-600 bg-transparent text-slate-200 hover:bg-white/10 hover:text-white"
               onClick={() => navigate("/forfaits")}
             >
-              Voir les forfaits
+              {t("hero.ctaSecondary")}
             </Button>
           </div>
 
@@ -100,14 +101,14 @@ export function BlueprintHero() {
               const Icon = feature.icon;
               return (
                 <div 
-                  key={feature.text} 
+                  key={feature.textKey} 
                   className="flex items-center gap-2.5 text-slate-400 animate-fade-up"
                   style={{ animationDelay: `${0.4 + index * 0.1}s` }}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
                     <Icon className="h-4 w-4 text-amber-500" />
                   </div>
-                  <span className="text-sm font-medium">{feature.text}</span>
+                  <span className="text-sm font-medium">{t(feature.textKey)}</span>
                 </div>
               );
             })}

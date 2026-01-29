@@ -274,18 +274,25 @@
   },
   "footer": {
     "description": "Votre assistant intelligent pour la construction résidentielle au Québec. Planifiez, budgétisez et construisez en toute confiance.",
+    "tagline": "L'outil de planification pour les autoconstructeurs au Québec.",
     "navigation": "Navigation",
     "plans": "Forfaits",
     "dashboard": "Tableau de bord",
     "budget": "Budget",
     "guide": "Guide",
+    "legal": "Légal",
     "privacy": "Confidentialité",
     "terms": "Conditions d'utilisation",
+    "termsShort": "Conditions",
+    "cookies": "Cookies",
     "cookiePolicy": "Politique de cookies",
     "manageCookies": "Gérer mes cookies",
+    "reportBug": "Signaler un bug",
     "contact": "Contact",
     "allRightsReserved": "Tous droits réservés.",
-    "disclaimer": "Les informations fournies n'ont pas de valeur légale. Consultez toujours un professionnel."
+    "copyright": "© {{year}} MonProjetMaison.ca. Tous droits réservés.",
+    "disclaimer": "Les informations fournies n'ont pas de valeur légale. Consultez toujours un professionnel.",
+    "socialProof": "autoconstructeurs nous font confiance au Québec"
   },
   "nav": {
     "myProjects": "Mes Projets",
@@ -433,20 +440,6 @@
     "title": "Prêt à commencer votre projet ?",
     "subtitle": "Rejoignez les autoconstructeurs qui gèrent leur projet avec confiance.",
     "button": "Démarrer mon projet gratuitement"
-  },
-  "footer": {
-    "tagline": "L'outil de planification pour les autoconstructeurs au Québec.",
-    "legal": "Légal",
-    "privacy": "Confidentialité",
-    "terms": "Conditions",
-    "cookies": "Cookies",
-    "reportBug": "Signaler un bug",
-    "copyright": "© {{year}} MonProjetMaison.ca. Tous droits réservés.",
-    "disclaimer": "Les informations fournies n'ont pas de valeur légale. Consultez toujours un professionnel.",
-    "contact": "Contact",
-    "navigation": "Navigation",
-    "manageCookies": "Gérer mes cookies",
-    "socialProof": "autoconstructeurs nous font confiance au Québec"
   },
   "auth": {
     "title": "Mon Espace Projet",

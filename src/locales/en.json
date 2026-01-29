@@ -274,18 +274,25 @@
   },
   "footer": {
     "description": "Your intelligent assistant for residential construction in Quebec. Plan, budget, and build with confidence.",
+    "tagline": "The planning tool for owner-builders in Quebec.",
     "navigation": "Navigation",
     "plans": "Plans",
     "dashboard": "Dashboard",
     "budget": "Budget",
     "guide": "Guide",
+    "legal": "Legal",
     "privacy": "Privacy",
     "terms": "Terms of Use",
+    "termsShort": "Terms",
+    "cookies": "Cookies",
     "cookiePolicy": "Cookie Policy",
     "manageCookies": "Manage cookies",
+    "reportBug": "Report a bug",
     "contact": "Contact",
     "allRightsReserved": "All rights reserved.",
-    "disclaimer": "The information provided has no legal value. Always consult a professional."
+    "copyright": "© {{year}} MonProjetMaison.ca. All rights reserved.",
+    "disclaimer": "The information provided is not legally binding. Always consult a professional.",
+    "socialProof": "owner-builders trust us in Quebec"
   },
   "nav": {
     "myProjects": "My Projects",
@@ -433,20 +440,6 @@
     "title": "Ready to start your project?",
     "subtitle": "Join owner-builders who manage their projects with confidence.",
     "button": "Start my project for free"
-  },
-  "footer": {
-    "tagline": "The planning tool for owner-builders in Quebec.",
-    "legal": "Legal",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "cookies": "Cookies",
-    "reportBug": "Report a bug",
-    "copyright": "© {{year}} MonProjetMaison.ca. All rights reserved.",
-    "disclaimer": "The information provided is not legally binding. Always consult a professional.",
-    "contact": "Contact",
-    "navigation": "Navigation",
-    "manageCookies": "Manage my cookies",
-    "socialProof": "owner-builders trust us in Quebec"
   },
   "auth": {
     "title": "My Project Space",

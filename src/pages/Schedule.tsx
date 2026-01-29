@@ -36,6 +36,7 @@ import { ScheduleGantt } from "@/components/schedule/ScheduleGantt";
 import { AlertsPanel } from "@/components/schedule/AlertsPanel";
 import { AddScheduleDialog } from "@/components/schedule/AddScheduleDialog";
 import { getDateLocale } from "@/lib/i18n";
+import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 
 const Schedule = () => {
   const { t, i18n } = useTranslation();
@@ -371,7 +372,7 @@ const Schedule = () => {
                         {conflict.trades.map((trade, i) => (
                           <span key={trade}>
                             {i > 0 && ", "}
-                            {trade}
+                            {getTranslatedTradeName(t, trade)}
                           </span>
                         ))}
                       </div>

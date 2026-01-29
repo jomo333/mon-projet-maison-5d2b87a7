@@ -261,7 +261,21 @@
     "notFound": "Projet non trouvé",
     "backToProjects": "Retour à mes projets",
     "deleted": "Projet supprimé",
-    "deleteError": "Erreur lors de la suppression"
+    "deleteError": "Erreur lors de la suppression",
+    "overview": "Aperçu",
+    "steps": "Étapes",
+    "photos": "Photos",
+    "documentsTab": "Documents",
+    "noPhotosTitle": "Aucune photo",
+    "noPhotosDesc": "Ajoutez des photos de suivi dans chaque étape de construction",
+    "goToSteps": "Aller aux étapes",
+    "noDocumentsTitle": "Aucun document",
+    "noDocumentsDesc": "Ajoutez des documents (plans, devis, soumissions) dans les tâches de chaque étape",
+    "allPhases": "Toutes les phases",
+    "contactSubcontractor": "Sous-traitant à contacter",
+    "stepReminder": "Assurez-vous que toutes les étapes précédentes ont bien été complétées avant de commencer celle-ci.",
+    "createdOnDate": "Créé le {{date}}",
+    "view": "Voir"
   },
   "budget": {
     "title": "Budget",

@@ -261,7 +261,21 @@
     "notFound": "Project not found",
     "backToProjects": "Back to my projects",
     "deleted": "Project deleted",
-    "deleteError": "Error deleting project"
+    "deleteError": "Error deleting project",
+    "overview": "Overview",
+    "steps": "Steps",
+    "photos": "Photos",
+    "documentsTab": "Documents",
+    "noPhotosTitle": "No photos",
+    "noPhotosDesc": "Add tracking photos in each construction step",
+    "goToSteps": "Go to steps",
+    "noDocumentsTitle": "No documents",
+    "noDocumentsDesc": "Add documents (plans, quotes, estimates) in the tasks of each step",
+    "allPhases": "All phases",
+    "contactSubcontractor": "Contact subcontractor",
+    "stepReminder": "Make sure all previous steps have been completed before starting this one.",
+    "createdOnDate": "Created on {{date}}",
+    "view": "View"
   },
   "budget": {
     "title": "Budget",

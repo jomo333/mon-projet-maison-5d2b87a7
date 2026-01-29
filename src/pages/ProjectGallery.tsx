@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,41 +46,43 @@ import {
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 
-const documentCategories = [
-  { value: "all", label: "Tous les documents" },
-  { value: "plan", label: "Plans" },
-  { value: "devis", label: "Devis" },
-  { value: "soumission", label: "Soumissions" },
-  { value: "contract", label: "Contrats" },
-  { value: "permit", label: "Permis" },
-  { value: "permis", label: "Permis" },
-  { value: "facture", label: "Factures" },
-  { value: "photo", label: "Photos" },
-  { value: "other", label: "Autres" },
-];
-
-// Corps de métier pour les soumissions
-const soumissionTrades = [
-  { id: "excavation", name: "Excavation" },
-  { id: "fondation", name: "Fondation/Béton" },
-  { id: "charpente", name: "Charpentier" },
-  { id: "toiture", name: "Couvreur" },
-  { id: "fenetre", name: "Fenêtres/Portes" },
-  { id: "electricite", name: "Électricien" },
-  { id: "plomberie", name: "Plombier" },
-  { id: "hvac", name: "Chauffage/Ventilation" },
-  { id: "isolation", name: "Isolation" },
-  { id: "gypse", name: "Plâtrier/Gypse" },
-  { id: "peinture", name: "Peintre" },
-  { id: "plancher", name: "Plancher" },
-  { id: "ceramique", name: "Céramiste" },
-  { id: "armoires", name: "Ébéniste/Armoires" },
-  { id: "comptoirs", name: "Comptoirs" },
-  { id: "exterieur", name: "Revêtement extérieur" },
-  { id: "amenagement", name: "Aménagement paysager" },
-];
-
 const ProjectGallery = () => {
+  const { t, i18n } = useTranslation();
+
+  const documentCategories = [
+    { value: "all", label: t("gallery.allDocuments") },
+    { value: "plan", label: t("gallery.documentCategories.plan") },
+    { value: "devis", label: t("gallery.documentCategories.devis") },
+    { value: "soumission", label: t("gallery.documentCategories.soumission") },
+    { value: "contract", label: t("gallery.documentCategories.contract") },
+    { value: "permit", label: t("gallery.documentCategories.permit") },
+    { value: "permis", label: t("gallery.documentCategories.permit") },
+    { value: "facture", label: t("gallery.documentCategories.facture") },
+    { value: "photo", label: t("gallery.documentCategories.photo") },
+    { value: "other", label: t("gallery.documentCategories.other") },
+  ];
+
+  // Corps de métier pour les soumissions
+  const soumissionTrades = [
+    { id: "excavation", name: t("trades.excavation") },
+    { id: "fondation", name: t("trades.foundation") },
+    { id: "charpente", name: t("trades.carpentry") },
+    { id: "toiture", name: t("trades.roofing") },
+    { id: "fenetre", name: t("trades.windows") },
+    { id: "electricite", name: t("trades.electrical") },
+    { id: "plomberie", name: t("trades.plumbing") },
+    { id: "hvac", name: t("trades.hvac") },
+    { id: "isolation", name: t("trades.insulation") },
+    { id: "gypse", name: t("trades.drywall") },
+    { id: "peinture", name: t("trades.painting") },
+    { id: "plancher", name: t("trades.flooring") },
+    { id: "ceramique", name: t("trades.tiling") },
+    { id: "armoires", name: t("trades.cabinets") },
+    { id: "comptoirs", name: t("trades.countertops") },
+    { id: "exterieur", name: t("trades.exterior") },
+    { id: "amenagement", name: t("trades.landscaping") },
+  ];
+
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -409,8 +412,8 @@ const ProjectGallery = () => {
         <Header />
         <main className="flex-1 py-8">
           <div className="container">
-            <h1 className="font-display text-3xl font-bold tracking-tight mb-6">
-              Mes Dossiers
+          <h1 className="font-display text-3xl font-bold tracking-tight mb-6">
+              {t("gallery.title")}
             </h1>
             
             {projectsLoading ? (
@@ -422,24 +425,24 @@ const ProjectGallery = () => {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="font-display text-lg font-medium mb-2">
-                    Aucun projet
+                    {t("gallery.noProject")}
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    Créez un projet pour commencer à télécharger des fichiers
+                    {t("gallery.createProjectFirst")}
                   </p>
                   <Button onClick={() => navigate("/mes-projets")}>
-                    Créer un projet
+                    {t("projects.create")}
                   </Button>
                 </CardContent>
               </Card>
             ) : (
               <div>
                 <p className="text-muted-foreground mb-4">
-                  Sélectionnez un projet pour voir ses fichiers
+                  {t("gallery.selectToView")}
                 </p>
                 <Select onValueChange={handleProjectChange}>
                   <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="Choisir un projet" />
+                    <SelectValue placeholder={t("gallery.chooseProject")} />
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map((p) => (
@@ -468,17 +471,17 @@ const ProjectGallery = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div>
                 <h1 className="font-display text-3xl font-bold tracking-tight">
-                  Mes Dossiers
+                  {t("gallery.title")}
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Photos et documents de vos projets
+                  {t("gallery.subtitle")}
                 </p>
               </div>
             </div>
             
             {/* Project selector */}
             <div className="flex items-center gap-4">
-              <label className="text-sm font-medium">Projet :</label>
+              <label className="text-sm font-medium">{t("common.project")} :</label>
               <Select value={projectId} onValueChange={handleProjectChange}>
                 <SelectTrigger className="w-full max-w-xs">
                   <SelectValue placeholder="Sélectionner un projet" />
@@ -499,15 +502,15 @@ const ProjectGallery = () => {
             <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="photos" className="gap-2">
                 <Camera className="h-4 w-4" />
-                Photos ({photos.length})
+                {t("gallery.photos")} ({photos.length})
               </TabsTrigger>
               <TabsTrigger value="documents" className="gap-2">
                 <FileText className="h-4 w-4" />
-                Documents ({nonSoumissionDocs.length})
+                {t("gallery.documents")} ({nonSoumissionDocs.length})
               </TabsTrigger>
               <TabsTrigger value="soumissions" className="gap-2">
                 <ClipboardCheck className="h-4 w-4" />
-                Soumissions ({retenuCount}/{soumissionTrades.length})
+                {t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})
               </TabsTrigger>
             </TabsList>
 
@@ -517,10 +520,10 @@ const ProjectGallery = () => {
               <div className="mb-6">
                 <Select value={selectedStep} onValueChange={setSelectedStep}>
                   <SelectTrigger className="w-full max-w-xs">
-                    <SelectValue placeholder="Filtrer par étape" />
+                    <SelectValue placeholder={t("gallery.filterByStep")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes les étapes</SelectItem>
+                    <SelectItem value="all">{t("gallery.allSteps")}</SelectItem>
                     {Object.keys(photosByStep).map((stepId) => (
                       <SelectItem key={stepId} value={stepId}>
                         {getStepTitle(stepId)} ({photosByStep[stepId].length})
@@ -541,10 +544,10 @@ const ProjectGallery = () => {
                   <CardContent className="py-12 text-center">
                     <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <p className="text-muted-foreground">
-                      Aucune photo pour ce projet
+                      {t("gallery.noPhotos")}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Ajoutez des photos depuis les étapes de construction
+                      {t("projects.noPhotosDesc")}
                     </p>
                   </CardContent>
                 </Card>

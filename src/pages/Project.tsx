@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -23,8 +24,10 @@ import {
   Camera, FileText, FolderOpen, Loader2, ImageIcon, Download, Trash2, PhoneCall, Bell, LayoutDashboard
 } from "lucide-react";
 import { toast } from "sonner";
+import { getDateLocale } from "@/lib/i18n";
 
 const Project = () => {
+  const { t, i18n } = useTranslation();
   const { id: projectId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -193,15 +196,14 @@ const Project = () => {
     return acc;
   }, {} as Record<string, typeof photos>);
 
-  // Document categories
   const documentCategories = [
-    { id: "plan", label: "Plans", icon: FileText },
-    { id: "devis", label: "Devis", icon: FileText },
-    { id: "soumission", label: "Soumissions", icon: FileText },
-    { id: "contrat", label: "Contrats", icon: FileText },
-    { id: "permis", label: "Permis", icon: FileText },
-    { id: "facture", label: "Factures", icon: FileText },
-    { id: "other", label: "Autres", icon: FolderOpen },
+    { id: "plan", label: t("gallery.documentCategories.plan"), icon: FileText },
+    { id: "devis", label: t("gallery.documentCategories.devis"), icon: FileText },
+    { id: "soumission", label: t("gallery.documentCategories.soumission"), icon: FileText },
+    { id: "contrat", label: t("gallery.documentCategories.contract"), icon: FileText },
+    { id: "permis", label: t("gallery.documentCategories.permit"), icon: FileText },
+    { id: "facture", label: t("gallery.documentCategories.facture"), icon: FileText },
+    { id: "other", label: t("gallery.documentCategories.other"), icon: FolderOpen },
   ];
 
   if (authLoading || projectLoading) {
@@ -218,9 +220,9 @@ const Project = () => {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Projet non trouvé</h1>
+            <h1 className="text-2xl font-bold mb-4">{t("projects.notFound")}</h1>
             <Button onClick={() => navigate("/mes-projets")}>
-              Retour à mes projets
+              {t("projects.backToProjects")}
             </Button>
           </div>
         </main>
@@ -242,18 +244,18 @@ const Project = () => {
               className="mb-6 gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour aux étapes
+              {t("dashboard.backToSteps")}
             </Button>
 
             {/* Alert for suggested step */}
             {showPreviousStepsAlert && currentStepIndex > 1 && (
               <Alert className="mb-6 border-warning/50 bg-warning/10">
                 <AlertTriangle className="h-4 w-4 text-warning" />
-                <AlertTitle className="text-warning">Rappel important</AlertTitle>
+                <AlertTitle className="text-warning">{t("dashboard.reminder")}</AlertTitle>
                 <AlertDescription className="flex items-start justify-between gap-4">
                   <span>
-                    Assurez-vous que toutes les étapes précédentes ont bien été complétées avant de commencer celle-ci. 
-                    Vous êtes actuellement à l'étape {currentStepIndex} sur {totalSteps}.
+                    {t("projects.stepReminder")}{" "}
+                    {t("dashboard.stepOf", { current: currentStepIndex, total: totalSteps })}.
                     <Button 
                       variant="link" 
                       className="px-1 h-auto text-warning underline"
@@ -262,7 +264,7 @@ const Project = () => {
                         setShowPreviousStepsAlert(false);
                       }}
                     >
-                      Voir toutes les étapes
+                      {t("dashboard.viewAllSteps")}
                     </Button>
                   </span>
                   <Button
@@ -279,7 +281,7 @@ const Project = () => {
 
             <div className="mb-6">
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <span>Étape {currentStepIndex} de {totalSteps}</span>
+                <span>{t("dashboard.stepOf", { current: currentStepIndex, total: totalSteps })}</span>
               </div>
               <Progress value={(currentStepIndex / totalSteps) * 100} className="h-2" />
             </div>
@@ -326,7 +328,7 @@ const Project = () => {
               className="mb-4 gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Mes projets
+              {t("nav.myProjects")}
             </Button>
             
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -342,11 +344,11 @@ const Project = () => {
                     </div>
                   )}
                   {project.square_footage && (
-                    <span>{project.square_footage} pi²</span>
+                    <span>{project.square_footage} {t("projects.sqft")}</span>
                   )}
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>Créé le {new Date(project.created_at).toLocaleDateString('fr-CA')}</span>
+                    <span>{t("common.createdOn")} {new Date(project.created_at).toLocaleDateString(i18n.language === 'en' ? 'en-CA' : 'fr-CA')}</span>
                   </div>
                 </div>
               </div>
@@ -364,7 +366,7 @@ const Project = () => {
                   <PhoneCall className="h-4 w-4 text-amber-500" />
                   <AlertTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2">
                     <Bell className="h-4 w-4" />
-                    Sous-traitant à contacter
+                    {t("projects.contactSubcontractor")}
                   </AlertTitle>
                   <AlertDescription className="flex items-start justify-between gap-4">
                     <span className="text-amber-600 dark:text-amber-300">
@@ -389,19 +391,19 @@ const Project = () => {
             <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
               <TabsTrigger value="apercu" className="gap-2">
                 <LayoutDashboard className="h-4 w-4" />
-                Aperçu
+                {t("projects.overview")}
               </TabsTrigger>
               <TabsTrigger value="etapes" className="gap-2">
                 <ChevronRight className="h-4 w-4" />
-                Étapes
+                {t("projects.steps")}
               </TabsTrigger>
               <TabsTrigger value="photos" className="gap-2">
                 <Camera className="h-4 w-4" />
-                Photos ({photos.length})
+                {t("projects.photos")} ({photos.length})
               </TabsTrigger>
               <TabsTrigger value="documents" className="gap-2">
                 <FileText className="h-4 w-4" />
-                Documents ({documents.length})
+                {t("projects.documentsTab")} ({documents.length})
               </TabsTrigger>
             </TabsList>
 
@@ -418,14 +420,13 @@ const Project = () => {
 
             {/* Steps Tab */}
             <TabsContent value="etapes" className="space-y-6">
-              {/* Phase filters */}
               <div className="flex flex-wrap gap-2">
                 <Badge 
                   variant={activePhase === null ? "default" : "outline"}
                   className="cursor-pointer px-4 py-2"
                   onClick={() => setActivePhase(null)}
                 >
-                  Toutes les phases
+                  {t("projects.allPhases")}
                 </Badge>
                 {phases.map((phase) => (
                   <Badge 
@@ -471,13 +472,13 @@ const Project = () => {
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="font-display text-lg font-medium mb-2">
-                      Aucune photo
+                      {t("projects.noPhotosTitle")}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Ajoutez des photos de suivi dans chaque étape de construction
+                      {t("projects.noPhotosDesc")}
                     </p>
                     <Button onClick={() => setActiveTab("etapes")}>
-                      Aller aux étapes
+                      {t("projects.goToSteps")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -490,7 +491,7 @@ const Project = () => {
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
                             <span>{step?.title || stepId}</span>
-                            <Badge variant="secondary">{stepPhotos.length} photos</Badge>
+                            <Badge variant="secondary">{stepPhotos.length} {t("projects.photos").toLowerCase()}</Badge>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -507,7 +508,7 @@ const Project = () => {
                                   className="w-full h-full object-cover"
                                 />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <span className="text-white text-sm">Voir</span>
+                                  <span className="text-white text-sm">{t("common.view")}</span>
                                 </div>
                               </div>
                             ))}
@@ -531,13 +532,13 @@ const Project = () => {
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="font-display text-lg font-medium mb-2">
-                      Aucun document
+                      {t("projects.noDocumentsTitle")}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Ajoutez des documents (plans, devis, soumissions) dans les tâches de chaque étape
+                      {t("projects.noDocumentsDesc")}
                     </p>
                     <Button onClick={() => setActiveTab("etapes")}>
-                      Aller aux étapes
+                      {t("projects.goToSteps")}
                     </Button>
                   </CardContent>
                 </Card>

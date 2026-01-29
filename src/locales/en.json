@@ -352,7 +352,8 @@
     "otherItems": "Other items",
     "contingencyBudget": "Contingency budget (5%)",
     "taxesTpsQst": "Taxes (GST 5% + QST 9.975%)",
-    "manageBudgetSubmissions": "Manage budget and submissions"
+    "manageBudgetSubmissions": "Manage budget and submissions",
+    "amountPlaceholder": "0.00"
   },
   "schedule": {
     "title": "Schedule",

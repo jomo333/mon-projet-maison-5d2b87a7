@@ -458,7 +458,39 @@
     "contingencyBudget": "Budget imprévu (5%)",
     "taxesTpsQst": "Taxes (TPS 5% + TVQ 9,975%)",
     "manageBudgetSubmissions": "Gérer budget et soumissions",
-    "amountPlaceholder": "0.00"
+    "amountPlaceholder": "0.00",
+    "categories": {
+      "Excavation": "Excavation",
+      "Fondation": "Fondation",
+      "Structure et charpente": "Structure et charpente",
+      "Toiture": "Toiture",
+      "Fenêtres et portes extérieures": "Fenêtres et portes extérieures",
+      "Isolation et pare-vapeur": "Isolation et pare-vapeur",
+      "Plomberie sous dalle": "Plomberie sous dalle",
+      "Coulée de dalle du sous-sol": "Coulée de dalle du sous-sol",
+      "Murs de division": "Murs de division",
+      "Plomberie": "Plomberie",
+      "Électricité": "Électricité",
+      "Chauffage et ventilation": "Chauffage et ventilation",
+      "Revêtement extérieur": "Revêtement extérieur",
+      "Gypse et peinture": "Gypse et peinture",
+      "Revêtements de sol": "Revêtements de sol",
+      "Travaux ébénisterie": "Travaux ébénisterie",
+      "Finitions intérieures": "Finitions intérieures"
+    }
+  },
+  "categorySubmissions": {
+    "manageSubmissionsFor": "Gérez les soumissions pour \"{{name}}\"",
+    "manageBudgetAndSubmissions": "Gérez le budget, les soumissions et les sous-catégories"
+  },
+  "analysisFullView": {
+    "quoteAnalysis": "Analyse des soumissions"
+  },
+  "diyAnalysisView": {
+    "materialAnalysis": "Analyse des matériaux DIY"
+  },
+  "budgetAnalysis": {
+    "allCategories": "Toutes les catégories"
   },
   "planAnalyzer": {
     "aiProjectAnalysis": "Analyse IA du projet",

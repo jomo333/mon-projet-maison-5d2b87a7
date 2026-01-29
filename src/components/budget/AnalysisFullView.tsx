@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -67,7 +68,15 @@ export function AnalysisFullView({
   onSelectOption,
   onConfirmSelection,
 }: AnalysisFullViewProps) {
+  const { t } = useTranslation();
   const selectedSupplier = selectedSupplierIndex !== null ? extractedSuppliers[selectedSupplierIndex] : null;
+
+  // Helper function to translate budget category names
+  const translateCategoryName = (name: string): string => {
+    const key = `budget.categories.${name}`;
+    const translated = t(key);
+    return translated === key ? name : translated;
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -83,7 +92,7 @@ export function AnalysisFullView({
                 style={{ backgroundColor: categoryColor }}
               />
               <SheetTitle className="text-xl">
-                Analyse des soumissions - {categoryName}
+                {t("analysisFullView.quoteAnalysis")} - {translateCategoryName(categoryName)}
               </SheetTitle>
             </div>
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>

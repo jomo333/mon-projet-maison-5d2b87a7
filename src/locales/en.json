@@ -458,7 +458,39 @@
     "contingencyBudget": "Contingency budget (5%)",
     "taxesTpsQst": "Taxes (GST 5% + QST 9.975%)",
     "manageBudgetSubmissions": "Manage budget and submissions",
-    "amountPlaceholder": "0.00"
+    "amountPlaceholder": "0.00",
+    "categories": {
+      "Excavation": "Excavation",
+      "Fondation": "Foundation",
+      "Structure et charpente": "Structure and Framing",
+      "Toiture": "Roofing",
+      "Fenêtres et portes extérieures": "Windows and Exterior Doors",
+      "Isolation et pare-vapeur": "Insulation and Vapor Barrier",
+      "Plomberie sous dalle": "Under-Slab Plumbing",
+      "Coulée de dalle du sous-sol": "Basement Slab Pouring",
+      "Murs de division": "Partition Walls",
+      "Plomberie": "Plumbing",
+      "Électricité": "Electrical",
+      "Chauffage et ventilation": "Heating and Ventilation",
+      "Revêtement extérieur": "Exterior Siding",
+      "Gypse et peinture": "Drywall and Painting",
+      "Revêtements de sol": "Flooring",
+      "Travaux ébénisterie": "Cabinetry Work",
+      "Finitions intérieures": "Interior Finishes"
+    }
+  },
+  "categorySubmissions": {
+    "manageSubmissionsFor": "Manage quotes for \"{{name}}\"",
+    "manageBudgetAndSubmissions": "Manage budget, quotes and sub-categories"
+  },
+  "analysisFullView": {
+    "quoteAnalysis": "Quote Analysis"
+  },
+  "diyAnalysisView": {
+    "materialAnalysis": "DIY Material Analysis"
+  },
+  "budgetAnalysis": {
+    "allCategories": "All categories"
   },
   "planAnalyzer": {
     "aiProjectAnalysis": "AI Project Analysis",

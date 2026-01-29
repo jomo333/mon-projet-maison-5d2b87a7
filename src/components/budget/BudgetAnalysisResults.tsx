@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +130,7 @@ export function BudgetAnalysisResults({
   onAdjustPrice,
   projectConfig
 }: BudgetAnalysisResultsProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,6 +151,13 @@ export function BudgetAnalysisResults({
     
     return mapAnalysisToStepCategories(analysisForMapping, undefined, projectConfig);
   }, [analysis.categories, projectConfig]);
+
+  // Helper function to translate budget category names
+  const translateCategoryName = (name: string): string => {
+    const key = `budget.categories.${name}`;
+    const translated = t(key);
+    return translated === key ? name : translated;
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-CA", {
@@ -203,7 +212,7 @@ export function BudgetAnalysisResults({
   const pieData = orderedCategories
     .filter(cat => cat.budget > 0)
     .map((cat, index) => ({
-      name: cat.name,
+      name: translateCategoryName(cat.name),
       value: cat.budget,
       color: categoryColors[index % categoryColors.length],
     }));
@@ -211,11 +220,14 @@ export function BudgetAnalysisResults({
   // Prepare bar chart data (only categories with budget > 0)
   const barData = orderedCategories
     .filter(cat => cat.budget > 0)
-    .map(cat => ({
-      name: cat.name.length > 12 ? cat.name.substring(0, 12) + "..." : cat.name,
-      fullName: cat.name,
-      budget: cat.budget,
-    }));
+    .map(cat => {
+      const translated = translateCategoryName(cat.name);
+      return {
+        name: translated.length > 12 ? translated.substring(0, 12) + "..." : translated,
+        fullName: translated,
+        budget: cat.budget,
+      };
+    });
 
   // Calculate totals - toujours basé sur les catégories ordonnées pour cohérence
   const categoriesSubTotal = orderedCategories.reduce((sum, cat) => sum + (Number(cat.budget) || 0), 0);
@@ -506,7 +518,7 @@ export function BudgetAnalysisResults({
                     return (
                       <Card key={index} className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium truncate">{cat.name}</span>
+                          <span className="text-sm font-medium truncate">{translateCategoryName(cat.name)}</span>
                           <span className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</span>
                         </div>
                         <p className="text-lg font-bold">{formatCurrency(cat.budget)}</p>
@@ -630,9 +642,9 @@ export function BudgetAnalysisResults({
                 <SelectValue placeholder="Filtrer par catégorie" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes les catégories</SelectItem>
+                <SelectItem value="all">{t("budgetAnalysis.allCategories")}</SelectItem>
                 {orderedCategories.map((cat, i) => (
-                  <SelectItem key={i} value={cat.name}>{cat.name}</SelectItem>
+                  <SelectItem key={i} value={cat.name}>{translateCategoryName(cat.name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -654,7 +666,7 @@ export function BudgetAnalysisResults({
                       <div className="flex items-center gap-3">
                         {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                         <div>
-                          <h3 className="font-semibold">{cat.name}</h3>
+                          <h3 className="font-semibold">{translateCategoryName(cat.name)}</h3>
                           <p className="text-sm text-muted-foreground">
                             {stepTasksByCategory[cat.name]?.join(", ") || cat.description}
                           </p>
@@ -843,7 +855,7 @@ export function BudgetAnalysisResults({
                           const taskDescr = stepTasksByCategory[cat.name]?.join(", ") || cat.description || "";
                           return (
                             <TableRow key={index}>
-                              <TableCell className="font-medium break-words min-w-0">{cat.name}</TableCell>
+                              <TableCell className="font-medium break-words min-w-0">{translateCategoryName(cat.name)}</TableCell>
                               <TableCell className="text-right font-mono">{formatCurrency(cat.budget)}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={percentage > 20 ? "default" : "secondary"}>

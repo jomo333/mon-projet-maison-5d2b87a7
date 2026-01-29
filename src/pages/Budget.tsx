@@ -110,6 +110,14 @@ import type { Json } from "@/integrations/supabase/types";
 
 const Budget = () => {
   const { t } = useTranslation();
+  
+  // Helper function to translate budget category names
+  const translateCategoryName = (name: string): string => {
+    const key = `budget.categories.${name}`;
+    const translated = t(key);
+    // If no translation found (returns the key), use original name
+    return translated === key ? name : translated;
+  };
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -410,7 +418,7 @@ const Budget = () => {
   const displayRemaining = hasAnalyzedBudget ? (totalBudget - totalSpent) : 0;
 
   const pieData = budgetCategories.map((cat) => ({
-    name: cat.name,
+    name: translateCategoryName(cat.name),
     value: cat.budget,
     color: cat.color,
   }));
@@ -720,7 +728,7 @@ const Budget = () => {
                     >
                       {budgetCategories.map((cat) => (
                         <option key={cat.name} value={cat.name}>
-                          {cat.name}
+                          {translateCategoryName(cat.name)}
                         </option>
                       ))}
                     </select>
@@ -859,7 +867,7 @@ const Budget = () => {
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium truncate">{category.name}</span>
+                                  <span className="font-medium truncate">{translateCategoryName(category.name)}</span>
                                   {isOverBudget && (
                                     <Badge variant="destructive" className="text-xs">
                                       <AlertTriangle className="h-3 w-3 mr-1" />

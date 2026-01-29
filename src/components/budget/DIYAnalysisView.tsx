@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -69,7 +70,15 @@ export function DIYAnalysisView({
   analysisResult,
   onApplyEstimate,
 }: DIYAnalysisViewProps) {
+  const { t } = useTranslation();
   const estimatedTotal = extractEstimatedTotal(analysisResult);
+
+  // Helper function to translate budget category names
+  const translateCategoryName = (name: string): string => {
+    const key = `budget.categories.${name}`;
+    const translated = t(key);
+    return translated === key ? name : translated;
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -82,7 +91,7 @@ export function DIYAnalysisView({
               </Button>
               <Hammer className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               <SheetTitle className="text-xl">
-                Analyse des matériaux DIY - {categoryName}
+                {t("diyAnalysisView.materialAnalysis")} - {translateCategoryName(categoryName)}
                 {subCategoryName && (
                   <span className="text-amber-600 dark:text-amber-400"> / {subCategoryName}</span>
                 )}

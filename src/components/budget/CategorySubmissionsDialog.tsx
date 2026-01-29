@@ -103,6 +103,14 @@ export function CategorySubmissionsDialog({
   onSave,
 }: CategorySubmissionsDialogProps) {
   const { t } = useTranslation();
+  
+  // Helper function to translate budget category names
+  const translateCategoryName = (name: string): string => {
+    const key = `budget.categories.${name}`;
+    const translated = t(key);
+    return translated === key ? name : translated;
+  };
+  
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [budget, setBudget] = useState(currentBudget.toString());
@@ -1171,7 +1179,7 @@ export function CategorySubmissionsDialog({
               className="w-4 h-4 rounded" 
               style={{ backgroundColor: categoryColor }}
             />
-            {categoryName}
+            {translateCategoryName(categoryName)}
             {currentSubCategoryName && (
               <>
                 <span className="text-muted-foreground">/</span>
@@ -1181,8 +1189,8 @@ export function CategorySubmissionsDialog({
           </DialogTitle>
           <DialogDescription>
             {viewingSubCategory 
-              ? `Gérez les soumissions pour "${currentSubCategoryName}"`
-              : "Gérez le budget, les soumissions et les sous-catégories"
+              ? t("categorySubmissions.manageSubmissionsFor", { name: currentSubCategoryName })
+              : t("categorySubmissions.manageBudgetAndSubmissions")
             }
           </DialogDescription>
         </DialogHeader>

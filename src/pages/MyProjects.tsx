@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, FolderOpen, Calendar, DollarSign, Trash2, Loader2, Home } from "lucide-react";
+import { formatCurrency } from "@/lib/i18n";
 
 interface Project {
   id: string;
@@ -23,6 +25,7 @@ interface Project {
 }
 
 const MyProjects = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -51,10 +54,10 @@ const MyProjects = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Projet supprimé");
+      toast.success(t("projects.deleted"));
     },
     onError: () => {
-      toast.error("Erreur lors de la suppression");
+      toast.error(t("projects.deleteError"));
     },
   });
 
@@ -67,14 +70,19 @@ const MyProjects = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "en_cours":
-        return <Badge className="bg-blue-500">En cours</Badge>;
+        return <Badge className="bg-blue-500">{t("projects.statuses.in_progress")}</Badge>;
       case "termine":
-        return <Badge className="bg-green-500">Terminé</Badge>;
+        return <Badge className="bg-green-500">{t("projects.statuses.completed")}</Badge>;
       case "pause":
-        return <Badge variant="secondary">En pause</Badge>;
+        return <Badge variant="secondary">{t("projects.statuses.paused")}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const locale = i18n.language === 'en' ? 'en-CA' : 'fr-CA';
+    return new Date(dateString).toLocaleDateString(locale);
   };
 
   if (authLoading) {
@@ -93,16 +101,16 @@ const MyProjects = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
-                Mes Projets
+                {t("projects.title")}
               </h1>
               <p className="text-muted-foreground mt-1">
-                Retrouvez et gérez tous vos projets de construction
+                {t("projects.subtitle")}
               </p>
             </div>
             
             <Button variant="accent" onClick={() => navigate("/start")}>
               <Plus className="h-4 w-4 mr-2" />
-              Nouveau projet
+              {t("projects.create")}
             </Button>
           </div>
 
@@ -115,14 +123,14 @@ const MyProjects = () => {
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="font-display text-lg font-medium mb-2">
-                  Aucun projet
+                  {t("projects.noProjects")}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Créez votre premier projet pour commencer à planifier votre construction
+                  {t("projects.noProjectsDesc")}
                 </p>
                 <Button variant="accent" onClick={() => navigate("/start")}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Créer mon premier projet
+                  {t("projects.createFirst")}
                 </Button>
               </CardContent>
             </Card>
@@ -154,18 +162,18 @@ const MyProjects = () => {
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <div className="flex items-center gap-4">
                         {project.square_footage && (
-                          <span>{project.square_footage} pi²</span>
+                          <span>{project.square_footage} {t("projects.sqft")}</span>
                         )}
                         {project.total_budget > 0 && (
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            {Number(project.total_budget).toLocaleString()} $
+                            {formatCurrency(project.total_budget)}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {new Date(project.updated_at).toLocaleDateString('fr-CA')}
+                        {formatDate(project.updated_at)}
                       </div>
                     </div>
                     <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -175,13 +183,13 @@ const MyProjects = () => {
                         className="w-full"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm("Supprimer ce projet?")) {
+                          if (confirm(t("common.confirmDelete"))) {
                             deleteMutation.mutate(project.id);
                           }
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer
+                        {t("common.delete")}
                       </Button>
                     </div>
                   </CardContent>

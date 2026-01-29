@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 const Auth = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { signIn, signUp, resetPassword, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -38,9 +40,9 @@ const Auth = () => {
     const { error } = await signIn(email, password);
     
     if (error) {
-      toast.error("Erreur de connexion: " + error.message);
+      toast.error(t("auth.loginError") + ": " + error.message);
     } else {
-      toast.success("Connexion réussie!");
+      toast.success(t("auth.loginSuccess"));
       navigate("/");
     }
     
@@ -59,9 +61,9 @@ const Auth = () => {
     const { error } = await signUp(email, password, displayName);
     
     if (error) {
-      toast.error("Erreur d'inscription: " + error.message);
+      toast.error(t("auth.signupError") + ": " + error.message);
     } else {
-      toast.success("Compte créé avec succès!");
+      toast.success(t("auth.signupSuccess"));
       navigate("/");
     }
     
@@ -75,10 +77,10 @@ const Auth = () => {
     const { error } = await resetPassword(forgotEmail);
 
     if (error) {
-      toast.error("Erreur: " + error.message);
+      toast.error(t("common.error") + ": " + error.message);
     } else {
       setResetEmailSent(true);
-      toast.success("Email de réinitialisation envoyé!");
+      toast.success(t("auth.resetSuccess"));
     }
 
     setIsLoading(false);
@@ -92,11 +94,11 @@ const Auth = () => {
         <main className="flex-1 flex items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <CardTitle className="font-display text-2xl">Mot de passe oublié</CardTitle>
+              <CardTitle className="font-display text-2xl">{t("auth.forgotPassword")}</CardTitle>
               <CardDescription>
                 {resetEmailSent 
-                  ? "Un email vous a été envoyé"
-                  : "Entrez votre adresse email pour réinitialiser votre mot de passe"
+                  ? t("auth.emailSent")
+                  : t("auth.enterNewPassword")
                 }
               </CardDescription>
             </CardHeader>
@@ -107,12 +109,12 @@ const Auth = () => {
                     <div className="p-3 rounded-full bg-primary/10 mb-4">
                       <CheckCircle2 className="h-8 w-8 text-primary" />
                     </div>
-                    <h3 className="font-medium text-lg mb-2">Email envoyé!</h3>
+                    <h3 className="font-medium text-lg mb-2">{t("auth.emailSent")}</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-xs">
-                      Vérifiez votre boîte de réception à <strong>{forgotEmail}</strong> et cliquez sur le lien pour réinitialiser votre mot de passe.
+                      {t("auth.checkInbox")} <strong>{forgotEmail}</strong>
                     </p>
                     <p className="text-xs text-muted-foreground mt-4">
-                      Vous ne trouvez pas l'email? Vérifiez votre dossier spam.
+                      {t("auth.checkSpam")}
                     </p>
                   </div>
                   <Button 
@@ -125,20 +127,20 @@ const Auth = () => {
                     }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Retour à la connexion
+                    {t("auth.backToLogin")}
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="forgot-email">Email</Label>
+                    <Label htmlFor="forgot-email">{t("auth.email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="forgot-email"
                         name="email"
                         type="email"
-                        placeholder="vous@exemple.com"
+                        placeholder="you@example.com"
                         className="pl-10"
                         required
                         value={forgotEmail}
@@ -148,7 +150,7 @@ const Auth = () => {
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Envoyer le lien de réinitialisation
+                    {t("auth.sendResetLink")}
                   </Button>
                   <Button 
                     type="button"
@@ -160,7 +162,7 @@ const Auth = () => {
                     }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Retour à la connexion
+                    {t("auth.backToLogin")}
                   </Button>
                 </form>
               )}
@@ -178,29 +180,29 @@ const Auth = () => {
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-2xl">Mon Espace Projet</CardTitle>
+            <CardTitle className="font-display text-2xl">{t("auth.title")}</CardTitle>
             <CardDescription>
-              Connectez-vous pour sauvegarder et retrouver vos projets
+              {t("auth.subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">Inscription</TabsTrigger>
+                <TabsTrigger value="signin">{t("auth.login")}</TabsTrigger>
+                <TabsTrigger value="signup">{t("auth.signup")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin" className="mt-4 space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">{t("auth.email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signin-email"
                         name="email"
                         type="email"
-                        placeholder="vous@exemple.com"
+                        placeholder="you@example.com"
                         className="pl-10"
                         required
                       />
@@ -208,13 +210,13 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="signin-password">Mot de passe</Label>
+                      <Label htmlFor="signin-password">{t("auth.password")}</Label>
                       <button
                         type="button"
                         className="text-xs text-primary hover:underline"
                         onClick={() => setShowForgotPassword(true)}
                       >
-                        Mot de passe oublié?
+                        {t("auth.forgotPassword")}
                       </button>
                     </div>
                     <div className="relative">
@@ -242,7 +244,7 @@ const Auth = () => {
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Se connecter
+                    {t("auth.loginButton")}
                   </Button>
                 </form>
               </TabsContent>
@@ -250,34 +252,34 @@ const Auth = () => {
               <TabsContent value="signup" className="mt-4 space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nom d'affichage</Label>
+                    <Label htmlFor="signup-name">{t("auth.displayName")}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         name="displayName"
                         type="text"
-                        placeholder="Votre nom"
+                        placeholder={t("auth.yourName")}
                         className="pl-10"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t("auth.email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         name="email"
                         type="email"
-                        placeholder="vous@exemple.com"
+                        placeholder="you@example.com"
                         className="pl-10"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="signup-password">{t("auth.password")}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -302,12 +304,12 @@ const Auth = () => {
                       </button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Minimum 6 caractères
+                      {t("auth.minChars")}
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Créer mon compte
+                    {t("auth.signupButton")}
                   </Button>
                 </form>
               </TabsContent>

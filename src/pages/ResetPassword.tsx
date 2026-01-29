@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -12,6 +13,7 @@ import { Loader2, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 
 const ResetPassword = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { updatePassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -72,12 +74,12 @@ const ResetPassword = () => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
+      toast.error(t("auth.passwordMismatch"));
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      toast.error(t("auth.minChars"));
       return;
     }
 
@@ -86,10 +88,10 @@ const ResetPassword = () => {
     const { error } = await updatePassword(password);
 
     if (error) {
-      toast.error("Erreur: " + error.message);
+      toast.error(t("common.error") + ": " + error.message);
     } else {
       setIsSuccess(true);
-      toast.success("Mot de passe mis à jour avec succès!");
+      toast.success(t("auth.passwordUpdated"));
     }
 
     setIsLoading(false);
@@ -104,7 +106,7 @@ const ResetPassword = () => {
           <Card className="w-full max-w-md">
             <CardContent className="py-12 flex flex-col items-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Vérification en cours...</p>
+              <p className="text-muted-foreground">{t("auth.verifying")}</p>
             </CardContent>
           </Card>
         </main>
@@ -124,9 +126,9 @@ const ResetPassword = () => {
               <div className="mx-auto p-3 rounded-full bg-destructive/10 mb-4">
                 <AlertCircle className="h-8 w-8 text-destructive" />
               </div>
-              <CardTitle className="font-display text-2xl">Lien invalide ou expiré</CardTitle>
+              <CardTitle className="font-display text-2xl">{t("auth.invalidLink")}</CardTitle>
               <CardDescription>
-                Ce lien de réinitialisation n'est plus valide. Veuillez en demander un nouveau.
+                {t("auth.invalidLinkDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -134,7 +136,7 @@ const ResetPassword = () => {
                 className="w-full"
                 onClick={() => navigate("/auth")}
               >
-                Retour à la connexion
+                {t("auth.backToLogin")}
               </Button>
             </CardContent>
           </Card>
@@ -155,9 +157,9 @@ const ResetPassword = () => {
               <div className="mx-auto p-3 rounded-full bg-primary/10 mb-4">
                 <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="font-display text-2xl">Mot de passe mis à jour!</CardTitle>
+              <CardTitle className="font-display text-2xl">{t("auth.passwordUpdated")}</CardTitle>
               <CardDescription>
-                Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+                {t("auth.passwordUpdatedDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -165,7 +167,7 @@ const ResetPassword = () => {
                 className="w-full"
                 onClick={() => navigate("/")}
               >
-                Aller à l'accueil
+                {t("auth.goHome")}
               </Button>
             </CardContent>
           </Card>
@@ -181,15 +183,15 @@ const ResetPassword = () => {
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-2xl">Nouveau mot de passe</CardTitle>
+            <CardTitle className="font-display text-2xl">{t("auth.newPassword")}</CardTitle>
             <CardDescription>
-              Entrez votre nouveau mot de passe ci-dessous
+              {t("auth.enterNewPassword")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Nouveau mot de passe</Label>
+                <Label htmlFor="password">{t("auth.newPassword")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -216,11 +218,11 @@ const ResetPassword = () => {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Minimum 6 caractères
+                  {t("auth.minChars")}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -249,7 +251,7 @@ const ResetPassword = () => {
               </div>
               {password && confirmPassword && password !== confirmPassword && (
                 <p className="text-sm text-destructive">
-                  Les mots de passe ne correspondent pas
+                  {t("auth.passwordMismatch")}
                 </p>
               )}
               <Button 
@@ -258,7 +260,7 @@ const ResetPassword = () => {
                 disabled={isLoading || password !== confirmPassword}
               >
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Mettre à jour le mot de passe
+                {t("auth.updatePassword")}
               </Button>
             </form>
           </CardContent>

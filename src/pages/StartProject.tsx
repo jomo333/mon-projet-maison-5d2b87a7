@@ -42,10 +42,10 @@ interface UploadedPlan {
 }
 
 const projectTypes = [
-  { value: "maison-neuve", label: "Maison neuve", icon: Home },
-  { value: "agrandissement", label: "Agrandissement", icon: Home },
-  { value: "garage-detache", label: "Garage détaché", icon: Home },
-  { value: "chalet", label: "Chalet", icon: Home },
+  { value: "maison-neuve", labelKey: "startProject.projectTypes.newHome", icon: Home },
+  { value: "agrandissement", labelKey: "startProject.projectTypes.extension", icon: Home },
+  { value: "garage-detache", labelKey: "startProject.projectTypes.detachedGarage", icon: Home },
+  { value: "chalet", labelKey: "startProject.projectTypes.cottage", icon: Home },
 ];
 
 // Utiliser les options de startingStepOptions pour les choix d'étapes
@@ -647,7 +647,7 @@ const StartProject = () => {
                     }`}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className="font-medium">{type.label}</span>
+                    <span className="font-medium">{t(type.labelKey)}</span>
                   </Label>
                 );
               })}

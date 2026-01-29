@@ -813,6 +813,10 @@ export type Database = {
       }
       user_consents: {
         Row: {
+          cookie_accepted_at: string | null
+          cookie_analytics: boolean | null
+          cookie_functional: boolean | null
+          cookie_marketing: boolean | null
           created_at: string
           id: string
           ip_address: string | null
@@ -825,6 +829,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cookie_accepted_at?: string | null
+          cookie_analytics?: boolean | null
+          cookie_functional?: boolean | null
+          cookie_marketing?: boolean | null
           created_at?: string
           id?: string
           ip_address?: string | null
@@ -837,6 +845,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cookie_accepted_at?: string | null
+          cookie_analytics?: boolean | null
+          cookie_functional?: boolean | null
+          cookie_marketing?: boolean | null
           created_at?: string
           id?: string
           ip_address?: string | null

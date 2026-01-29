@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Cookie, Settings } from "lucide-react";
 import { CookiePreferencesDialog } from "./CookiePreferencesDialog";
-
+import { useAuth } from "@/hooks/useAuth";
+import { saveCookiePreferencesToDB } from "@/hooks/useCookieConsentDB";
 export type CookiePreferences = {
   essential: boolean; // Always true, cannot be disabled
   analytics: boolean;
@@ -48,6 +49,7 @@ export const useCookieConsent = () => {
 };
 
 export const CookieConsentProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [showPreferences, setShowPreferences] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
     essential: true,
@@ -67,11 +69,16 @@ export const CookieConsentProvider = ({ children }: { children: ReactNode }) => 
     setShowPreferences(true);
   };
 
-  const handleSavePreferences = (prefs: CookiePreferences) => {
+  const handleSavePreferences = async (prefs: CookiePreferences) => {
     localStorage.setItem(COOKIE_CONSENT_KEY, "true");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
     setPreferences(prefs);
     setShowPreferences(false);
+    
+    // Save to database if user is logged in
+    if (user?.id) {
+      await saveCookiePreferencesToDB(user.id, prefs);
+    }
   };
 
   return (
@@ -89,6 +96,7 @@ export const CookieConsentProvider = ({ children }: { children: ReactNode }) => 
 
 export const CookieConsent = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -128,14 +136,18 @@ export const CookieConsent = () => {
     }
   };
 
-  const saveConsent = (prefs: CookiePreferences) => {
+  const saveConsent = async (prefs: CookiePreferences) => {
     localStorage.setItem(COOKIE_CONSENT_KEY, "true");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
     setPreferences(prefs);
     applyPreferences(prefs);
     setIsVisible(false);
+    
+    // Save to database if user is logged in
+    if (user?.id) {
+      await saveCookiePreferencesToDB(user.id, prefs);
+    }
   };
-
   const handleAcceptAll = () => {
     const allAccepted: CookiePreferences = {
       essential: true,

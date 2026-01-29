@@ -69,6 +69,10 @@ interface UserConsent {
   privacy_version: string | null;
   terms_accepted_at: string | null;
   privacy_accepted_at: string | null;
+  cookie_analytics: boolean | null;
+  cookie_marketing: boolean | null;
+  cookie_functional: boolean | null;
+  cookie_accepted_at: string | null;
 }
 
 interface UserWithSubscription {
@@ -188,7 +192,7 @@ export default function AdminSubscribers() {
       // Fetch all user consents
       const { data: consents, error: consentsError } = await supabase
         .from("user_consents")
-        .select("user_id, terms_version, privacy_version, terms_accepted_at, privacy_accepted_at");
+        .select("user_id, terms_version, privacy_version, terms_accepted_at, privacy_accepted_at, cookie_analytics, cookie_marketing, cookie_functional, cookie_accepted_at");
 
       if (consentsError) throw consentsError;
 
@@ -208,6 +212,10 @@ export default function AdminSubscribers() {
           privacy_version: consent.privacy_version,
           terms_accepted_at: consent.terms_accepted_at,
           privacy_accepted_at: consent.privacy_accepted_at,
+          cookie_analytics: consent.cookie_analytics,
+          cookie_marketing: consent.cookie_marketing,
+          cookie_functional: consent.cookie_functional,
+          cookie_accepted_at: consent.cookie_accepted_at,
         });
       });
 
@@ -643,6 +651,18 @@ export default function AdminSubscribers() {
                                 <span className="text-xs">
                                   Politique {user.consent?.privacy_version ? `v${user.consent.privacy_version}` : "—"}
                                 </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
+                                <span className="text-xs text-muted-foreground">Cookies:</span>
+                                {user.consent?.cookie_accepted_at ? (
+                                  <div className="flex gap-1">
+                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_analytics ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>A</span>
+                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_marketing ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>M</span>
+                                    <span className={`text-xs px-1 rounded ${user.consent.cookie_functional ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>F</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
                               </div>
                             </div>
                           </TableCell>

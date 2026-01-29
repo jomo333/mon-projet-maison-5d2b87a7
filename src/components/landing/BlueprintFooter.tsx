@@ -14,7 +14,7 @@ const CookieSettingsButton = () => {
       className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
     >
       <Settings className="h-3.5 w-3.5" />
-      {t("footer.manageCookies", "Gérer mes cookies")}
+      {t("footer.manageCookies")}
     </button>
   );
 };
@@ -28,7 +28,7 @@ export function BlueprintFooter() {
       <div className="border-b border-slate-800">
         <div className="container py-6">
           <p className="text-center text-sm text-slate-400">
-            <span className="text-amber-500 font-medium">+500</span> {t("footer.socialProof", "autoconstructeurs nous font confiance au Québec")}
+            <span className="text-amber-500 font-medium">+500</span> {t("footer.socialProof")}
           </p>
         </div>
       </div>
@@ -50,7 +50,7 @@ export function BlueprintFooter() {
 
           {/* Links */}
           <div>
-            <h4 className="font-display font-semibold text-white mb-4">{t("nav.navigation", "Navigation")}</h4>
+            <h4 className="font-display font-semibold text-white mb-4">{t("nav.navigation")}</h4>
             <ul className="space-y-2.5">
               <li>
                 <Link to="/forfaits" className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -101,7 +101,7 @@ export function BlueprintFooter() {
                 <ReportBugDialog 
                   trigger={
                     <button className="text-sm text-slate-400 hover:text-amber-500 transition-colors flex items-center gap-1.5">
-                      {t("footer.reportBug", "Signaler un bug")}
+                      {t("footer.reportBug")}
                     </button>
                   }
                 />
@@ -116,7 +116,7 @@ export function BlueprintFooter() {
             {t("footer.copyright", { year: new Date().getFullYear() })}
           </p>
           <p className="text-xs text-slate-600 text-center md:text-right max-w-md">
-            {t("footer.disclaimer", "Les informations fournies n'ont pas de valeur légale. Consultez toujours un professionnel.")}
+            {t("footer.disclaimer")}
           </p>
         </div>
       </div>

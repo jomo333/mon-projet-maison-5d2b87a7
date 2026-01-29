@@ -731,7 +731,7 @@ const Budget = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="amount">{t("budget.amount")}</Label>
-                    <Input id="amount" type="number" placeholder={t("common.placeholder.amount")} />
+                    <Input id="amount" type="number" placeholder={t("budget.amountPlaceholder")} />
                   </div>
                   <div className="flex items-end">
                     <Button variant="accent" className="w-full">

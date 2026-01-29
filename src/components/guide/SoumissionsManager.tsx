@@ -1260,7 +1260,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input
                     type="number"
-                    placeholder={t("common.placeholder.amount")}
+                    placeholder={t("budget.amountPlaceholder")}
                     className="pl-7"
                     value={supplierInputs[selectingSupplier.tradeId]?.amount || ''}
                     onChange={(e) => setSupplierInputs(prev => ({

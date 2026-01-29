@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -26,8 +27,10 @@ import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { PlanUsageCard } from "@/components/subscription/PlanUsageCard";
+import { getDateLocale } from "@/lib/i18n";
 
 const Dashboard = () => {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const stepFromUrl = searchParams.get("step");
@@ -250,18 +253,18 @@ const Dashboard = () => {
               className="mb-6 gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour aux étapes
+              {t("dashboard.backToSteps")}
             </Button>
 
             {/* Alert for suggested step */}
             {showPreviousStepsAlert && currentStepIndex > 1 && (
               <Alert className="mb-6 border-warning/50 bg-warning/10">
                 <AlertTriangle className="h-4 w-4 text-warning" />
-                <AlertTitle className="text-warning">Rappel important</AlertTitle>
+                <AlertTitle className="text-warning">{t("dashboard.reminder")}</AlertTitle>
                 <AlertDescription className="flex items-start justify-between gap-4">
                   <span>
-                    Assurez-vous que toutes les étapes précédentes ont bien été complétées avant de commencer celle-ci. 
-                    Vous êtes actuellement à l'étape {currentStepIndex} sur {totalSteps}.
+                    {t("dashboard.reminderText")}{" "}
+                    {t("dashboard.stepOf", { current: currentStepIndex, total: totalSteps })}.
                     {currentStepIndex > 1 && (
                       <Button 
                         variant="link" 
@@ -271,7 +274,7 @@ const Dashboard = () => {
                           setShowPreviousStepsAlert(false);
                         }}
                       >
-                        Voir toutes les étapes
+                        {t("dashboard.viewAllSteps")}
                       </Button>
                     )}
                   </span>
@@ -289,7 +292,7 @@ const Dashboard = () => {
 
             <div className="mb-6">
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <span>Étape {currentStepIndex} de {totalSteps}</span>
+                <span>{t("dashboard.stepOf", { current: currentStepIndex, total: totalSteps })}</span>
               </div>
               <Progress value={(currentStepIndex / totalSteps) * 100} className="h-2" />
             </div>
@@ -330,11 +333,11 @@ const Dashboard = () => {
           {!projectFromUrl && user && userProjects.length === 0 && (
             <Alert className="mb-8">
               <FileText className="h-4 w-4" />
-              <AlertTitle>Aucun projet sélectionné</AlertTitle>
+              <AlertTitle>{t("dashboard.noProjectSelected")}</AlertTitle>
               <AlertDescription>
-                Créez un projet pour débloquer les notes et le suivi des étapes.
+                {t("dashboard.createProjectToUnlock")}
                 <Button asChild variant="link" className="px-1 h-auto">
-                  <Link to="/start">Créer un projet</Link>
+                  <Link to="/start">{t("dashboard.createProject")}</Link>
                 </Button>
               </AlertDescription>
             </Alert>
@@ -350,13 +353,13 @@ const Dashboard = () => {
                 <div className="flex flex-wrap items-center gap-4 mt-2 text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Home className="h-4 w-4" />
-                    <span>{projectDisplay.type || "Projet"}</span>
+                    <span>{projectDisplay.type || t("common.project")}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>
                       {projectDisplay.createdAt
-                        ? `Créé le ${projectDisplay.createdAt.toLocaleDateString("fr-CA")}`
+                        ? `${t("common.createdOn")} ${projectDisplay.createdAt.toLocaleDateString(i18n.language === "en" ? "en-CA" : "fr-CA")}`
                         : ""}
                     </span>
                   </div>
@@ -369,39 +372,39 @@ const Dashboard = () => {
                   <DialogTrigger asChild>
                     <Button variant="default" size="sm" className="gap-2 bg-primary hover:bg-primary/90">
                       <HelpCircle className="h-4 w-4" />
-                      Comment utiliser cette page
+                      {t("dashboard.howToUse")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Comment utiliser cette page</DialogTitle>
+                      <DialogTitle>{t("dashboard.howToUse")}</DialogTitle>
                       <DialogDescription>
-                        Voici les fonctionnalités disponibles pour gérer vos étapes de construction.
+                        {t("dashboard.howToUseDesc")}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 sm:grid-cols-2 py-4">
                       <div className="space-y-1 p-3 rounded-lg bg-muted/50">
-                        <h3 className="font-medium text-sm text-primary">📋 Filtrer par phase</h3>
+                        <h3 className="font-medium text-sm text-primary">📋 {t("dashboard.tips.filterPhase")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Utilisez les badges pour afficher uniquement les étapes d'une phase spécifique (pré-construction, gros œuvre, second œuvre, finitions).
+                          {t("dashboard.tips.filterPhaseDesc")}
                         </p>
                       </div>
                       <div className="space-y-1 p-3 rounded-lg bg-muted/50">
-                        <h3 className="font-medium text-sm text-primary">📖 Consulter une étape</h3>
+                        <h3 className="font-medium text-sm text-primary">📖 {t("dashboard.tips.viewStep")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Cliquez sur une carte pour voir les tâches détaillées, conseils pratiques et documents requis pour chaque étape.
+                          {t("dashboard.tips.viewStepDesc")}
                         </p>
                       </div>
                       <div className="space-y-1 p-3 rounded-lg bg-muted/50">
-                        <h3 className="font-medium text-sm text-primary">✅ Marquer comme terminé</h3>
+                        <h3 className="font-medium text-sm text-primary">✅ {t("dashboard.tips.markComplete")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Cochez les étapes complétées directement sur les cartes pour suivre votre progression globale et devancer votre échéancier.
+                          {t("dashboard.tips.markCompleteDesc")}
                         </p>
                       </div>
                       <div className="space-y-1 p-3 rounded-lg bg-muted/50">
-                        <h3 className="font-medium text-sm text-primary">📷 Photos & Documents</h3>
+                        <h3 className="font-medium text-sm text-primary">📷 {t("dashboard.tips.photosDocuments")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Enregistrez vos photos de chantier et documents importants liés au projet pour un meilleur suivi.
+                          {t("dashboard.tips.photosDocumentsDesc")}
                         </p>
                       </div>
                     </div>
@@ -411,7 +414,7 @@ const Dashboard = () => {
                   <Button variant="outline" size="sm" asChild className="gap-2">
                     <Link to={`/galerie?project=${projectFromUrl}`}>
                       <Camera className="h-4 w-4" />
-                      Photos & Documents
+                      {t("dashboard.photosDocuments")}
                     </Link>
                   </Button>
                 )}
@@ -423,7 +426,7 @@ const Dashboard = () => {
           <div className="grid gap-6 md:grid-cols-2 mb-8">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Progression globale</CardTitle>
+                <CardTitle className="text-lg">{t("dashboard.globalProgress")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4">
@@ -431,9 +434,9 @@ const Dashboard = () => {
                   <span className="text-lg font-semibold">{Math.round(overallProgress)}%</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {completedStepsCount} étape{completedStepsCount > 1 ? 's' : ''} terminée{completedStepsCount > 1 ? 's' : ''} sur {scheduledStepsCount}
+                  {completedStepsCount} {t("dashboard.stepsCompleted")} {scheduledStepsCount}
                   {nextStep && (
-                    <> • Prochaine: <span className="font-medium text-foreground">{nextStep.title}</span></>
+                    <> • {t("dashboard.nextStep")}: <span className="font-medium text-foreground">{nextStep.title}</span></>
                   )}
                 </p>
               </CardContent>
@@ -443,7 +446,7 @@ const Dashboard = () => {
           {/* Current step highlight */}
           {nextStep && (
             <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-4">Votre prochaine étape</h2>
+              <h2 className="text-lg font-semibold mb-4">{t("dashboard.nextStep")}</h2>
               <Card 
                 className="cursor-pointer border-primary/50 bg-primary/5 hover:shadow-lg transition-all"
                 onClick={() => setSelectedStepId(nextStep.id)}
@@ -456,7 +459,7 @@ const Dashboard = () => {
                       <p className="text-muted-foreground mt-1">{nextStep.description}</p>
                     </div>
                     <Button className="gap-2">
-                      Continuer
+                      {t("common.next")}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -480,7 +483,7 @@ const Dashboard = () => {
               className="cursor-pointer px-4 py-2"
               onClick={() => setActivePhase(null)}
             >
-              Toutes les phases
+              {t("dashboard.allPhases")}
             </Badge>
             {phases.map((phase) => (
               <Badge 

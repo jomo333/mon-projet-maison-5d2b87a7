@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatCurrency } from "@/lib/i18n";
 
 interface Plan {
   id: string;
@@ -27,39 +29,40 @@ interface Plan {
   display_order: number;
 }
 
-const benefits = [
-  {
-    icon: ClipboardList,
-    title: "Structurer votre projet",
-    description: "Étape par étape, avec une vue claire de ce qui reste à faire.",
-  },
-  {
-    icon: Sparkles,
-    title: "Visualiser budget et échéancier",
-    description: "Gardez le contrôle sur les coûts et le calendrier de votre projet.",
-  },
-  {
-    icon: Home,
-    title: "Centraliser l'information",
-    description: "Documents, soumissions et notes au même endroit.",
-  },
-  {
-    icon: Shield,
-    title: "Identifier les risques",
-    description: "Repérez les éléments souvent oubliés avant qu'ils ne deviennent des problèmes.",
-  },
-  {
-    icon: Heart,
-    title: "Décider au bon moment",
-    description: "Prenez des décisions plus réfléchies, sans pression.",
-  },
-];
-
 export default function Plans() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const benefits = [
+    {
+      icon: ClipboardList,
+      title: t("plans.benefit1Title"),
+      description: t("plans.benefit1Desc"),
+    },
+    {
+      icon: Sparkles,
+      title: t("plans.benefit2Title"),
+      description: t("plans.benefit2Desc"),
+    },
+    {
+      icon: Home,
+      title: t("plans.benefit3Title"),
+      description: t("plans.benefit3Desc"),
+    },
+    {
+      icon: Shield,
+      title: t("plans.benefit4Title"),
+      description: t("plans.benefit4Desc"),
+    },
+    {
+      icon: Heart,
+      title: t("plans.benefit5Title"),
+      description: t("plans.benefit5Desc"),
+    },
+  ];
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -92,14 +95,7 @@ export default function Plans() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("fr-CA", {
-      style: "currency",
-      currency: "CAD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  const formatPrice = (price: number) => formatCurrency(price);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -110,7 +106,7 @@ export default function Plans() {
         <section className="py-16 lg:py-20 bg-gradient-to-b from-muted/50 to-background">
           <div className="container max-w-4xl text-center">
             <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-6">
-              Des forfaits pensés pour mieux gérer votre projet, dès le départ
+              {t("plans.heroTitle")}
             </h1>
           </div>
         </section>
@@ -120,11 +116,10 @@ export default function Plans() {
           <div className="container max-w-3xl">
             <div className="prose prose-lg dark:prose-invert mx-auto text-center">
               <p className="text-muted-foreground leading-relaxed">
-                Construire sa maison en autoconstruction est un projet important, autant sur le plan financier que personnel.
-                Même avec de la motivation et de la bonne volonté, une mauvaise planification ou une gestion imprécise peut rapidement entraîner des conséquences coûteuses : <strong className="text-foreground">retards, décisions prises dans l'urgence, dépassements de budget ou travaux à reprendre</strong>.
+                {t("plans.problemIntro")} <strong className="text-foreground">{t("plans.problemHighlight")}</strong>.
               </p>
               <p className="text-muted-foreground leading-relaxed mt-4">
-                Dans bien des cas, ces problèmes ne viennent pas d'un manque de compétence, mais d'un <strong className="text-foreground">manque de structure, de visibilité et d'outils adaptés</strong> à la réalité de l'autoconstruction.
+                {t("plans.problemConclusion")} <strong className="text-foreground">{t("plans.problemConclusionHighlight")}</strong> {t("plans.problemConclusionEnd")}
               </p>
             </div>
           </div>
@@ -136,10 +131,10 @@ export default function Plans() {
         <section className="py-12 lg:py-16">
           <div className="container">
             <h2 className="text-2xl font-semibold text-center mb-4 text-foreground">
-              Une approche basée sur la clarté et la prévention
+              {t("plans.approachTitle")}
             </h2>
             <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Les forfaits de Monprojetmaison.ca sont conçus pour aider les autoconstructeurs à :
+              {t("plans.approachSubtitle")}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {benefits.map((benefit, index) => {
@@ -163,7 +158,7 @@ export default function Plans() {
               })}
             </div>
             <p className="text-center text-muted-foreground mt-10 max-w-2xl mx-auto text-sm">
-              L'objectif n'est pas de remplacer les professionnels, mais de <strong className="text-foreground">réduire les erreurs évitables</strong> et d'améliorer la coordination tout au long du projet.
+              {t("plans.approachNote")} <strong className="text-foreground">{t("plans.approachNoteHighlight")}</strong> {t("plans.approachNoteEnd")}
             </p>
           </div>
         </section>
@@ -174,11 +169,10 @@ export default function Plans() {
         <section className="py-12 lg:py-16 bg-muted/30">
           <div className="container max-w-3xl text-center">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">
-              Des forfaits évolutifs, selon vos besoins réels
+              {t("plans.evolvingTitle")}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Chaque forfait offre un accès progressif aux outils de planification, de gestion et d'analyse.
-              Vous pouvez commencer simplement, puis évoluer vers des fonctionnalités plus avancées lorsque votre projet gagne en complexité.
+              {t("plans.evolvingDesc")}
             </p>
           </div>
         </section>
@@ -205,7 +199,7 @@ export default function Plans() {
                   >
                     {plan.is_featured && (
                       <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
-                        Le plus populaire
+                        {t("pricing.mostPopular")}
                       </Badge>
                     )}
 
@@ -225,14 +219,14 @@ export default function Plans() {
                           <span className="text-4xl font-bold text-foreground">
                             {formatPrice(plan.price_monthly)}
                           </span>
-                          <span className="text-muted-foreground">/mois</span>
+                          <span className="text-muted-foreground">{t("common.perMonth")}</span>
                         </div>
                         {plan.price_yearly && plan.price_yearly > 0 && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            ou {formatPrice(plan.price_yearly)}/an
+                            {t("common.or")} {formatPrice(plan.price_yearly)}{t("common.perYear")}
                             {plan.price_monthly > 0 && (
                               <span className="text-primary ml-1">
-                                (2 mois gratuits)
+                                {t("common.freeMonths")}
                               </span>
                             )}
                           </p>
@@ -261,7 +255,7 @@ export default function Plans() {
                         className="w-full"
                         size="lg"
                       >
-                        {plan.price_monthly === 0 ? "Commencer gratuitement" : "Choisir ce forfait"}
+                        {plan.price_monthly === 0 ? t("pricing.discovery.cta") : t("plans.choosePlan")}
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     </CardFooter>
@@ -273,10 +267,9 @@ export default function Plans() {
             {/* Reassuring text */}
             <div className="mt-12 text-center max-w-2xl mx-auto">
               <p className="text-muted-foreground">
-                <strong className="text-foreground">Il n'y a pas de « mauvais » forfait.</strong>
+                <strong className="text-foreground">{t("plans.noWrongPlan")}</strong>
                 <br />
-                Vous pouvez commencer gratuitement, explorer la plateforme et passer à un 
-                forfait supérieur lorsque vos besoins évoluent.
+                {t("plans.noWrongPlanDesc")}
               </p>
             </div>
           </div>
@@ -287,9 +280,7 @@ export default function Plans() {
           <div className="container max-w-3xl">
             <div className="bg-background border rounded-lg p-6 text-center">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Monprojetmaison.ca</strong> est conçu exclusivement pour les autoconstructeurs résidentiels.
-                Les outils et analyses servent à structurer le projet et à soutenir la prise de décision, 
-                sans remplacer les professionnels ni les soumissions réelles.
+                <strong className="text-foreground">Monprojetmaison.ca</strong> {t("plans.disclaimer")}
               </p>
             </div>
           </div>

@@ -1,9 +1,10 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { fr, enCA } from 'date-fns/locale';
 
-import fr from '@/locales/fr.json';
-import en from '@/locales/en.json';
+import frTranslations from '@/locales/fr.json';
+import enTranslations from '@/locales/en.json';
 
 const STORAGE_KEY = 'app_lang';
 
@@ -12,8 +13,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { translation: fr },
-      en: { translation: en }
+      fr: { translation: frTranslations },
+      en: { translation: enTranslations }
     },
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'en'],
@@ -29,7 +30,7 @@ i18n
 
 // Helper to get current locale for date-fns
 export const getDateLocale = () => {
-  return i18n.language === 'en' ? 'en-CA' : 'fr';
+  return i18n.language === 'en' ? enCA : fr;
 };
 
 // Helper to format currency

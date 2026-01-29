@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,8 +35,10 @@ import { ScheduleCalendar } from "@/components/schedule/ScheduleCalendar";
 import { ScheduleGantt } from "@/components/schedule/ScheduleGantt";
 import { AlertsPanel } from "@/components/schedule/AlertsPanel";
 import { AddScheduleDialog } from "@/components/schedule/AddScheduleDialog";
+import { getDateLocale } from "@/lib/i18n";
 
 const Schedule = () => {
+  const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -138,7 +140,7 @@ const Schedule = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold hidden md:block">Échéancier</h1>
+              <h1 className="text-xl font-bold hidden md:block">{t("schedule.title")}</h1>
               
               {/* Onglets rapides */}
               <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
@@ -151,7 +153,7 @@ const Schedule = () => {
                   }`}
                 >
                   <TableIcon className="h-4 w-4" />
-                  <span className="hidden sm:inline">Tableau</span>
+                  <span className="hidden sm:inline">{t("schedule.table")}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("calendar")}
@@ -162,7 +164,7 @@ const Schedule = () => {
                   }`}
                 >
                   <CalendarDays className="h-4 w-4" />
-                  <span className="hidden sm:inline">Calendrier</span>
+                  <span className="hidden sm:inline">{t("schedule.calendar")}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("gantt")}
@@ -173,7 +175,7 @@ const Schedule = () => {
                   }`}
                 >
                   <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Gantt</span>
+                  <span className="hidden sm:inline">{t("schedule.gantt")}</span>
                 </button>
               </div>
             </div>
@@ -183,7 +185,7 @@ const Schedule = () => {
               {conflicts.length > 0 && (
                 <Badge variant="destructive" className="flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
-                  {conflicts.length} conflit{conflicts.length > 1 ? "s" : ""}
+                  {conflicts.length} {t("schedule.conflicts").toLowerCase()}{conflicts.length > 1 ? "" : ""}
                 </Badge>
               )}
               {alerts.length > 0 && (
@@ -192,7 +194,7 @@ const Schedule = () => {
                   className="flex items-center gap-1 bg-orange-500/10 text-orange-600 border-orange-500/20"
                 >
                   <Clock className="h-3 w-3" />
-                  {alerts.length} alerte{alerts.length > 1 ? "s" : ""}
+                  {alerts.length} {t("schedule.alerts").toLowerCase()}{alerts.length > 1 ? "" : ""}
                 </Badge>
               )}
 
@@ -201,7 +203,7 @@ const Schedule = () => {
                 onValueChange={(value) => setSearchParams({ project: value })}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Projet" />
+                  <SelectValue placeholder={t("common.project")} />
                 </SelectTrigger>
                 <SelectContent>
                   {projects?.map((project) => (
@@ -231,24 +233,24 @@ const Schedule = () => {
             <div className="flex items-center justify-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Début:</span>
+                <span className="text-muted-foreground">{t("schedule.startDate")}:</span>
                 <span className="font-semibold">
-                  {format(projectDates.start, "d MMMM yyyy", { locale: fr })}
+                  {format(projectDates.start, "d MMMM yyyy", { locale: getDateLocale() })}
                 </span>
               </div>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
                 <Flag className="h-4 w-4 text-green-500" />
-                <span className="text-muted-foreground">Fin:</span>
+                <span className="text-muted-foreground">{t("schedule.endDate")}:</span>
                 <span className="font-semibold">
-                  {format(projectDates.end, "d MMMM yyyy", { locale: fr })}
+                  {format(projectDates.end, "d MMMM yyyy", { locale: getDateLocale() })}
                 </span>
               </div>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Durée totale:</span>
-                <span className="font-semibold">{projectDates.totalDays} jours</span>
+                <span className="text-muted-foreground">{t("schedule.totalDuration")}:</span>
+                <span className="font-semibold">{projectDates.totalDays} {t("schedule.days")}</span>
               </div>
             </div>
           </div>
@@ -260,42 +262,42 @@ const Schedule = () => {
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
           <div className="bg-card rounded-lg border p-3 text-center">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.total")}</p>
           </div>
           <div className="bg-card rounded-lg border p-3 text-center">
             <div className="flex items-center justify-center gap-1">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-2xl font-bold">{stats.pending}</span>
             </div>
-            <p className="text-xs text-muted-foreground">En attente</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.waiting")}</p>
           </div>
           <div className="bg-card rounded-lg border p-3 text-center">
             <div className="flex items-center justify-center gap-1">
               <Loader2 className="h-4 w-4 text-primary" />
               <span className="text-2xl font-bold">{stats.inProgress}</span>
             </div>
-            <p className="text-xs text-muted-foreground">En cours</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.inProgress")}</p>
           </div>
           <div className="bg-card rounded-lg border p-3 text-center">
             <div className="flex items-center justify-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <span className="text-2xl font-bold">{stats.completed}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Terminées</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.completed")}</p>
           </div>
           <div className={`bg-card rounded-lg border p-3 text-center ${conflicts.length > 0 ? "border-destructive" : ""}`}>
             <div className="flex items-center justify-center gap-1">
               <AlertTriangle className={`h-4 w-4 ${conflicts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
               <span className="text-2xl font-bold">{stats.conflicts}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Conflits</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.conflicts")}</p>
           </div>
           <div className={`bg-card rounded-lg border p-3 text-center ${alerts.length > 0 ? "border-orange-500" : ""}`}>
             <div className="flex items-center justify-center gap-1">
               <CalendarDays className={`h-4 w-4 ${alerts.length > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
               <span className="text-2xl font-bold">{stats.alerts}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Alertes</p>
+            <p className="text-xs text-muted-foreground">{t("schedule.alerts")}</p>
           </div>
         </div>
 
@@ -358,7 +360,7 @@ const Schedule = () => {
                 <CardHeader className="py-3">
                   <CardTitle className="text-sm flex items-center gap-2 text-destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    Conflits détectés ({conflicts.length})
+                    {t("schedule.conflictDetected")} ({conflicts.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="py-2">

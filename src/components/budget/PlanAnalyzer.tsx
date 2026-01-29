@@ -412,7 +412,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     if (looksLikePdf) {
       setIsUploading(true);
       try {
-        toast.info("Conversion du PDF en images...");
+        toast.info(t("toasts.convertingPdf"));
 
         const marker = "/task-attachments/";
         const markerIndex = fileUrl.indexOf(marker);
@@ -437,7 +437,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         const { images, pageCount } = await convertPdfToImages(pdfFile, { scale: 1.6, maxPages: 20 });
 
         if (pageCount > 20) {
-          toast.warning(`Le PDF contient ${pageCount} pages. Seules les 20 premières ont été converties.`);
+          toast.warning(t("toasts.pdfTooManyPages", { count: pageCount }));
         }
 
         for (let i = 0; i < images.length; i++) {
@@ -448,7 +448,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         }
 
         setImportedPlanSourceUrls((prev) => [...prev, fileUrl]);
-        toast.success(`PDF converti en ${images.length} image(s) et ajouté à la sélection.`);
+        toast.success(t("toasts.pdfConvertedAdded", { count: images.length }));
       } catch (error) {
         console.error("PDF import error:", error);
         toast.error(t("toasts.pdfError"));
@@ -527,11 +527,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       for (const file of Array.from(files)) {
         // Check if it's a PDF and needs conversion
         if (isPdf(file)) {
-          toast.info("Conversion du PDF en images...");
+          toast.info(t("toasts.convertingPdf"));
           const { images, pageCount } = await convertPdfToImages(file, { scale: 1.6, maxPages: 20 });
           
           if (pageCount > 20) {
-            toast.warning(`Le PDF contient ${pageCount} pages. Seules les 20 premières ont été converties.`);
+            toast.warning(t("toasts.pdfTooManyPages", { count: pageCount }));
           }
           
           // Upload each converted image
@@ -542,7 +542,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             await uploadMutation.mutateAsync(imageFile);
           }
           
-          toast.success(`PDF converti en ${images.length} image(s) avec succès!`);
+          toast.success(t("toasts.pdfConvertedSuccess", { count: images.length }));
         } else {
           const shouldCompress = file.type.startsWith("image/") && file.type !== "image/svg+xml";
           const toUpload = shouldCompress ? await compressImageFileToJpeg(file) : file;
@@ -684,7 +684,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           return { optimized, changed };
         };
 
-        toast.info("Optimisation des plans (compression JPEG) avant analyse...");
+        toast.info(t("toasts.optimizingPlans"));
         const { optimized: planUrlsForAnalysis, changed } = await ensureOptimizedUrls(selectedPlanUrls);
         if (changed) {
           // Update selection so next runs are faster and stable.
@@ -741,7 +741,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             completed: startIdx,
           });
           
-          toast.info(`Analyse du lot ${batchIndex + 1}/${totalBatches} (plans ${startIdx + 1}-${endIdx})...`);
+          toast.info(t("toasts.analyzingBatch", { current: batchIndex + 1, total: totalBatches, start: startIdx + 1, end: endIdx }));
           
           const body = {
             mode: "plan",
@@ -763,7 +763,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           
           if (error) {
             console.error(`Batch ${batchIndex + 1} error:`, error);
-            toast.error(`Erreur sur le lot ${batchIndex + 1}: ${error.message}`);
+            toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message }));
             failedBatches++;
             // Continue avec les autres lots
             continue;
@@ -843,7 +843,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           }
         } else {
           // Plusieurs lots: envoyer tous les résultats au serveur pour fusion
-          toast.info("Fusion des résultats de tous les lots...");
+          toast.info(t("toasts.mergingResults"));
           
           const { data: mergedData, error: mergeError } = await supabase.functions.invoke('analyze-plan', {
             body: {
@@ -874,7 +874,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           }
         }
         
-        toast.success(`Analyse complète de ${totalImages} plan(s) terminée!`);
+        toast.success(t("toasts.analysisCompleteCount", { count: totalImages }));
       }
     } catch (error) {
       console.error("Analysis error:", error);

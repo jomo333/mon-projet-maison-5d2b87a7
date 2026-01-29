@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { getSignedUrl } from "@/hooks/useSignedUrl";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +102,7 @@ export function CategorySubmissionsDialog({
   currentSpent,
   onSave,
 }: CategorySubmissionsDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [budget, setBudget] = useState(currentBudget.toString());
@@ -371,12 +373,12 @@ export function CategorySubmissionsDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['category-docs', projectId, currentTaskId] });
       queryClient.invalidateQueries({ queryKey: ['sub-category-docs-count', projectId, tradeId] });
-      toast.success("Document téléchargé avec succès");
+      toast.success(t("toasts.docUploaded"));
       setUploading(false);
     },
     onError: (error) => {
       console.error("Upload error:", error);
-      toast.error("Erreur lors du téléchargement");
+      toast.error(t("toasts.uploadError"));
       setUploading(false);
     },
   });
@@ -393,7 +395,7 @@ export function CategorySubmissionsDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['category-docs', projectId, currentTaskId] });
       queryClient.invalidateQueries({ queryKey: ['sub-category-docs-count', projectId, tradeId] });
-      toast.success("Document supprimé");
+      toast.success(t("toasts.docDeleted"));
     },
   });
 
@@ -409,7 +411,7 @@ export function CategorySubmissionsDialog({
 
     if (error) {
       console.error("Error deleting supplier:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error(t("toasts.deleteError"));
       return;
     }
 
@@ -446,7 +448,7 @@ export function CategorySubmissionsDialog({
     queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
     queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
     
-    toast.success("Fournisseur supprimé — vous pouvez relancer une analyse");
+    toast.success(t("toasts.supplierDeleted"));
     
     // Stay on the dialog for new analysis (don't close)
   };
@@ -488,7 +490,7 @@ export function CategorySubmissionsDialog({
     setActiveSubCategoryId(id);
     setViewingSubCategory(true);
     
-    toast.success(`Sous-catégorie "${name}" ajoutée${isDIY ? ' (fait par moi-même)' : ''}`);
+    toast.success(isDIY ? t("toasts.subCategoryAddedDiy", { name }) : t("toasts.subCategoryAdded", { name }));
   };
   
   const handleRemoveSubCategory = async (id: string) => {
@@ -528,7 +530,7 @@ export function CategorySubmissionsDialog({
     queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
     queryClient.invalidateQueries({ queryKey: ['sub-category-docs-count', projectId, tradeId] });
     
-    toast.success("Sous-catégorie supprimée");
+    toast.success(t("toasts.subcategoryDeleted"));
   };
   
   const handleSelectSubCategory = (id: string) => {
@@ -613,7 +615,7 @@ export function CategorySubmissionsDialog({
   const analyzeDIYMaterials = async () => {
     const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
     if (!currentSubCat) {
-      toast.error("Veuillez sélectionner une sous-catégorie");
+      toast.error(t("toasts.selectSubcategory"));
       return;
     }
 
@@ -646,11 +648,11 @@ export function CategorySubmissionsDialog({
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 429) {
-          toast.error("Limite de requêtes atteinte, veuillez réessayer plus tard.");
+          toast.error(t("toasts.rateLimit"));
           return;
         }
         if (response.status === 402) {
-          toast.error("Crédits insuffisants. Veuillez recharger votre compte.");
+          toast.error(t("toasts.insufficientCredits"));
           return;
         }
         throw new Error(errorData.error || "Erreur lors de l'analyse");
@@ -698,21 +700,21 @@ export function CategorySubmissionsDialog({
 
       setDiyAnalysisResult(result);
       setShowDIYAnalysis(true);
-      toast.success("Analyse des matériaux terminée");
+      toast.success(t("toasts.diyAnalysisDone"));
       
       // Try to extract estimated cost from analysis
       const costMatch = result.match(/\*\*TOTAL ESTIMÉ\*\*[^$]*\*?\*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i);
       if (costMatch) {
         const estimatedCost = parseFloat(costMatch[1].replace(/[\s,]/g, '')) || 0;
         if (estimatedCost > 0) {
-          toast.info(`Coût estimé des matériaux: ${Math.round(estimatedCost).toLocaleString('fr-CA')} $`, {
+          toast.info(t("toasts.estimatedMaterialCost", { amount: Math.round(estimatedCost).toLocaleString('fr-CA') }), {
             duration: 5000,
           });
         }
       }
     } catch (error) {
       console.error("DIY Analysis error:", error);
-      toast.error(error instanceof Error ? error.message : "Erreur d'analyse DIY");
+      toast.error(error instanceof Error ? error.message : t("toasts.diyAnalysisError"));
     } finally {
       setAnalyzingDIY(false);
     }
@@ -721,7 +723,7 @@ export function CategorySubmissionsDialog({
   // AI Analysis
   const analyzeDocuments = async () => {
     if (documents.length === 0) {
-      toast.error("Veuillez d'abord télécharger des soumissions");
+      toast.error(t("toasts.uploadPlansFirst"));
       return;
     }
 
@@ -794,7 +796,7 @@ export function CategorySubmissionsDialog({
       }
 
       setAnalysisResult(result);
-      toast.success("Analyse terminée");
+      toast.success(t("toasts.analysisDone"));
       
       // Try to extract contacts from analysis
       const contacts = parseExtractedContacts(result);
@@ -802,11 +804,11 @@ export function CategorySubmissionsDialog({
       
       // Don't auto-select, let user choose
       if (contacts.length > 0) {
-        toast.info(`${contacts.length} fournisseur(s) détecté(s). Sélectionnez votre choix ci-dessous.`);
+        toast.info(t("toasts.suppliersDetected", { count: contacts.length }));
       }
     } catch (error) {
       console.error("Analysis error:", error);
-      toast.error(error instanceof Error ? error.message : "Erreur d'analyse");
+      toast.error(error instanceof Error ? error.message : t("toasts.analysisError"));
     } finally {
       setAnalyzing(false);
     }
@@ -1388,7 +1390,7 @@ export function CategorySubmissionsDialog({
                           queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                           queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
                           
-                          toast.success("Coût des matériaux enregistré");
+                          toast.success(t("toasts.materialsCostSaved"));
                         }}
                       >
                         <Save className="h-4 w-4 mr-1" />

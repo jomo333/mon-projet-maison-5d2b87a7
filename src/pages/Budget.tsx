@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
+import { formatCurrency } from "@/lib/i18n";
 import { groupItemsByTask } from "@/lib/budgetTaskMapping";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
 import {
@@ -105,7 +106,10 @@ const defaultCategories: BudgetCategory[] = libDefaultCategories.map(cat => ({
   spent: 0,
 }));
 
+import type { Json } from "@/integrations/supabase/types";
+
 const Budget = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -513,10 +517,10 @@ const Budget = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
-                Budget du projet
+                {t("budget.pageTitle")}
               </h1>
               <p className="text-muted-foreground mt-1">
-                Gérez et suivez vos dépenses de construction
+                {t("budget.pageSubtitle")}
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -528,7 +532,7 @@ const Budget = () => {
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  {resetBudgetMutation.isPending ? "Réinitialisation..." : "Réinitialiser"}
+                  {resetBudgetMutation.isPending ? t("budget.resetting") : t("budget.resetBudget")}
                 </Button>
               )}
               {selectedProjectId && (
@@ -538,12 +542,12 @@ const Budget = () => {
                   disabled={saveBudgetMutation.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {saveBudgetMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                  {saveBudgetMutation.isPending ? t("budget.saving") : t("budget.saveBudget")}
                 </Button>
               )}
               <Button variant="accent" onClick={() => setShowAddExpense(!showAddExpense)}>
                 <Plus className="h-4 w-4" />
-                Ajouter une dépense
+                {t("budget.addExpense")}
               </Button>
             </div>
           </div>
@@ -554,7 +558,7 @@ const Budget = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <FolderOpen className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">Projet associé</CardTitle>
+                  <CardTitle className="text-lg">{t("budget.associatedProject")}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -571,7 +575,7 @@ const Budget = () => {
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un projet" />
+                          <SelectValue placeholder={t("budget.selectProject")} />
                         </SelectTrigger>
                         <SelectContent>
                           {projects.map((project) => (
@@ -584,13 +588,13 @@ const Budget = () => {
                     </div>
                     {selectedProjectId && (
                       <p className="text-sm text-muted-foreground">
-                        Le budget sera automatiquement sauvegardé pour ce projet
+                        {t("budget.autoSaveNote")}
                       </p>
                     )}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">
-                    Vous n'avez pas encore de projet. <a href="/demarrer" className="text-primary underline">Créez-en un</a> pour sauvegarder votre budget.
+                    {t("budget.noProjectsYet")} <a href="/demarrer" className="text-primary underline">{t("budget.createProjectLink")}</a> {t("budget.toSaveBudget")}
                   </p>
                 )}
               </CardContent>
@@ -602,7 +606,7 @@ const Budget = () => {
               <CardContent className="py-4">
                 <p className="text-sm text-warning-foreground flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
-                  <a href="/auth" className="text-primary underline">Connectez-vous</a> pour sauvegarder votre budget dans votre projet.
+                  <a href="/auth" className="text-primary underline">{t("nav.login")}</a> {t("budget.loginToSave")}
                 </p>
               </CardContent>
             </Card>
@@ -641,7 +645,7 @@ const Budget = () => {
             <Card className="animate-fade-in">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Budget estimé
+                  {t("budget.estimatedBudget")}
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -649,14 +653,14 @@ const Budget = () => {
                 {hasAnalyzedBudget ? (
                   <>
                     <div className="text-xl font-bold font-display">
-                      {Math.round(displayBudget * 0.90).toLocaleString()} $ à {Math.round(displayBudget * 1.10).toLocaleString()} $
+                      {formatCurrency(Math.round(displayBudget * 0.90))} à {formatCurrency(Math.round(displayBudget * 1.10))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Fourchette ±10%</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("budget.budgetRange")}</p>
                   </>
                 ) : (
                   <>
-                    <div className="text-2xl font-bold font-display text-muted-foreground">0 $</div>
-                    <p className="text-xs text-muted-foreground mt-1">Aucune analyse effectuée</p>
+                    <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{t("budget.noAnalysis")}</p>
                   </>
                 )}
               </CardContent>
@@ -665,17 +669,17 @@ const Budget = () => {
             <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Dépensé
+                  {t("budget.spent")}
                 </CardTitle>
                 <TrendingDown className="h-4 w-4 text-accent" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-display text-accent">
-                  {totalSpent.toLocaleString()} $
+                  {formatCurrency(totalSpent)}
                 </div>
                 <Progress value={percentUsed} className="mt-2 h-2" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {percentUsed.toFixed(1)}% du budget utilisé
+                  {percentUsed.toFixed(1)}% {t("budget.percentUsed")}
                 </p>
               </CardContent>
             </Card>
@@ -683,17 +687,17 @@ const Budget = () => {
             <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Restant estimé
+                  {t("budget.estimatedRemaining")}
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
                 {hasAnalyzedBudget ? (
                   <div className="text-xl font-bold font-display text-success">
-                    {Math.round(displayRemaining * 0.90).toLocaleString()} $ à {Math.round(displayRemaining * 1.10).toLocaleString()} $
+                    {formatCurrency(Math.round(displayRemaining * 0.90))} à {formatCurrency(Math.round(displayRemaining * 1.10))}
                   </div>
                 ) : (
-                  <div className="text-2xl font-bold font-display text-muted-foreground">0 $</div>
+                  <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
                 )}
               </CardContent>
             </Card>
@@ -703,13 +707,13 @@ const Budget = () => {
           {showAddExpense && (
             <Card className="animate-scale-in border-accent/50">
               <CardHeader>
-                <CardTitle className="font-display">Nouvelle dépense</CardTitle>
-                <CardDescription>Enregistrez une nouvelle dépense pour votre projet</CardDescription>
+                <CardTitle className="font-display">{t("budget.newExpense")}</CardTitle>
+                <CardDescription>{t("budget.newExpenseDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category">Catégorie</Label>
+                    <Label htmlFor="category">{t("budget.category")}</Label>
                     <select
                       id="category"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -722,16 +726,16 @@ const Budget = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Input id="description" placeholder="Ex: Béton pour fondation" />
+                    <Label htmlFor="description">{t("budget.description")}</Label>
+                    <Input id="description" placeholder={t("budget.descriptionPlaceholder")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Montant ($)</Label>
+                    <Label htmlFor="amount">{t("budget.amount")}</Label>
                     <Input id="amount" type="number" placeholder="0.00" />
                   </div>
                   <div className="flex items-end">
                     <Button variant="accent" className="w-full">
-                      Ajouter
+                      {t("common.add")}
                     </Button>
                   </div>
                 </div>
@@ -743,8 +747,8 @@ const Budget = () => {
             {/* Pie Chart */}
             <Card className="animate-fade-in" style={{ animationDelay: "300ms" }}>
               <CardHeader>
-                <CardTitle className="font-display">Répartition du budget</CardTitle>
-                <CardDescription>Vue d'ensemble par catégorie</CardDescription>
+                <CardTitle className="font-display">{t("budget.distribution")}</CardTitle>
+                <CardDescription>{t("budget.distributionDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex flex-col items-center gap-6">

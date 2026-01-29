@@ -204,7 +204,7 @@ export default function Plans() {
                     }`}
                   >
                     {plan.is_featured && (
-                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
+                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
                         Le plus populaire
                       </Badge>
                     )}

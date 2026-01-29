@@ -45,6 +45,14 @@
       "amount": "0.00"
     }
   },
+  "stepPhotoUpload": {
+    "title": "Photos de suivi - {{stepTitle}}",
+    "addPhotos": "Ajouter des photos",
+    "uploading": "Téléversement...",
+    "noPhotos": "Aucune photo pour cette étape",
+    "photo": "Photo",
+    "enlargedPhoto": "Photo agrandie"
+  },
   "stepCard": {
     "step": "Étape {{number}}",
     "completed": "Terminé",

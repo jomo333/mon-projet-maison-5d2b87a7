@@ -45,6 +45,14 @@
       "amount": "0.00"
     }
   },
+  "stepPhotoUpload": {
+    "title": "Progress Photos - {{stepTitle}}",
+    "addPhotos": "Add photos",
+    "uploading": "Uploading...",
+    "noPhotos": "No photos for this step",
+    "photo": "Photo",
+    "enlargedPhoto": "Enlarged photo"
+  },
   "stepCard": {
     "step": "Step {{number}}",
     "completed": "Completed",

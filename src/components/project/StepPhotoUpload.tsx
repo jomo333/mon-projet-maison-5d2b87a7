@@ -172,7 +172,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Camera className="h-4 w-4" />
-            Photos de suivi - {stepTitle}
+            {t("stepPhotoUpload.title", { stepTitle })}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -195,12 +195,12 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Téléversement...
+                  {t("stepPhotoUpload.uploading")}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4" />
-                  Ajouter des photos
+                  {t("stepPhotoUpload.addPhotos")}
                 </>
               )}
             </Button>
@@ -214,7 +214,7 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
           ) : photos.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <ImageIcon className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Aucune photo pour cette étape</p>
+              <p className="text-sm">{t("stepPhotoUpload.noPhotos")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
@@ -252,12 +252,12 @@ export const StepPhotoUpload = ({ projectId, stepId, stepTitle }: StepPhotoUploa
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Photo</DialogTitle>
+            <DialogTitle>{t("stepPhotoUpload.photo")}</DialogTitle>
           </DialogHeader>
           {selectedPhoto && (
             <img
               src={selectedPhoto}
-              alt="Photo agrandie"
+              alt={t("stepPhotoUpload.enlargedPhoto")}
               className="w-full h-auto rounded-lg"
             />
           )}

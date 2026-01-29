@@ -295,8 +295,9 @@ const ProjectGallery = () => {
       const urlMap = new Map<string, string>();
       await Promise.all(
         photos.map(async (photo) => {
-          const signedUrl = await getSignedUrlFromPublicUrl(photo.file_url);
-          if (signedUrl && signedUrl !== photo.file_url) {
+          // file_url is stored as a path, not a full URL - use getSignedUrl directly
+          const signedUrl = await getSignedUrl("project-photos", photo.file_url);
+          if (signedUrl) {
             urlMap.set(photo.id, signedUrl);
           }
         })

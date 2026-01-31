@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { tradeTypes } from "@/data/tradeTypes";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,7 @@ interface SupplierFormData {
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [uploadingTrade, setUploadingTrade] = useState<string | null>(null);
   const [supplierInputs, setSupplierInputs] = useState<Record<string, SupplierFormData>>({});
@@ -361,13 +363,18 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
     }));
 
     try {
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Session invalide. Veuillez vous reconnecter.");
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-soumissions`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             tradeName,

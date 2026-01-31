@@ -112,7 +112,7 @@ export function CategorySubmissionsDialog({
   };
   
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [budget, setBudget] = useState(currentBudget.toString());
   const [spent, setSpent] = useState(currentSpent.toString());
   const [uploading, setUploading] = useState(false);
@@ -739,13 +739,18 @@ export function CategorySubmissionsDialog({
     setAnalysisResult("");
 
     try {
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Session invalide. Veuillez vous reconnecter.");
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-soumissions`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             tradeName: categoryName,

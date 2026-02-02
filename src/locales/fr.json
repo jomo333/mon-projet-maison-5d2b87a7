@@ -1093,7 +1093,17 @@
       "exteriorAfterElectrical": "Le revêtement extérieur peut commencer après l'électricité rough-in"
     },
     "alertsTitle": "Rappels importants",
-    "alertsModalDescription": "Ces rappels vous aident à coordonner vos sous-traitants. Contactez-les dès que possible pour confirmer les dates."
+    "alertsModalDescription": "Ces rappels vous aident à coordonner vos sous-traitants. Contactez-les dès que possible pour confirmer les dates.",
+    "remindLater": "Me rappeler plus tard",
+    "remindMeIn": "Me rappeler dans...",
+    "reminderOptions": {
+      "1hour": "1 heure",
+      "3hours": "3 heures",
+      "tomorrow": "Demain",
+      "2days": "2 jours",
+      "1week": "1 semaine",
+      "2weeks": "2 semaines"
+    }
   },
   "guide": {
     "title": "Guide de construction",

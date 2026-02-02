@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { format, parseISO, isPast, isToday } from "date-fns";
+import { format, parseISO, isPast, isToday, addHours, addDays, addWeeks } from "date-fns";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -11,7 +10,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Phone, Factory, Ruler, PhoneCall, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Bell, Phone, Factory, Ruler, PhoneCall, AlertTriangle, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
@@ -47,6 +55,20 @@ const alertTypeConfig: Record<
   },
 };
 
+type ReminderOption = {
+  labelKey: string;
+  getValue: () => number; // Returns timestamp
+};
+
+const reminderOptions: ReminderOption[] = [
+  { labelKey: "1hour", getValue: () => addHours(new Date(), 1).getTime() },
+  { labelKey: "3hours", getValue: () => addHours(new Date(), 3).getTime() },
+  { labelKey: "tomorrow", getValue: () => addDays(new Date(), 1).getTime() },
+  { labelKey: "2days", getValue: () => addDays(new Date(), 2).getTime() },
+  { labelKey: "1week", getValue: () => addWeeks(new Date(), 1).getTime() },
+  { labelKey: "2weeks", getValue: () => addWeeks(new Date(), 2).getTime() },
+];
+
 export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertModalProps) => {
   const { t } = useTranslation();
   const dateLocale = getDateLocale();
@@ -61,10 +83,19 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   // Check if we should show the modal
   useEffect(() => {
     if (activeAlerts.length > 0 && projectId) {
-      // Check localStorage to see if we've shown this modal recently
+      // Check localStorage to see if we've snoozed this alert
+      const snoozeKey = `alert_modal_snooze_${projectId}`;
+      const snoozeUntil = localStorage.getItem(snoozeKey);
+      const now = Date.now();
+      
+      // If snoozed and snooze time hasn't passed, don't show
+      if (snoozeUntil && now < parseInt(snoozeUntil)) {
+        return;
+      }
+      
+      // Check if modal was recently shown (5 minute default)
       const lastShownKey = `alert_modal_shown_${projectId}`;
       const lastShown = localStorage.getItem(lastShownKey);
-      const now = Date.now();
       
       // Show modal if not shown in the last 5 minutes
       if (!lastShown || now - parseInt(lastShown) > 5 * 60 * 1000) {
@@ -94,6 +125,14 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
     const newDismissed = new Set(dismissedAlerts);
     activeAlerts.forEach((alert) => newDismissed.add(alert.id));
     setDismissedAlerts(newDismissed);
+    setIsOpen(false);
+  };
+
+  const handleRemindLater = (reminderTimestamp: number) => {
+    if (projectId) {
+      const snoozeKey = `alert_modal_snooze_${projectId}`;
+      localStorage.setItem(snoozeKey, reminderTimestamp.toString());
+    }
     setIsOpen(false);
   };
 
@@ -170,13 +209,39 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
           })}
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogAction
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          {/* Remind me later dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto gap-2 border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900/50">
+                <Clock className="h-4 w-4" />
+                {t("schedule.remindLater")}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>{t("schedule.remindMeIn")}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {reminderOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.labelKey}
+                  onClick={() => handleRemindLater(option.getValue())}
+                  className="cursor-pointer"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  {t(`schedule.reminderOptions.${option.labelKey}`)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Got it button */}
+          <Button
             onClick={handleClose}
-            className="bg-amber-600 hover:bg-amber-700 text-white w-full"
+            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
           >
             {t("common.understood")}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

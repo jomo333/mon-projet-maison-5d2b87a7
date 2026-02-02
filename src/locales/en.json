@@ -1093,7 +1093,17 @@
       "exteriorAfterElectrical": "Exterior cladding can begin after electrical rough-in"
     },
     "alertsTitle": "Important Reminders",
-    "alertsModalDescription": "These reminders help you coordinate your subcontractors. Contact them as soon as possible to confirm dates."
+    "alertsModalDescription": "These reminders help you coordinate your subcontractors. Contact them as soon as possible to confirm dates.",
+    "remindLater": "Remind me later",
+    "remindMeIn": "Remind me in...",
+    "reminderOptions": {
+      "1hour": "1 hour",
+      "3hours": "3 hours",
+      "tomorrow": "Tomorrow",
+      "2days": "2 days",
+      "1week": "1 week",
+      "2weeks": "2 weeks"
+    }
   },
   "guide": {
     "title": "Construction Guide",

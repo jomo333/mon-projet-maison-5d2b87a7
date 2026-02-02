@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
@@ -15,6 +15,7 @@ import { Loader2, Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle2 } from 
 const Auth = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp, resetPassword, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -23,9 +24,12 @@ const Auth = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
 
+  // Get the return URL from location state (set by AuthGuard)
+  const returnUrl = (location.state as { from?: string })?.from || "/";
+
   // Redirect if already logged in
   if (user) {
-    navigate("/");
+    navigate(returnUrl);
     return null;
   }
 
@@ -43,7 +47,7 @@ const Auth = () => {
       toast.error(t("auth.loginError") + ": " + error.message);
     } else {
       toast.success(t("auth.loginSuccess"));
-      navigate("/");
+      navigate(returnUrl);
     }
     
     setIsLoading(false);
@@ -64,7 +68,7 @@ const Auth = () => {
       toast.error(t("auth.signupError") + ": " + error.message);
     } else {
       toast.success(t("auth.signupSuccess"));
-      navigate("/");
+      navigate(returnUrl);
     }
     
     setIsLoading(false);

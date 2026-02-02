@@ -272,7 +272,8 @@
     "lockError": "Unable to modify lock",
     "datesReset": "🔄 Dates reset",
     "datesResetDescription": "Dates have been automatically recalculated according to the schedule.",
-    "resetError": "Unable to reset dates"
+    "resetError": "Unable to reset dates",
+    "alertsForStep": "Alerts for this step"
   },
   "footer": {
     "description": "Your intelligent assistant for residential construction in Quebec. Plan, budget, and build with confidence.",

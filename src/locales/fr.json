@@ -272,7 +272,8 @@
     "lockError": "Impossible de modifier le verrouillage",
     "datesReset": "🔄 Dates réinitialisées",
     "datesResetDescription": "Les dates ont été recalculées automatiquement selon l'échéancier.",
-    "resetError": "Impossible de réinitialiser les dates"
+    "resetError": "Impossible de réinitialiser les dates",
+    "alertsForStep": "Alertes pour cette étape"
   },
   "footer": {
     "description": "Votre assistant intelligent pour la construction résidentielle au Québec. Planifiez, budgétisez et construisez en toute confiance.",

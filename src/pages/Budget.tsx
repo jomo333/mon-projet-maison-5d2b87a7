@@ -199,7 +199,7 @@ const Budget = () => {
       
       if (error) throw error;
       
-      // Parse and map by category trade ID
+      // Parse and map by category name (normalized)
       const map: Record<string, { supplierName?: string; supplierPhone?: string; contactPerson?: string; contactPersonPhone?: string; amount?: string }> = {};
       for (const row of data || []) {
         if (!row.notes) continue;
@@ -207,8 +207,12 @@ const Budget = () => {
           const notes = JSON.parse(row.notes);
           // Only include if supplier is selected (has supplierName)
           if (notes.supplierName) {
-            // Extract trade ID from task_id (e.g., "soumission-electricite" -> "electricite")
-            const tradeId = row.task_id.replace("soumission-", "").split("-sub-")[0];
+            // Extract trade ID from task_id (e.g., "soumission-chauffage-et-ventilation" -> "chauffage-et-ventilation")
+            // Exclude sub-categories for now (main category only)
+            const taskId = row.task_id;
+            if (taskId.includes("-sub-")) continue; // Skip sub-categories
+            
+            const tradeId = taskId.replace("soumission-", "");
             map[tradeId] = {
               supplierName: notes.supplierName,
               supplierPhone: notes.supplierPhone,
@@ -226,25 +230,32 @@ const Budget = () => {
     enabled: !!selectedProjectId,
   });
 
-  // Map category names to trade IDs for supplier lookup
-  const categoryToTradeId: Record<string, string> = {
-    "Excavation": "excavation",
-    "Fondation": "fondation",
-    "Plomberie sous dalle": "plomberie-sous-dalle",
-    "Coulée de dalle du sous-sol": "dalle-sous-sol",
-    "Structure et charpente": "charpente",
-    "Toiture": "toiture",
-    "Fenêtres et portes extérieures": "fenetre",
-    "Revêtement extérieur": "exterieur",
-    "Isolation et pare-vapeur": "isolation",
-    "Murs de division": "murs-division",
-    "Plomberie": "plomberie",
-    "Électricité": "electricite",
-    "Chauffage et ventilation": "hvac",
-    "Gypse et peinture": "gypse",
-    "Revêtements de sol": "plancher",
-    "Travaux ébénisterie": "armoires",
-    "Finitions intérieures": "finitions",
+  // Helper function to convert category name to trade ID (same logic as CategorySubmissionsDialog)
+  const getCategoryTradeId = (categoryName: string): string => {
+    // Use the same mapping as CategorySubmissionsDialog
+    const categoryToTradeIdMap: Record<string, string> = {
+      "Excavation et fondation": "excavation",
+      "Structure et charpente": "charpente",
+      "Toiture": "toiture",
+      "Fenêtres et portes": "fenetre",
+      "Isolation et pare-vapeur": "isolation",
+      "Plomberie": "plomberie",
+      "Électricité": "electricite",
+      "Chauffage et ventilation (HVAC)": "hvac",
+      "Revêtement extérieur": "exterieur",
+      "Gypse et peinture": "gypse",
+      "Revêtements de sol": "plancher",
+      "Travaux ébénisterie (cuisine/SDB)": "armoires",
+      "Finitions intérieures": "finitions",
+    };
+    
+    // First check if there's a direct mapping
+    if (categoryToTradeIdMap[categoryName]) {
+      return categoryToTradeIdMap[categoryName];
+    }
+    
+    // Fallback: normalize the category name (same as CategorySubmissionsDialog)
+    return categoryName.toLowerCase().replace(/\s+/g, "-");
   };
 
   // Load saved budget when project changes
@@ -1097,7 +1108,7 @@ const Budget = () => {
 
                               {/* Supplier info (if confirmed) */}
                               {(() => {
-                                const tradeId = categoryToTradeId[category.name];
+                                const tradeId = getCategoryTradeId(category.name);
                                 const supplier = tradeId ? supplierInfoMap[tradeId] : null;
                                 if (!supplier) return null;
                                 

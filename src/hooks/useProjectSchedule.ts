@@ -96,6 +96,27 @@ const soumissionTradeToStepId: Record<string, string> = {
 export const useProjectSchedule = (projectId: string | null) => {
   const queryClient = useQueryClient();
 
+  // Track schedules we already auto-dismissed to avoid repeated DB updates
+  const autoDismissedSupplierAlertsRef = useRef<Set<string>>(new Set());
+
+  const dismissSupplierCallAlertsForSchedule = async (scheduleId: string) => {
+    if (!projectId) return;
+    const { error } = await supabase
+      .from("schedule_alerts")
+      .update({ is_dismissed: true })
+      .eq("project_id", projectId)
+      .eq("schedule_id", scheduleId)
+      .eq("alert_type", "supplier_call")
+      .eq("is_dismissed", false);
+
+    if (error) {
+      console.error("Failed to dismiss supplier_call alerts:", error);
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
+  };
+
   const schedulesQuery = useQuery({
     queryKey: ["project-schedules", projectId],
     queryFn: async () => {
@@ -111,6 +132,23 @@ export const useProjectSchedule = (projectId: string | null) => {
     },
     enabled: !!projectId,
   });
+
+  // If a step is already date-locked, supplier_call reminders are no longer relevant.
+  // Auto-dismiss any existing supplier_call alerts for locked schedules.
+  useEffect(() => {
+    if (!projectId) {
+      autoDismissedSupplierAlertsRef.current = new Set();
+      return;
+    }
+
+    const schedules = (schedulesQuery.data || []) as ScheduleItem[];
+    for (const s of schedules) {
+      if (!s.is_manual_date) continue;
+      if (autoDismissedSupplierAlertsRef.current.has(s.id)) continue;
+      autoDismissedSupplierAlertsRef.current.add(s.id);
+      void dismissSupplierCallAlertsForSchedule(s.id);
+    }
+  }, [projectId, schedulesQuery.data]);
 
   // Auto-réparation (1 seule fois) si des étapes "terminées" ont des dates incohérentes
   const hasAutoRepairedRef = useRef(false);
@@ -261,8 +299,8 @@ export const useProjectSchedule = (projectId: string | null) => {
     const startDate = parseISO(schedule.start_date);
     const alerts: Omit<ScheduleAlert, 'id' | 'created_at'>[] = [];
 
-    // Alerte appel fournisseur
-    if (schedule.supplier_schedule_lead_days > 0) {
+    // Alerte appel fournisseur (inutile une fois la date verrouillée)
+    if (!schedule.is_manual_date && schedule.supplier_schedule_lead_days > 0) {
       const alertDate = subBusinessDays(startDate, schedule.supplier_schedule_lead_days);
       const formattedStartDate = format(startDate, "d MMMM yyyy", { locale: fr });
       alerts.push({
@@ -379,6 +417,12 @@ export const useProjectSchedule = (projectId: string | null) => {
       // Find the corresponding schedule
       const schedule = schedules.find(s => s.step_id === stepId);
       if (!schedule || !schedule.start_date) {
+        continue;
+      }
+
+      // If the user has locked this step date, we consider the supplier confirmed.
+      // Do not generate supplier_call alerts for locked steps.
+      if (schedule.is_manual_date) {
         continue;
       }
 
@@ -1544,6 +1588,12 @@ export const useProjectSchedule = (projectId: string | null) => {
       scheduleId,
       safeUpdates
     );
+
+    // If user locks the date, hide supplier_call alerts for that step.
+    if (safeUpdates.is_manual_date === true) {
+      await dismissSupplierCallAlertsForSchedule(scheduleId);
+    }
+
     return result;
   };
 

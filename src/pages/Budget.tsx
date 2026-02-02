@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User } from "lucide-react";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
@@ -184,6 +184,68 @@ const Budget = () => {
     },
     enabled: !!selectedProjectId,
   });
+
+  // Fetch supplier info for all categories (from task_dates where suppliers are saved)
+  const { data: supplierInfoMap = {} } = useQuery({
+    queryKey: ["category-suppliers", selectedProjectId],
+    queryFn: async () => {
+      if (!selectedProjectId) return {};
+      const { data, error } = await supabase
+        .from("task_dates")
+        .select("task_id, notes")
+        .eq("project_id", selectedProjectId)
+        .eq("step_id", "soumissions")
+        .like("task_id", "soumission-%");
+      
+      if (error) throw error;
+      
+      // Parse and map by category trade ID
+      const map: Record<string, { supplierName?: string; supplierPhone?: string; contactPerson?: string; contactPersonPhone?: string; amount?: string }> = {};
+      for (const row of data || []) {
+        if (!row.notes) continue;
+        try {
+          const notes = JSON.parse(row.notes);
+          // Only include if supplier is selected (has supplierName)
+          if (notes.supplierName) {
+            // Extract trade ID from task_id (e.g., "soumission-electricite" -> "electricite")
+            const tradeId = row.task_id.replace("soumission-", "").split("-sub-")[0];
+            map[tradeId] = {
+              supplierName: notes.supplierName,
+              supplierPhone: notes.supplierPhone,
+              contactPerson: notes.contactPerson,
+              contactPersonPhone: notes.contactPersonPhone,
+              amount: notes.amount,
+            };
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      return map;
+    },
+    enabled: !!selectedProjectId,
+  });
+
+  // Map category names to trade IDs for supplier lookup
+  const categoryToTradeId: Record<string, string> = {
+    "Excavation": "excavation",
+    "Fondation": "fondation",
+    "Plomberie sous dalle": "plomberie-sous-dalle",
+    "Coulée de dalle du sous-sol": "dalle-sous-sol",
+    "Structure et charpente": "charpente",
+    "Toiture": "toiture",
+    "Fenêtres et portes extérieures": "fenetre",
+    "Revêtement extérieur": "exterieur",
+    "Isolation et pare-vapeur": "isolation",
+    "Murs de division": "murs-division",
+    "Plomberie": "plomberie",
+    "Électricité": "electricite",
+    "Chauffage et ventilation": "hvac",
+    "Gypse et peinture": "gypse",
+    "Revêtements de sol": "plancher",
+    "Travaux ébénisterie": "armoires",
+    "Finitions intérieures": "finitions",
+  };
 
   // Load saved budget when project changes
   useEffect(() => {
@@ -1031,6 +1093,50 @@ const Budget = () => {
                                      ))}
                                    </div>
                                  );
+                              })()}
+
+                              {/* Supplier info (if confirmed) */}
+                              {(() => {
+                                const tradeId = categoryToTradeId[category.name];
+                                const supplier = tradeId ? supplierInfoMap[tradeId] : null;
+                                if (!supplier) return null;
+                                
+                                return (
+                                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                                      <CheckCircle2 className="h-4 w-4" />
+                                      {t("budget.confirmedSupplier")}
+                                    </div>
+                                    <div className="grid gap-2 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-medium">{supplier.supplierName}</span>
+                                      </div>
+                                      {supplier.supplierPhone && (
+                                        <div className="flex items-center gap-2">
+                                          <Phone className="h-4 w-4 text-muted-foreground" />
+                                          <a href={`tel:${supplier.supplierPhone}`} className="text-primary hover:underline">
+                                            {supplier.supplierPhone}
+                                          </a>
+                                        </div>
+                                      )}
+                                      {supplier.contactPerson && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                          <span className="ml-6">{t("budget.contactPerson")}: {supplier.contactPerson}</span>
+                                          {supplier.contactPersonPhone && (
+                                            <span>• <a href={`tel:${supplier.contactPersonPhone}`} className="text-primary hover:underline">{supplier.contactPersonPhone}</a></span>
+                                          )}
+                                        </div>
+                                      )}
+                                      {supplier.amount && (
+                                        <div className="flex items-center gap-2 font-medium">
+                                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                          <span>{parseFloat(supplier.amount).toLocaleString("fr-CA")} $</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
                               })()}
 
                               {/* Analysis summary (if present) */}

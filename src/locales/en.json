@@ -619,6 +619,8 @@
     "taxesTpsQst": "Taxes (GST 5% + QST 9.975%)",
     "manageBudgetSubmissions": "Manage budget and submissions",
     "analysisLabel": "Analysis",
+    "confirmedSupplier": "Confirmed Supplier",
+    "contactPerson": "Contact",
     "amountPlaceholder": "0.00",
     "categories": {
       "Excavation": "Excavation",

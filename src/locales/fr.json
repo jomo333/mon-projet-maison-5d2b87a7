@@ -619,6 +619,8 @@
     "taxesTpsQst": "Taxes (TPS 5% + TVQ 9,975%)",
     "manageBudgetSubmissions": "Gérer budget et soumissions",
     "analysisLabel": "Analyse",
+    "confirmedSupplier": "Fournisseur retenu",
+    "contactPerson": "Contact",
     "amountPlaceholder": "0.00",
     "categories": {
       "Excavation": "Excavation",

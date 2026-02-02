@@ -310,8 +310,15 @@ export async function generateProjectSchedule(
     // 3. Planifier les étapes de CONSTRUCTION à partir de la date effective
     let currentDate = actualConstructionStart;
     let previousStepEndDates: Record<string, string> = {};
+    
+    // Stocker la date de fin de l'électricité rough-in pour le revêtement extérieur
+    let electriciteRoughinEndDate: string | null = null;
 
-    for (const step of constructionStepsFiltered) {
+    // Séparer les étapes intérieures et le revêtement extérieur
+    const exteriorStep = constructionStepsFiltered.find(s => s.id === "exterieur");
+    const interiorSteps = constructionStepsFiltered.filter(s => s.id !== "exterieur");
+
+    for (const step of interiorSteps) {
       const tradeType = stepTradeMapping[step.id] || "autre";
       const duration = calculateAdjustedDuration(step.id, projectSquareFootage, referenceDurations);
       
@@ -347,7 +354,43 @@ export async function generateProjectSchedule(
       });
 
       previousStepEndDates[step.id] = endDate;
+      
+      // Stocker la date de fin de l'électricité rough-in
+      if (step.id === "electricite-roughin") {
+        electriciteRoughinEndDate = endDate;
+      }
+      
       currentDate = calculateEndDate(endDate, 1);
+    }
+    
+    // 4. Planifier le revêtement extérieur en parallèle après l'électricité rough-in
+    // Il commence le jour après la fin de l'électricité rough-in et chevauche HVAC, gypse, etc.
+    if (exteriorStep && electriciteRoughinEndDate) {
+      const tradeType = stepTradeMapping[exteriorStep.id] || "exterieur";
+      const duration = calculateAdjustedDuration(exteriorStep.id, projectSquareFootage, referenceDurations);
+      
+      // Commencer le jour suivant la fin de l'électricité rough-in
+      const exteriorStartDate = calculateEndDate(electriciteRoughinEndDate, 1);
+      const exteriorEndDate = calculateEndDate(exteriorStartDate, duration);
+      
+      schedulesToInsert.push({
+        project_id: projectId,
+        step_id: exteriorStep.id,
+        step_name: exteriorStep.title,
+        trade_type: tradeType,
+        trade_color: getTradeColor(tradeType),
+        estimated_days: duration,
+        start_date: exteriorStartDate,
+        end_date: exteriorEndDate,
+        supplier_schedule_lead_days: supplierLeadDays[exteriorStep.id] || 21,
+        fabrication_lead_days: fabricationLeadDays[exteriorStep.id] || 0,
+        measurement_required: false,
+        measurement_after_step_id: null,
+        measurement_notes: null,
+        status: "scheduled",
+      });
+      
+      previousStepEndDates[exteriorStep.id] = exteriorEndDate;
     }
 
     // Utiliser upsert pour éviter les doublons

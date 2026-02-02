@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Step, usePhases } from "@/hooks/useConstructionSteps";
@@ -16,7 +16,7 @@ import { SoumissionsManager } from "./SoumissionsManager";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
 import { StylePhotosUpload } from "./StylePhotosUpload";
 import { TaskDatePicker } from "./TaskDatePicker";
-import { StepAlerts } from "./StepAlerts";
+import { StepAlerts, SupplierInfo } from "./StepAlerts";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useTaskDates } from "@/hooks/useTaskDates";
 import { toast } from "@/hooks/use-toast";
@@ -143,6 +143,38 @@ export function StepDetail({
   
   // Trouver l'étape correspondante dans l'échéancier
   const currentSchedule = schedules.find(s => s.step_id === step.id);
+
+  // Build supplier info map from task_dates (soumissions)
+  const supplierInfoMap = useMemo<Record<string, SupplierInfo>>(() => {
+    const map: Record<string, SupplierInfo> = {};
+    
+    for (const td of taskDates) {
+      // Only process soumission tasks
+      if (td.step_id !== "soumissions" || !td.task_id.startsWith("soumission-")) {
+        continue;
+      }
+      if (!td.notes) continue;
+      
+      try {
+        const notes = JSON.parse(td.notes);
+        if (notes.supplierName) {
+          // Extract trade ID from task_id (e.g., "soumission-chauffage-et-ventilation" -> "chauffage-et-ventilation")
+          const tradeId = td.task_id.replace("soumission-", "");
+          map[tradeId] = {
+            supplierName: notes.supplierName,
+            supplierPhone: notes.supplierPhone,
+            contactPerson: notes.contactPerson,
+            contactPersonPhone: notes.contactPersonPhone,
+            amount: notes.amount,
+          };
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
+    
+    return map;
+  }, [taskDates]);
 
   const completedCount = filteredTasks.filter(task => 
     isTaskCompleted?.(step.id, task.id)
@@ -460,6 +492,7 @@ export function StepDetail({
           alerts={alerts}
           scheduleId={currentSchedule.id}
           schedules={schedules}
+          supplierInfoMap={supplierInfoMap}
           onDismiss={dismissAlert}
         />
       )}

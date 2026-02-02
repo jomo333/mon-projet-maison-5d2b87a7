@@ -19,10 +19,19 @@ import { ScheduleAlert, ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
 import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
+export interface SupplierInfo {
+  supplierName?: string;
+  supplierPhone?: string;
+  contactPerson?: string;
+  contactPersonPhone?: string;
+  amount?: string;
+}
+
 interface StepAlertsProps {
   alerts: ScheduleAlert[];
   scheduleId: string | undefined;
   schedules?: ScheduleItem[];
+  supplierInfoMap?: Record<string, SupplierInfo>;
   onDismiss: (alertId: string) => void;
 }
 
@@ -57,7 +66,26 @@ const alertTypeConfig: Record<
   },
 };
 
-export const StepAlerts = ({ alerts, scheduleId, schedules = [], onDismiss }: StepAlertsProps) => {
+// Mapping step_id to soumission trade ID
+const stepIdToTradeId: Record<string, string> = {
+  "hvac": "chauffage-et-ventilation",
+  "plomberie-roughin": "plomberie",
+  "plomberie-finition": "plomberie",
+  "electricite-roughin": "electricite",
+  "electricite-finition": "electricite",
+  "toiture": "toiture",
+  "fenetre": "fenetres-et-portes",
+  "structure": "charpente",
+  "fondation": "excavation",
+  "isolation": "isolation-et-pare-vapeur",
+  "exterieur": "revetement-exterieur",
+  "gypse": "gypse-et-peinture",
+  "plancher": "revetements-de-sol",
+  "cuisine-sdb": "travaux-ebenisterie-(cuisine/sdb)",
+  "finitions": "finitions-interieures",
+};
+
+export const StepAlerts = ({ alerts, scheduleId, schedules = [], supplierInfoMap = {}, onDismiss }: StepAlertsProps) => {
   const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   
@@ -67,6 +95,27 @@ export const StepAlerts = ({ alerts, scheduleId, schedules = [], onDismiss }: St
   // Helper function to get schedule info for an alert
   const getScheduleForAlert = (alert: ScheduleAlert): ScheduleItem | undefined => {
     return schedules.find(s => s.id === alert.schedule_id);
+  };
+  
+  // Helper function to get supplier info from soumissions
+  const getSupplierInfoForSchedule = (schedule: ScheduleItem | undefined): SupplierInfo | null => {
+    if (!schedule) return null;
+    
+    // Try direct step_id mapping first
+    const tradeId = stepIdToTradeId[schedule.step_id] || schedule.step_id;
+    if (supplierInfoMap[tradeId]) {
+      return supplierInfoMap[tradeId];
+    }
+    
+    // Fallback: try schedule's supplier_name/phone (if stored in project_schedules)
+    if (schedule.supplier_name || schedule.supplier_phone) {
+      return {
+        supplierName: schedule.supplier_name || undefined,
+        supplierPhone: schedule.supplier_phone || undefined,
+      };
+    }
+    
+    return null;
   };
   
   if (stepAlerts.length === 0) {
@@ -117,7 +166,8 @@ export const StepAlerts = ({ alerts, scheduleId, schedules = [], onDismiss }: St
           const Icon = config?.icon || Bell;
           const isUrgent = config?.urgent === true || urgency.level === "overdue" || urgency.level === "today";
           const schedule = getScheduleForAlert(alert);
-          const hasSupplierInfo = schedule?.supplier_name || schedule?.supplier_phone;
+          const supplierInfo = getSupplierInfoForSchedule(schedule);
+          const hasSupplierInfo = supplierInfo && (supplierInfo.supplierName || supplierInfo.supplierPhone);
 
           return (
             <Alert
@@ -155,24 +205,30 @@ export const StepAlerts = ({ alerts, scheduleId, schedules = [], onDismiss }: St
                   </AlertDescription>
                   
                   {/* Supplier contact info */}
-                  {hasSupplierInfo && (
+                  {hasSupplierInfo && supplierInfo && (
                     <div className="mt-2 p-2 bg-background/50 rounded-md border border-border/50">
                       <div className="flex items-center gap-2 text-xs">
                         <User className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="font-medium">{t("budget.confirmedSupplier")}:</span>
                       </div>
                       <div className="ml-5 mt-1 space-y-0.5">
-                        {schedule.supplier_name && (
-                          <p className="text-sm font-medium">{schedule.supplier_name}</p>
+                        {supplierInfo.supplierName && (
+                          <p className="text-sm font-medium">{supplierInfo.supplierName}</p>
                         )}
-                        {schedule.supplier_phone && (
+                        {supplierInfo.supplierPhone && (
                           <a 
-                            href={`tel:${schedule.supplier_phone}`}
+                            href={`tel:${supplierInfo.supplierPhone.replace(/\s+/g, '')}`}
                             className="text-sm text-primary hover:underline flex items-center gap-1"
                           >
                             <Phone className="h-3 w-3" />
-                            {schedule.supplier_phone}
+                            {supplierInfo.supplierPhone}
                           </a>
+                        )}
+                        {supplierInfo.contactPerson && (
+                          <p className="text-xs text-muted-foreground">
+                            {t("budget.contactPerson")}: {supplierInfo.contactPerson}
+                            {supplierInfo.contactPersonPhone && ` - ${supplierInfo.contactPersonPhone}`}
+                          </p>
                         )}
                       </div>
                     </div>

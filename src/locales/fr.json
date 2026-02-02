@@ -660,6 +660,20 @@
       "label": "Délai de préavis requis (en jours)",
       "placeholder": "Ex: 14 jours",
       "tooltip": "Exemple : 14 jours – contacter le fournisseur 2 semaines avant le début de l'étape."
+    },
+    "taskSubmissions": {
+      "title": "Soumissions par tâche",
+      "noSupplier": "Aucun fournisseur assigné pour cette tâche",
+      "noSupplierHint": "Téléchargez des soumissions et analysez-les ou ajoutez manuellement un fournisseur",
+      "documentsUploaded": "document(s) téléchargé(s)",
+      "summary": "Résumé des fournisseurs",
+      "total": "Total",
+      "byTask": "Par tâche",
+      "bySubcategory": "Sous-catégories",
+      "confirmed": "Confirmé",
+      "supplier": "Fournisseur",
+      "amount": "Montant",
+      "leadDays": "Préavis"
     }
   },
   "analysisFullView": {

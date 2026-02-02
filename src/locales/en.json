@@ -660,6 +660,20 @@
       "label": "Required notice period (in days)",
       "placeholder": "E.g. 14 days",
       "tooltip": "Example: 14 days – contact the supplier 2 weeks before the step starts."
+    },
+    "taskSubmissions": {
+      "title": "Submissions by task",
+      "noSupplier": "No supplier assigned for this task",
+      "noSupplierHint": "Upload quotes and analyze them or manually add a supplier",
+      "documentsUploaded": "document(s) uploaded",
+      "summary": "Supplier summary",
+      "total": "Total",
+      "byTask": "By task",
+      "bySubcategory": "Sub-categories",
+      "confirmed": "Confirmed",
+      "supplier": "Supplier",
+      "amount": "Amount",
+      "leadDays": "Lead time"
     }
   },
   "analysisFullView": {

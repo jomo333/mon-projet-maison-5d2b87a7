@@ -39,6 +39,8 @@ import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
 import { DIYAnalysisView } from "./DIYAnalysisView";
 import { SubCategoryManager, type SubCategory } from "./SubCategoryManager";
+import { TaskSubmissionsTabs, getTasksForCategory } from "./TaskSubmissionsTabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CategorySubmissionsDialogProps {
   open: boolean;
@@ -145,13 +147,29 @@ export function CategorySubmissionsDialog({
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [activeSubCategoryId, setActiveSubCategoryId] = useState<string | null>(null);
   const [viewingSubCategory, setViewingSubCategory] = useState(false);
+  
+  // Task-based organization state
+  const [viewMode, setViewMode] = useState<'subcategories' | 'tasks'>('tasks');
+  const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
+  const categoryTasks = getTasksForCategory(categoryName);
 
   const tradeId =
     categoryToTradeId[categoryName] ||
     categoryName.toLowerCase().replace(/\s+/g, "-");
 
-  // Get the current task ID (main category or sub-category)
+  // Get the current task ID (main category, sub-category, or task-based)
   const getCurrentTaskId = () => {
+    if (activeTaskTitle) {
+      // Sanitize task title for use as ID
+      const sanitizedTaskTitle = activeTaskTitle
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 50);
+      return `soumission-${tradeId}-task-${sanitizedTaskTitle}`;
+    }
     if (activeSubCategoryId) {
       return `soumission-${tradeId}-sub-${activeSubCategoryId}`;
     }
@@ -173,8 +191,16 @@ export function CategorySubmissionsDialog({
       setViewingSubCategory(false);
       setDiyAnalysisResult(null);
       setShowDIYAnalysis(false);
+      // Set default active task if tasks exist
+      if (categoryTasks.length > 0) {
+        setActiveTaskTitle(categoryTasks[0].taskTitle);
+        setViewMode('tasks');
+      } else {
+        setActiveTaskTitle(null);
+        setViewMode('subcategories');
+      }
     }
-  }, [open, currentBudget, currentSpent]);
+  }, [open, currentBudget, currentSpent, categoryTasks]);
   
   // Fetch sub-categories for this category
   const { data: savedSubCategories = [] } = useQuery({
@@ -205,6 +231,94 @@ export function CategorySubmissionsDialog({
       });
     },
     enabled: !!projectId && open,
+  });
+  
+  // Fetch task-based submissions for this category
+  const { data: taskSubmissionsData = {} } = useQuery({
+    queryKey: ['task-submissions', projectId, tradeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('task_dates')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('step_id', 'soumissions')
+        .like('task_id', `soumission-${tradeId}-task-%`);
+      
+      if (error) throw error;
+      
+      // Also fetch documents per task
+      const { data: taskDocs } = await supabase
+        .from('task_attachments')
+        .select('task_id, id, file_name, file_url')
+        .eq('project_id', projectId)
+        .eq('step_id', 'soumissions')
+        .like('task_id', `soumission-${tradeId}-task-%`)
+        .neq('category', 'analyse');
+      
+      const docsPerTask: Record<string, Array<{ id: string; file_name: string; file_url: string }>> = {};
+      (taskDocs || []).forEach((doc) => {
+        const taskId = doc.task_id;
+        if (!docsPerTask[taskId]) docsPerTask[taskId] = [];
+        docsPerTask[taskId].push({ id: doc.id, file_name: doc.file_name, file_url: doc.file_url });
+      });
+      
+      const result: Record<string, {
+        taskTitle: string;
+        supplierName?: string;
+        supplierPhone?: string;
+        contactPerson?: string;
+        contactPersonPhone?: string;
+        amount?: number;
+        leadDays?: number;
+        documents: Array<{ id: string; file_name: string; file_url: string }>;
+        hasAnalysis?: boolean;
+      }> = {};
+      
+      (data || []).forEach((item) => {
+        const notes = item.notes ? JSON.parse(item.notes) : {};
+        const taskTitle = notes.taskTitle || '';
+        result[taskTitle] = {
+          taskTitle,
+          supplierName: notes.supplierName,
+          supplierPhone: notes.supplierPhone,
+          contactPerson: notes.contactPerson,
+          contactPersonPhone: notes.contactPersonPhone,
+          amount: notes.amount ? parseFloat(notes.amount) : undefined,
+          leadDays: notes.supplierLeadDays,
+          documents: docsPerTask[item.task_id] || [],
+          hasAnalysis: notes.hasAnalysis || false,
+        };
+      });
+      
+      // Also add documents for tasks that don't have supplier info yet
+      Object.entries(docsPerTask).forEach(([taskId, docs]) => {
+        // Extract task title from task_id
+        const match = taskId.match(/soumission-[^-]+-task-(.+)/);
+        if (match) {
+          const sanitizedTitle = match[1];
+          // Find matching task from categoryTasks
+          const matchedTask = categoryTasks.find(t => {
+            const sanitized = t.taskTitle
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]/g, '-')
+              .replace(/-+/g, '-')
+              .substring(0, 50);
+            return sanitized === sanitizedTitle;
+          });
+          if (matchedTask && !result[matchedTask.taskTitle]) {
+            result[matchedTask.taskTitle] = {
+              taskTitle: matchedTask.taskTitle,
+              documents: docs,
+            };
+          }
+        }
+      });
+      
+      return result;
+    },
+    enabled: !!projectId && open && categoryTasks.length > 0,
   });
   
   // Sync saved sub-categories to state
@@ -1036,8 +1150,61 @@ export function CategorySubmissionsDialog({
     const budgetValue = parseFloat(budget) || 0;
     let finalSpentValue = parseFloat(spent) || parseFloat(selectedAmount) || 0;
     
+    // If we're in task-based mode with an active task
+    if (activeTaskTitle && supplierName) {
+      const taskAmount = parseFloat(selectedAmount) || 0;
+      
+      // Save task-based supplier info
+      const notes = JSON.stringify({
+        taskTitle: activeTaskTitle,
+        supplierName,
+        supplierPhone,
+        contactPerson,
+        contactPersonPhone,
+        supplierLeadDays,
+        amount: selectedAmount,
+        hasAnalysis: !!analysisResult,
+        isCompleted: true,
+      });
+
+      const { data: existing } = await supabase
+        .from('task_dates')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('step_id', 'soumissions')
+        .eq('task_id', currentTaskId)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('task_dates')
+          .update({ notes })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('task_dates')
+          .insert({
+            project_id: projectId,
+            step_id: 'soumissions',
+            task_id: currentTaskId,
+            notes,
+          });
+      }
+      
+      // Calculate total spent from all task submissions
+      const allTaskTotals = Object.values(taskSubmissionsData).reduce((sum, sub) => {
+        if (!sub) return sum;
+        // Exclude current task as we'll add it fresh
+        return sum + (sub.amount || 0);
+      }, 0);
+      finalSpentValue = allTaskTotals - (taskSubmissionsData[activeTaskTitle]?.amount || 0) + taskAmount;
+      setSpent(finalSpentValue.toString());
+      
+      // Invalidate task submissions query
+      queryClient.invalidateQueries({ queryKey: ['task-submissions', projectId, tradeId] });
+    }
     // If we're in a sub-category, update the sub-category data
-    if (activeSubCategoryId && supplierName) {
+    else if (activeSubCategoryId && supplierName) {
       const subCatAmount = parseFloat(selectedAmount) || 0;
       const subCatName = subCategories.find(sc => sc.id === activeSubCategoryId)?.name || '';
       
@@ -1094,7 +1261,7 @@ export function CategorySubmissionsDialog({
       }, 0);
       
       setSpent(finalSpentValue.toString());
-    } else if (!activeSubCategoryId && supplierName) {
+    } else if (!activeSubCategoryId && !activeTaskTitle && supplierName) {
       // Main category - save supplier info
       const notes = JSON.stringify({
         supplierName,
@@ -1262,16 +1429,59 @@ export function CategorySubmissionsDialog({
               </div>
             )}
             
-            {/* Sub-Categories Section - Only show on main view */}
+            {/* Task-based or Sub-Categories Section - Only show on main view */}
             {!viewingSubCategory && (
-              <SubCategoryManager
-                subCategories={subCategories}
-                onAddSubCategory={handleAddSubCategory}
-                onRemoveSubCategory={handleRemoveSubCategory}
-                onSelectSubCategory={handleSelectSubCategory}
-                activeSubCategoryId={activeSubCategoryId}
-                categoryName={categoryName}
-              />
+              <div className="space-y-4">
+                {/* View mode tabs when tasks are available */}
+                {categoryTasks.length > 0 && (
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'tasks' | 'subcategories')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="tasks" className="text-xs sm:text-sm">
+                        Par tâche ({categoryTasks.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="subcategories" className="text-xs sm:text-sm">
+                        Sous-catégories ({subCategories.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="tasks" className="mt-4">
+                      <TaskSubmissionsTabs
+                        categoryName={categoryName}
+                        tasks={categoryTasks}
+                        taskSubmissions={taskSubmissionsData}
+                        activeTaskTitle={activeTaskTitle}
+                        onSelectTask={(title) => {
+                          setActiveTaskTitle(title);
+                          setActiveSubCategoryId(null);
+                        }}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="subcategories" className="mt-4">
+                      <SubCategoryManager
+                        subCategories={subCategories}
+                        onAddSubCategory={handleAddSubCategory}
+                        onRemoveSubCategory={handleRemoveSubCategory}
+                        onSelectSubCategory={handleSelectSubCategory}
+                        activeSubCategoryId={activeSubCategoryId}
+                        categoryName={categoryName}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                )}
+                
+                {/* Only show SubCategoryManager if no tasks available */}
+                {categoryTasks.length === 0 && (
+                  <SubCategoryManager
+                    subCategories={subCategories}
+                    onAddSubCategory={handleAddSubCategory}
+                    onRemoveSubCategory={handleRemoveSubCategory}
+                    onSelectSubCategory={handleSelectSubCategory}
+                    activeSubCategoryId={activeSubCategoryId}
+                    categoryName={categoryName}
+                  />
+                )}
+              </div>
             )}
 
             {/* DIY Mode Section - Show when viewing a DIY sub-category */}

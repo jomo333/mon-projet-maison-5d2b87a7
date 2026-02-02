@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
-import { useConstructionSteps, usePhases } from "@/hooks/useConstructionSteps";
+import { useConstructionSteps, usePhases, stepIds } from "@/hooks/useConstructionSteps";
 import { StepCard } from "@/components/guide/StepCard";
 import { StepDetail } from "@/components/guide/StepDetail";
 import { Badge } from "@/components/ui/badge";
@@ -175,16 +175,33 @@ const Dashboard = () => {
     }
   }, [schedules]);
 
-  // Déterminer si une étape est complétée (optimiste ou réel)
-  const isStepCompleted = (stepId: string): boolean => {
+  // Determine the starting step index based on project's starting_step_id
+  const startingIndex = useMemo(() => {
+    const startingStepId = project?.starting_step_id;
+    if (!startingStepId) return -1;
+    return stepIds.indexOf(startingStepId as typeof stepIds[number]);
+  }, [project?.starting_step_id]);
+
+  // Déterminer si une étape est complétée (optimiste, réel, ou avant starting_step_id)
+  const isStepCompleted = useCallback((stepId: string): boolean => {
     // L'état optimiste a priorité
     if (stepId in optimisticCompletedSteps) {
       return optimisticCompletedSteps[stepId];
     }
-    // Sinon, vérifier l'état réel
+    // Vérifier l'état réel du schedule
     const schedule = scheduleByStepId[stepId];
-    return schedule?.status === "completed";
-  };
+    if (schedule?.status === "completed") {
+      return true;
+    }
+    // Marquer comme complété si avant le starting_step_id
+    if (startingIndex > 0) {
+      const stepIndex = stepIds.indexOf(stepId as typeof stepIds[number]);
+      if (stepIndex >= 0 && stepIndex < startingIndex) {
+        return true;
+      }
+    }
+    return false;
+  }, [optimisticCompletedSteps, scheduleByStepId, startingIndex]);
 
   // Update selected step when URL changes
   useEffect(() => {
@@ -220,26 +237,40 @@ const Dashboard = () => {
     ? constructionSteps.findIndex(s => s.id === selectedStepId) + 1
     : 0;
 
-  // Calculate progress based on completed steps
+  // Calculate progress based on completed steps (including steps before starting_step_id)
   const completedStepsCount = useMemo(() => {
-    return Object.values(scheduleByStepId).filter(s => s.status === 'completed').length;
-  }, [scheduleByStepId]);
+    const completedFromSchedules = new Set(
+      Object.entries(scheduleByStepId)
+        .filter(([_, s]) => s.status === 'completed')
+        .map(([stepId]) => stepId)
+    );
+    
+    // Add steps before starting step
+    let count = completedFromSchedules.size;
+    if (startingIndex > 0) {
+      for (let i = 0; i < startingIndex; i++) {
+        if (!completedFromSchedules.has(stepIds[i])) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }, [scheduleByStepId, startingIndex]);
 
-  const scheduledStepsCount = Object.keys(scheduleByStepId).length;
+  const scheduledStepsCount = constructionSteps.length;
   const overallProgress = scheduledStepsCount > 0 
     ? (completedStepsCount / scheduledStepsCount) * 100 
     : 0;
 
-  // Find the next step to work on (first non-completed step)
+  // Find the next step to work on (first non-completed step, considering starting_step_id)
   const nextStepId = useMemo(() => {
     for (const step of constructionSteps) {
-      const schedule = scheduleByStepId[step.id];
-      if (schedule && schedule.status !== 'completed') {
+      if (!isStepCompleted(step.id)) {
         return step.id;
       }
     }
     return constructionSteps[0]?.id || 'planification';
-  }, [scheduleByStepId]);
+  }, [constructionSteps, isStepCompleted]);
 
   const nextStep = constructionSteps.find(s => s.id === nextStepId);
 

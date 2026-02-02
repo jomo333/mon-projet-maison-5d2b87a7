@@ -622,17 +622,23 @@ export default function AdminSubscribers() {
                           </TableCell>
                           <TableCell className="py-2 px-2 hidden md:table-cell">
                             <div className="flex flex-wrap gap-1">
-                              <span className={`px-1 rounded ${user.consent?.terms_version ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Conditions">
-                                C{user.consent?.terms_version ? `${user.consent.terms_version}` : '✗'}
+                              <span 
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${user.consent?.terms_version ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-destructive/20 text-destructive'}`} 
+                                title={user.consent?.terms_accepted_at ? `Conditions v${user.consent.terms_version} acceptées le ${format(new Date(user.consent.terms_accepted_at), "d MMM yyyy", { locale: fr })}` : "Conditions non acceptées"}
+                              >
+                                C {user.consent?.terms_version ? '✓' : '✗'}
                               </span>
-                              <span className={`px-1 rounded ${user.consent?.privacy_version ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Politique">
-                                P{user.consent?.privacy_version ? `${user.consent.privacy_version}` : '✗'}
+                              <span 
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${user.consent?.privacy_version ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-destructive/20 text-destructive'}`} 
+                                title={user.consent?.privacy_accepted_at ? `Politique v${user.consent.privacy_version} acceptée le ${format(new Date(user.consent.privacy_accepted_at), "d MMM yyyy", { locale: fr })}` : "Politique non acceptée"}
+                              >
+                                P {user.consent?.privacy_version ? '✓' : '✗'}
                               </span>
                               {user.consent?.cookie_accepted_at && (
                                 <>
-                                  <span className={`px-1 rounded ${user.consent.cookie_analytics ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Analytics">A</span>
-                                  <span className={`px-1 rounded ${user.consent.cookie_marketing ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Marketing">M</span>
-                                  <span className={`px-1 rounded ${user.consent.cookie_functional ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`} title="Fonctionnel">F</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${user.consent.cookie_analytics ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground'}`} title="Analytics">A</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${user.consent.cookie_marketing ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground'}`} title="Marketing">M</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${user.consent.cookie_functional ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground'}`} title="Fonctionnel">F</span>
                                 </>
                               )}
                             </div>

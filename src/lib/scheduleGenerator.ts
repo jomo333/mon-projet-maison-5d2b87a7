@@ -294,17 +294,26 @@ export async function generateProjectSchedule(
     }
 
     // 2. Vérifier si la date visée est réalisable
-    const prepFinishDate = prepSteps.length > 0 ? prepEndDate : today;
-    const earliestConstructionStart = calculateEndDate(prepFinishDate, 1);
-    
     let actualConstructionStart = targetStartDate;
     
-    if (earliestConstructionStart > targetStartDate) {
-      actualConstructionStart = earliestConstructionStart;
-      const delayDays = Math.ceil(
-        (new Date(earliestConstructionStart).getTime() - new Date(targetStartDate).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      warning = `⚠️ La date visée du ${format(new Date(targetStartDate), "d MMMM yyyy", { locale: fr })} est impossible. La préparation nécessite plus de temps. Nouvelle date de début des travaux: ${format(new Date(actualConstructionStart), "d MMMM yyyy", { locale: fr })} (+${delayDays} jours)`;
+    if (prepSteps.length > 0) {
+      // S'il y a des étapes de préparation, vérifier que la date visée est après leur fin
+      const earliestConstructionStart = calculateEndDate(prepEndDate, 1);
+      
+      if (earliestConstructionStart > targetStartDate) {
+        actualConstructionStart = earliestConstructionStart;
+        const delayDays = Math.ceil(
+          (new Date(earliestConstructionStart).getTime() - new Date(targetStartDate).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        warning = `⚠️ La date visée du ${format(new Date(targetStartDate), "d MMMM yyyy", { locale: fr })} est impossible. La préparation nécessite plus de temps. Nouvelle date de début des travaux: ${format(new Date(actualConstructionStart), "d MMMM yyyy", { locale: fr })} (+${delayDays} jours)`;
+      }
+    } else {
+      // Pas d'étapes de préparation: la date visée est la date de début des travaux
+      // Vérifier que la date n'est pas dans le passé
+      if (targetStartDate < today) {
+        actualConstructionStart = today;
+        warning = `⚠️ La date visée est dans le passé. Début des travaux ajusté à aujourd'hui.`;
+      }
     }
 
     // 3. Planifier les étapes de CONSTRUCTION à partir de la date effective

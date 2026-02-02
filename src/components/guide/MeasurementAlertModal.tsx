@@ -74,17 +74,34 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   const [isOpen, setIsOpen] = useState(false);
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(new Set());
 
-  // Filter active alerts (not dismissed in this session)
+  // Load acknowledged alerts from localStorage on mount
+  useEffect(() => {
+    if (projectId) {
+      const acknowledgedKey = `acknowledged_alerts_${projectId}`;
+      const stored = localStorage.getItem(acknowledgedKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setAcknowledgedAlerts(new Set(parsed));
+        } catch {
+          // Invalid JSON, reset
+          localStorage.removeItem(acknowledgedKey);
+        }
+      }
+    }
+  }, [projectId]);
+
+  // Filter alerts: not dismissed in DB, and not already acknowledged by user
   const activeAlerts = alerts.filter(
-    (alert) => !alert.is_dismissed && !dismissedAlerts.has(alert.id)
+    (alert) => !alert.is_dismissed && !acknowledgedAlerts.has(alert.id)
   );
 
   // Check if we should show the modal
   useEffect(() => {
     if (activeAlerts.length > 0 && projectId) {
-      // Check localStorage to see if we've snoozed this alert
+      // Check localStorage to see if we've snoozed
       const snoozeKey = `alert_modal_snooze_${projectId}`;
       const snoozeUntil = localStorage.getItem(snoozeKey);
       const now = Date.now();
@@ -94,15 +111,8 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
         return;
       }
       
-      // Check if modal was recently shown (5 minute default)
-      const lastShownKey = `alert_modal_shown_${projectId}`;
-      const lastShown = localStorage.getItem(lastShownKey);
-      
-      // Show modal if not shown in the last 5 minutes
-      if (!lastShown || now - parseInt(lastShown) > 5 * 60 * 1000) {
-        setIsOpen(true);
-        localStorage.setItem(lastShownKey, now.toString());
-      }
+      // Show modal immediately if there are new alerts
+      setIsOpen(true);
     }
   }, [activeAlerts.length, projectId]);
 
@@ -122,10 +132,16 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   }
 
   const handleClose = () => {
-    // Mark all shown alerts as dismissed for this session
-    const newDismissed = new Set(dismissedAlerts);
-    activeAlerts.forEach((alert) => newDismissed.add(alert.id));
-    setDismissedAlerts(newDismissed);
+    // Permanently acknowledge all currently shown alerts
+    if (projectId) {
+      const newAcknowledged = new Set(acknowledgedAlerts);
+      activeAlerts.forEach((alert) => newAcknowledged.add(alert.id));
+      setAcknowledgedAlerts(newAcknowledged);
+      
+      // Persist to localStorage
+      const acknowledgedKey = `acknowledged_alerts_${projectId}`;
+      localStorage.setItem(acknowledgedKey, JSON.stringify(Array.from(newAcknowledged)));
+    }
     setIsOpen(false);
   };
 

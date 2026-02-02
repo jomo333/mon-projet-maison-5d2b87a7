@@ -276,6 +276,13 @@
     "resetError": "Unable to reset dates",
     "alertsForStep": "Alerts for this step"
   },
+  "taskDates": {
+    "subcontractorDates": "Subcontractor dates",
+    "subcontractorDatesDescription": "Set the expected dates for this subcontractor. These dates will be used to synchronize the overall schedule.",
+    "startDate": "Start",
+    "endDate": "End",
+    "datesWillSync": "Dates are synced with the project schedule"
+  },
   "footer": {
     "description": "Your intelligent assistant for residential construction in Quebec. Plan, budget, and build with confidence.",
     "tagline": "The planning tool for owner-builders in Quebec.",

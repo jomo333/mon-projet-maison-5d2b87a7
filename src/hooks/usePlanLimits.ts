@@ -1,5 +1,6 @@
 import { useSubscription, PlanLimits, Usage } from "./useSubscription";
 import { useCallback } from "react";
+import { useAdmin } from "./useAdmin";
 
 export type LimitType = "projects" | "ai_analyses" | "storage";
 
@@ -25,9 +26,21 @@ export interface PlanLimitsHook {
 
 export function usePlanLimits(): PlanLimitsHook {
   const { plan, limits, usage, loading, refetch } = useSubscription();
+  const { isAdmin } = useAdmin();
 
   const checkLimit = useCallback(
     (type: LimitType, additionalAmount: number = 0): LimitCheckResult => {
+      // Admins have unlimited projects
+      if (type === "projects" && isAdmin) {
+        return {
+          allowed: true,
+          current: usage.projects,
+          limit: -1,
+          isUnlimited: true,
+          message: "",
+        };
+      }
+
       let current: number;
       let limit: number;
       let unitLabel: string;
@@ -74,7 +87,7 @@ export function usePlanLimits(): PlanLimitsHook {
         message,
       };
     },
-    [limits, usage]
+    [limits, usage, isAdmin]
   );
 
   const canCreateProject = useCallback((): LimitCheckResult => {

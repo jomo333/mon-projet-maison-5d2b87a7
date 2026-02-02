@@ -32,6 +32,33 @@ import { PlanUsageCard } from "@/components/subscription/PlanUsageCard";
 import { getDateLocale } from "@/lib/i18n";
 import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
+type SupplierInfo = {
+  supplierName?: string;
+  supplierPhone?: string;
+  contactPerson?: string;
+  contactPersonPhone?: string;
+  amount?: string;
+};
+
+// Mapping step_id (schedule) -> trade ID used in soumissions task_dates
+const stepIdToSoumissionTradeId: Record<string, string> = {
+  hvac: "chauffage-et-ventilation",
+  "plomberie-roughin": "plomberie",
+  "plomberie-finition": "plomberie",
+  "electricite-roughin": "electricite",
+  "electricite-finition": "electricite",
+  toiture: "toiture",
+  fenetre: "fenetres-et-portes",
+  structure: "charpente",
+  fondation: "excavation",
+  isolation: "isolation-et-pare-vapeur",
+  exterieur: "revetement-exterieur",
+  gypse: "gypse-et-peinture",
+  plancher: "revetements-de-sol",
+  "cuisine-sdb": "travaux-ebenisterie-(cuisine/sdb)",
+  finitions: "finitions-interieures",
+};
+
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -91,6 +118,49 @@ const Dashboard = () => {
 
   // Use the project from URL, or fallback to the first user project
   const effectiveProjectId = projectFromUrl || (userProjects.length > 0 ? userProjects[0].id : null);
+
+  // Supplier info from soumissions (stored in task_dates notes)
+  const { data: soumissionSupplierInfoMap = {} } = useQuery({
+    queryKey: ["soumission-suppliers", effectiveProjectId],
+    queryFn: async () => {
+      if (!effectiveProjectId) return {} as Record<string, SupplierInfo>;
+      const { data, error } = await supabase
+        .from("task_dates")
+        .select("task_id, notes")
+        .eq("project_id", effectiveProjectId)
+        .eq("step_id", "soumissions")
+        .like("task_id", "soumission-%");
+
+      if (error) throw error;
+
+      const map: Record<string, SupplierInfo> = {};
+      for (const row of data || []) {
+        if (!row.notes) continue;
+        try {
+          const notes = JSON.parse(row.notes);
+          if (!notes?.supplierName) continue;
+
+          const taskId = String(row.task_id || "");
+          if (!taskId.startsWith("soumission-")) continue;
+          if (taskId.includes("-sub-")) continue; // ignore sub-categories
+
+          const tradeId = taskId.replace("soumission-", "");
+          map[tradeId] = {
+            supplierName: notes.supplierName,
+            supplierPhone: notes.supplierPhone,
+            contactPerson: notes.contactPerson,
+            contactPersonPhone: notes.contactPersonPhone,
+            amount: notes.amount,
+          };
+        } catch {
+          // ignore invalid JSON
+        }
+      }
+
+      return map;
+    },
+    enabled: !!effectiveProjectId,
+  });
 
   // Fetch project schedules and alerts
   const {
@@ -525,9 +595,21 @@ const Dashboard = () => {
                         
                         // Get supplier info from the linked schedule
                         const schedule = scheduleById.get(alert.schedule_id);
-                        const supplierName = schedule?.supplier_name;
-                        const supplierPhone = schedule?.supplier_phone;
+                        const tradeId = schedule
+                          ? (stepIdToSoumissionTradeId[schedule.step_id] || schedule.step_id)
+                          : null;
+                        const soumissionSupplier = tradeId ? soumissionSupplierInfoMap[tradeId] : undefined;
+
+                        const supplierName = soumissionSupplier?.supplierName || schedule?.supplier_name;
+                        const supplierPhoneRaw = soumissionSupplier?.supplierPhone || schedule?.supplier_phone;
+                        const supplierPhone = supplierPhoneRaw
+                          ? String(supplierPhoneRaw).trim().replace(/\s+/g, " ")
+                          : undefined;
                         const hasSupplierInfo = supplierName || supplierPhone;
+
+                        const telHref = supplierPhone
+                          ? `tel:${supplierPhone.replace(/[^0-9+]/g, "")}`
+                          : undefined;
                         
                         return (
                           <div
@@ -570,7 +652,7 @@ const Dashboard = () => {
                                       <>
                                         <span className="text-muted-foreground">•</span>
                                         <a 
-                                          href={`tel:${supplierPhone}`} 
+                                          href={telHref} 
                                           className="text-primary hover:underline font-medium"
                                           onClick={(e) => e.stopPropagation()}
                                         >
@@ -579,6 +661,14 @@ const Dashboard = () => {
                                       </>
                                     )}
                                   </div>
+                                  {soumissionSupplier?.contactPerson && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {t("budget.contactPerson")}: {soumissionSupplier.contactPerson}
+                                      {soumissionSupplier.contactPersonPhone
+                                        ? ` • ${soumissionSupplier.contactPersonPhone}`
+                                        : ""}
+                                    </p>
+                                  )}
                                 </div>
                               )}
                             </div>

@@ -418,10 +418,12 @@
       "features": [
         "1 projet actif",
         "Tout du forfait Essentiel",
-        "Analyses par corps de métier",
-        "Détection d'incohérences",
+        "Analyse des soumissions par étape",
+        "Vérification des licences RBQ et numéros de taxes",
+        "Alertes de conflits et rappels sous-traitants",
+        "Détection d'incohérences et oublis critiques",
         "Stockage 10 Go",
-        "20 analyses IA par mois"
+        "25 analyses IA par mois"
       ]
     }
   },

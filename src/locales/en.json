@@ -418,10 +418,12 @@
       "features": [
         "1 active project",
         "Everything in Essential",
-        "Trade-specific analyses",
-        "Inconsistency detection",
+        "Step-by-step quote analysis",
+        "RBQ license and tax number verification",
+        "Conflict alerts and subcontractor reminders",
+        "Critical omission and inconsistency detection",
         "10 GB storage",
-        "20 AI analyses per month"
+        "25 AI analyses per month"
       ]
     }
   },

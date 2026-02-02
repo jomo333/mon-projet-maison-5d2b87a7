@@ -1261,7 +1261,8 @@
       "overdue": "En retard",
       "today": "Aujourd'hui",
       "upcoming": "À venir",
-      "viewSchedule": "Voir l'échéancier"
+      "viewSchedule": "Voir l'échéancier",
+      "noName": "Fournisseur non identifié"
     }
   },
   "gallery": {

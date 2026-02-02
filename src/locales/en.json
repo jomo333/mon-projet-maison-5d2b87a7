@@ -1261,7 +1261,8 @@
       "overdue": "Overdue",
       "today": "Today",
       "upcoming": "Upcoming",
-      "viewSchedule": "View schedule"
+      "viewSchedule": "View schedule",
+      "noName": "Unidentified supplier"
     }
   },
   "gallery": {

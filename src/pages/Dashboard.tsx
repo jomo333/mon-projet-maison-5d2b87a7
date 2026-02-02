@@ -498,6 +498,9 @@ const Dashboard = () => {
             
             if (urgentAlerts.length === 0) return null;
             
+            // Create a map of schedule_id to schedule data for supplier info
+            const scheduleById = new Map(schedules.map(s => [s.id, s]));
+            
             return (
               <div className="mb-8">
                 <Card className="border-amber-500/50 bg-amber-500/5">
@@ -518,6 +521,12 @@ const Dashboard = () => {
                         const alertDate = parseISO(alert.alert_date);
                         const isOverdue = isPast(alertDate) && !isToday(alertDate);
                         const isTodays = isToday(alertDate);
+                        
+                        // Get supplier info from the linked schedule
+                        const schedule = scheduleById.get(alert.schedule_id);
+                        const supplierName = schedule?.supplier_name;
+                        const supplierPhone = schedule?.supplier_phone;
+                        const hasSupplierInfo = supplierName || supplierPhone;
                         
                         return (
                           <div
@@ -549,6 +558,28 @@ const Dashboard = () => {
                               <p className="text-sm font-medium">
                                 {translateAlertMessage(alert.message, i18n.language)}
                               </p>
+                              {hasSupplierInfo && (
+                                <div className="mt-2 p-2 bg-background/80 rounded border border-amber-500/20">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Phone className="h-3.5 w-3.5 text-amber-600" />
+                                    <span className="font-medium text-amber-700 dark:text-amber-400">
+                                      {supplierName || t("dashboard.supplierAlerts.noName")}
+                                    </span>
+                                    {supplierPhone && (
+                                      <>
+                                        <span className="text-muted-foreground">•</span>
+                                        <a 
+                                          href={`tel:${supplierPhone}`} 
+                                          className="text-primary hover:underline font-medium"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {supplierPhone}
+                                        </a>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

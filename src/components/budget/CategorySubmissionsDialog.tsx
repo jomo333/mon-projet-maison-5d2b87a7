@@ -997,6 +997,54 @@ export function CategorySubmissionsDialog({
   const parseExtractedContacts = (analysisResult: string): ExtractedContact[] => {
     const contacts: ExtractedContact[] = [];
     
+    // Helper to normalize supplier names for comparison
+    const normalizeSupplierName = (name: string): string => {
+      return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+    };
+    
+    // Helper to check if a supplier already exists and merge data if needed
+    const addOrMergeSupplier = (newContact: ExtractedContact) => {
+      const normalizedName = normalizeSupplierName(newContact.supplierName);
+      const existingIndex = contacts.findIndex(
+        c => normalizeSupplierName(c.supplierName) === normalizedName
+      );
+      
+      if (existingIndex >= 0) {
+        // Merge: keep the entry with the most data
+        const existing = contacts[existingIndex];
+        
+        // Prefer the one with an amount, or merge amounts if both have one
+        if (!existing.amount && newContact.amount) {
+          existing.amount = newContact.amount;
+        }
+        
+        // Prefer the one with a phone
+        if (!existing.phone && newContact.phone) {
+          existing.phone = newContact.phone;
+        }
+        
+        // Merge options (deduplicate by name)
+        if (newContact.options && newContact.options.length > 0) {
+          const existingOptions = existing.options || [];
+          const existingOptionNames = new Set(existingOptions.map(o => normalizeSupplierName(o.name)));
+          for (const opt of newContact.options) {
+            if (!existingOptionNames.has(normalizeSupplierName(opt.name))) {
+              existingOptions.push(opt);
+              existingOptionNames.add(normalizeSupplierName(opt.name));
+            }
+          }
+          existing.options = existingOptions.length > 0 ? existingOptions : undefined;
+        }
+      } else {
+        contacts.push(newContact);
+      }
+    };
+    
     // Try to extract from the new emoji-based format
     // Look for patterns like "🏢 Nom Entreprise" followed by "📞 Téléphone:" and "💰 Montant:"
     const companyBlocks = analysisResult.split(/(?=\*\*🏢)/);
@@ -1041,7 +1089,7 @@ export function CategorySubmissionsDialog({
           });
         }
         
-        contacts.push({
+        addOrMergeSupplier({
           docName: '',
           supplierName: nameMatch[1].trim().replace(/\*+/g, ''),
           phone: phoneMatch ? phoneMatch[1].trim() : '',
@@ -1078,7 +1126,7 @@ export function CategorySubmissionsDialog({
     // If no contacts found, try to extract from comparison table directly
     if (contacts.length === 0) {
       for (const [name, amt] of Object.entries(tableAmounts)) {
-        contacts.push({
+        addOrMergeSupplier({
           docName: '',
           supplierName: name.charAt(0).toUpperCase() + name.slice(1),
           phone: '',
@@ -1095,7 +1143,7 @@ export function CategorySubmissionsDialog({
         for (const line of lines) {
           const parts = line.split('|').map(p => p.trim());
           if (parts.length >= 4) {
-            contacts.push({
+            addOrMergeSupplier({
               docName: parts[0],
               supplierName: parts[1],
               phone: parts[2],
@@ -1106,8 +1154,11 @@ export function CategorySubmissionsDialog({
       }
     }
     
-    console.log("Extracted suppliers:", contacts);
-    return contacts;
+    // Filter out entries without a valid supplier name
+    const validContacts = contacts.filter(c => c.supplierName && c.supplierName.length > 1);
+    
+    console.log("Extracted suppliers (deduplicated):", validContacts);
+    return validContacts;
   };
 
   // Save analysis summary as a document

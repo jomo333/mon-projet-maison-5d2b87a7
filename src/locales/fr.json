@@ -441,7 +441,14 @@
   "cta": {
     "title": "Prêt à commencer votre projet ?",
     "subtitle": "Rejoignez les autoconstructeurs qui gèrent leur projet avec confiance.",
-    "button": "Démarrer mon projet gratuitement"
+    "button": "Démarrer mon projet gratuitement",
+    "noCreditCard": "Aucune carte de crédit requise"
+  },
+  "ctaBenefits": {
+    "planning": "Planification étape par étape",
+    "budget": "Suivi budgétaire en temps réel",
+    "ai": "Assistant IA disponible 24/7",
+    "compliant": "Conforme aux normes québécoises"
   },
   "auth": {
     "title": "Mon Espace Projet",

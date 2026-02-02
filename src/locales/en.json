@@ -441,7 +441,14 @@
   "cta": {
     "title": "Ready to start your project?",
     "subtitle": "Join owner-builders who manage their projects with confidence.",
-    "button": "Start my project for free"
+    "button": "Start my project for free",
+    "noCreditCard": "No credit card required"
+  },
+  "ctaBenefits": {
+    "planning": "Step-by-step planning",
+    "budget": "Real-time budget tracking",
+    "ai": "24/7 AI Assistant",
+    "compliant": "Quebec standards compliant"
   },
   "auth": {
     "title": "My Project Space",

@@ -159,13 +159,6 @@ export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverv
                   </div>
                 )}
               </div>
-              <Button 
-                onClick={() => onNavigateToStep(nextStep.id)}
-                className="shrink-0"
-              >
-                {t("projectOverview.start")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
             </div>
           </CardContent>
         </Card>

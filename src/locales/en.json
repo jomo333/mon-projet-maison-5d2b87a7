@@ -302,7 +302,7 @@
     "myFiles": "My Files",
     "budget": "Budget",
     "schedule": "Schedule",
-    "buildingCode": "Building Code",
+    "buildingCode": "Requirements Guide",
     "guide": "Guide",
     "plans": "Plans",
     "admin": "Admin",
@@ -1106,8 +1106,8 @@
     }
   },
   "buildingCode": {
-    "title": "Building Code",
-    "subtitle": "Search for information in the Quebec Construction Code",
+    "title": "Building Requirements Guide (Quebec)",
+    "subtitle": "Understand the Construction Code principles applicable to your project",
     "search": "Search the code...",
     "searchPlaceholder": "Ask your question about the building code...",
     "categories": {

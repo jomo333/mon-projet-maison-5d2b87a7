@@ -302,7 +302,7 @@
     "myFiles": "Mes Dossiers",
     "budget": "Budget",
     "schedule": "Échéancier",
-    "buildingCode": "Code du bâtiment",
+    "buildingCode": "Guide des exigences",
     "guide": "Guide",
     "plans": "Forfaits",
     "admin": "Administration",
@@ -1106,8 +1106,8 @@
     }
   },
   "buildingCode": {
-    "title": "Code du bâtiment",
-    "subtitle": "Recherchez des informations dans le code de construction du Québec",
+    "title": "Guide des exigences du bâtiment (Québec)",
+    "subtitle": "Comprenez les principes du Code de construction applicables à votre projet",
     "search": "Rechercher dans le code...",
     "searchPlaceholder": "Posez votre question sur le code du bâtiment...",
     "categories": {

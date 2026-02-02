@@ -8,6 +8,7 @@ import { Footer } from "@/components/landing/Footer";
 import { useConstructionSteps, usePhases, stepIds } from "@/hooks/useConstructionSteps";
 import { StepCard } from "@/components/guide/StepCard";
 import { StepDetail } from "@/components/guide/StepDetail";
+import { MeasurementAlertModal } from "@/components/guide/MeasurementAlertModal";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,10 +90,11 @@ const Dashboard = () => {
   // Use the project from URL, or fallback to the first user project
   const effectiveProjectId = projectFromUrl || (userProjects.length > 0 ? userProjects[0].id : null);
 
-  // Fetch project schedules
+  // Fetch project schedules and alerts
   const {
     schedules,
     isLoading: isLoadingSchedules,
+    alerts,
     completeStep,
     completeStepByStepId,
     uncompleteStep,
@@ -361,6 +363,10 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
+      
+      {/* Alert Modal - visible au centre de l'écran */}
+      <MeasurementAlertModal alerts={alerts} projectId={effectiveProjectId || undefined} />
+      
       <main className="flex-1 py-8">
         <div className="container">
           {!projectFromUrl && user && userProjects.length === 0 && (

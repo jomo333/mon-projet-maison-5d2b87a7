@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Clock, ChevronLeft, ChevronRight, Lightbulb, FileText, CheckCircle2, ClipboardList, DollarSign, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, Loader2, AlertTriangle, X, Lock, Unlock, RotateCcw, Calculator, Save, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TaskAttachments } from "./TaskAttachments";
+import { TaskSubcontractorDates } from "./TaskSubcontractorDates";
 import { SoumissionsManager } from "./SoumissionsManager";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
 import { StylePhotosUpload } from "./StylePhotosUpload";
@@ -775,6 +776,13 @@ export function StepDetail({
                       {task.id !== 'obtenir-soumissions' && (
                         <TaskAttachments stepId={step.id} taskId={task.id} projectId={projectId} />
                       )}
+                      
+                      {/* Dates pour sous-traitants - affiché dans les étapes de construction physique */}
+                      <TaskSubcontractorDates 
+                        stepId={step.id} 
+                        taskId={task.id} 
+                        projectId={projectId} 
+                      />
                     </div>
                   </AccordionContent>
                 </AccordionItem>

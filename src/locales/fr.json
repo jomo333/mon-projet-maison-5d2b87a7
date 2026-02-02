@@ -276,6 +276,13 @@
     "resetError": "Impossible de réinitialiser les dates",
     "alertsForStep": "Alertes pour cette étape"
   },
+  "taskDates": {
+    "subcontractorDates": "Dates du sous-traitant",
+    "subcontractorDatesDescription": "Définissez les dates prévues pour ce sous-traitant. Ces dates seront utilisées pour synchroniser l'échéancier global.",
+    "startDate": "Début",
+    "endDate": "Fin",
+    "datesWillSync": "Les dates sont synchronisées avec l'échéancier du projet"
+  },
   "footer": {
     "description": "Votre assistant intelligent pour la construction résidentielle au Québec. Planifiez, budgétisez et construisez en toute confiance.",
     "tagline": "L'outil de planification pour les autoconstructeurs au Québec.",

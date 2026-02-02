@@ -5,14 +5,20 @@ import { Footer } from "@/components/landing/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, BookOpen, Loader2, AlertCircle, FileText, Lightbulb, MessageSquare, Send, User, Bot, CheckCircle, MapPin, Building2, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, BookOpen, Loader2, AlertCircle, FileText, Lightbulb, MessageSquare, Send, User, Bot, CheckCircle, MapPin, Building2, HelpCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-// Base de données locale du Code du Bâtiment avec contenu complet des articles
-const buildingCodeDB = {
+import {
+  buildingCodeKnowledge as buildingCodeDB,
+  type BuildingCodeEntry,
+  type ImportanceLevel,
+} from "@/data/buildingCodeKnowledge";
+
+// Base de données locale HISTORIQUE (contenu complet) — conservée ici pour historique.
+// IMPORTANT: ne pas afficher/citer le contenu officiel dans l'UI.
+const legacyBuildingCodeDB = {
   structure: [
     {
       id: 'S1',
@@ -967,17 +973,8 @@ const clarificationQuestions: Record<string, {
   }
 };
 
-type ImportanceLevel = 'critique' | 'haute' | 'moyenne';
+// Types BuildingCodeEntry / ImportanceLevel importés depuis src/data/buildingCodeKnowledge.ts
 
-interface BuildingCodeEntry {
-  id: string;
-  question: string;
-  reponse: string;
-  code: string;
-  articleContent?: string;
-  importance: ImportanceLevel;
-  tags: string[];
-}
 
 interface MunicipalCode {
   id: string;
@@ -1100,7 +1097,7 @@ const BuildingCode = () => {
     
     const scored = allEntries.map(entry => {
       let score = 0;
-      const searchText = `${entry.question} ${entry.reponse} ${entry.code} ${entry.tags.join(' ')}`.toLowerCase();
+      const searchText = `${entry.question} ${entry.reponse} ${entry.tags.join(' ')}`.toLowerCase();
       
       searchTerms.forEach(term => {
         if (searchText.includes(term)) {
@@ -1338,7 +1335,7 @@ const BuildingCode = () => {
       const totalMunicipal = municipalResults?.codes.length || 0;
       
       responseContent = `📋 **Résumé de recherche**\n\n`;
-      responseContent += `**📖 Code national du bâtiment 2015:** ${totalCNB} résultat${totalCNB > 1 ? 's' : ''}\n`;
+      responseContent += `**📖 Code du bâtiment (résumé éducatif):** ${totalCNB} résultat${totalCNB > 1 ? 's' : ''}\n`;
       responseContent += `**🏛️ Codes municipaux:** ${totalMunicipal} résultat${totalMunicipal > 1 ? 's' : ''}\n\n`;
       
       if (summary && summary.keyPoints.length > 0) {
@@ -1443,9 +1440,26 @@ const BuildingCode = () => {
           <Card className="mb-6 border-amber-500/30 bg-amber-500/5">
             <CardContent className="flex items-start gap-3 py-4">
               <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">{t("buildingCode.disclaimer.title", "Important notice")}:</strong> {t("buildingCode.disclaimer.text", "The information provided is for reference only. Always consult a qualified professional and local authorities.")}
-              </p>
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">{t("buildingCode.disclaimer.title", "Important notice")}:</strong>{" "}
+                  {t(
+                    "buildingCode.disclaimer.text",
+                    "The information provided is for reference only. Always consult a qualified professional and local authorities."
+                  )}
+                </p>
+                <a
+                  href="https://www.rbq.gouv.qc.ca/domaines-dintervention/batiment/les-codes-et-les-normes.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block mt-2 underline underline-offset-4 text-primary"
+                >
+                  {t(
+                    "buildingCode.officialLinkLabel",
+                    "Consulter le texte officiel du Code du bâtiment"
+                  )}
+                </a>
+              </div>
             </CardContent>
           </Card>
 
@@ -1616,7 +1630,7 @@ const BuildingCode = () => {
                         {message.results && message.results.length > 0 && (
                           <div className="ml-11 space-y-3">
                             <div className="text-sm font-medium text-muted-foreground mb-2">
-                              📖 Code national du bâtiment 2015:
+                              📖 Code du bâtiment (résumé éducatif):
                             </div>
                             {message.results.map((result) => (
                               <Card key={result.id} className="border-l-4 border-l-primary">
@@ -1635,28 +1649,6 @@ const BuildingCode = () => {
                                   <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                                     {result.reponse}
                                   </p>
-                                  
-                                  {/* Article complet du CNB */}
-                                  {result.articleContent && (
-                                    <Collapsible className="mt-3">
-                                      <CollapsibleTrigger asChild>
-                                        <Button variant="outline" size="sm" className="w-full justify-between gap-2">
-                                          <span className="flex items-center gap-2">
-                                            <FileText className="h-4 w-4 text-primary" />
-                                            <span className="font-medium">CNB 2015 - {result.code}</span>
-                                          </span>
-                                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                        </Button>
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent className="mt-3">
-                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border">
-                                          <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed text-foreground">
-                                            {result.articleContent}
-                                          </pre>
-                                        </div>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                  )}
                                 </CardContent>
                               </Card>
                             ))}

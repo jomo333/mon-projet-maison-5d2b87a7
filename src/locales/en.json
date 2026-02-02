@@ -488,6 +488,16 @@
     "updatePassword": "Update password",
     "enterNewPassword": "Enter your new password below"
   },
+  "planUsage": {
+    "title": "My plan",
+    "currentUsage": "Current usage",
+    "projects": "Projects",
+    "aiAnalyses": "AI Analyses (this month)",
+    "storage": "Storage",
+    "unlimited": "Unlimited",
+    "upgrade": "Upgrade to a higher plan",
+    "gb": "GB"
+  },
   "projects": {
     "title": "My Projects",
     "subtitle": "Find and manage all your construction projects",

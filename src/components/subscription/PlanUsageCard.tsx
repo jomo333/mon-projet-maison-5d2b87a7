@@ -6,9 +6,12 @@ import { useNavigate } from "react-router-dom";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FolderOpen, Sparkles, HardDrive, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { getTranslatedPlanName } from "@/lib/planTiersI18n";
 
 export function PlanUsageCard() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { planName, limits, usage, loading } = usePlanLimits();
 
   if (loading) {
@@ -41,21 +44,25 @@ export function PlanUsageCard() {
     return "bg-primary";
   };
 
+  const storageUnit = t("planUsage.gb");
+
   const formatLimit = (current: number, limit: number, suffix: string = "") => {
-    if (limit === -1) return `${current}${suffix} / Illimité`;
+    if (limit === -1) return `${current}${suffix} / ${t("planUsage.unlimited")}`;
     return `${current}${suffix} / ${limit}${suffix}`;
   };
+
+  const translatedPlanName = getTranslatedPlanName(t, planName);
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Mon forfait</CardTitle>
-            <CardDescription>Utilisation actuelle</CardDescription>
+            <CardTitle className="text-lg">{t("planUsage.title")}</CardTitle>
+            <CardDescription>{t("planUsage.currentUsage")}</CardDescription>
           </div>
           <Badge variant="secondary" className="text-sm">
-            {planName}
+            {translatedPlanName}
           </Badge>
         </div>
       </CardHeader>
@@ -65,7 +72,7 @@ export function PlanUsageCard() {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-muted-foreground" />
-              <span>Projets</span>
+              <span>{t("planUsage.projects")}</span>
             </div>
             <span className="text-muted-foreground">
               {formatLimit(usage.projects, limits.projects)}
@@ -84,7 +91,7 @@ export function PlanUsageCard() {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-muted-foreground" />
-              <span>Analyses IA (ce mois)</span>
+              <span>{t("planUsage.aiAnalyses")}</span>
             </div>
             <span className="text-muted-foreground">
               {formatLimit(usage.ai_analyses, limits.ai_analyses)}
@@ -103,10 +110,10 @@ export function PlanUsageCard() {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <HardDrive className="h-4 w-4 text-muted-foreground" />
-              <span>Stockage</span>
+              <span>{t("planUsage.storage")}</span>
             </div>
             <span className="text-muted-foreground">
-              {formatLimit(Number(usage.storage_gb.toFixed(2)), limits.uploads_gb, " Go")}
+              {formatLimit(Number(usage.storage_gb.toFixed(2)), limits.uploads_gb, ` ${storageUnit}`)}
             </span>
           </div>
           {limits.uploads_gb !== -1 && (
@@ -124,7 +131,7 @@ export function PlanUsageCard() {
             className="w-full mt-4"
             onClick={() => navigate("/forfaits")}
           >
-            Passer à un forfait supérieur
+            {t("planUsage.upgrade")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}

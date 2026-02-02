@@ -488,6 +488,16 @@
     "updatePassword": "Mettre à jour le mot de passe",
     "enterNewPassword": "Entrez votre nouveau mot de passe ci-dessous"
   },
+  "planUsage": {
+    "title": "Mon forfait",
+    "currentUsage": "Utilisation actuelle",
+    "projects": "Projets",
+    "aiAnalyses": "Analyses IA (ce mois)",
+    "storage": "Stockage",
+    "unlimited": "Illimité",
+    "upgrade": "Passer à un forfait supérieur",
+    "gb": "Go"
+  },
   "projects": {
     "title": "Mes Projets",
     "subtitle": "Retrouvez et gérez tous vos projets de construction",

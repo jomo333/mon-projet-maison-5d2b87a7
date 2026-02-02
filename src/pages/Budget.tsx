@@ -25,6 +25,7 @@ import { formatCurrency } from "@/lib/i18n";
 import { groupItemsByTask, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
+import { translateBudgetItemName } from "@/lib/budgetItemI18n";
 import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import {
   mapAnalysisToStepCategories,
@@ -975,13 +976,13 @@ const Budget = () => {
                                              </div>
 
                                              {hasItems ? (
-                                               <ul className="ml-6 list-disc pl-4 space-y-1">
-                                                 {items.map((item, idx) => (
-                                                   <li key={idx} className="text-sm text-muted-foreground">
-                                                     {item.name}
-                                                   </li>
-                                                 ))}
-                                               </ul>
+                                                <ul className="ml-6 list-disc pl-4 space-y-1">
+                                                  {items.map((item, idx) => (
+                                                    <li key={idx} className="text-sm text-muted-foreground">
+                                                      {translateBudgetItemName(t, item.name)}
+                                                    </li>
+                                                  ))}
+                                                </ul>
                                               ) : (
                                                 <div className="ml-6 text-sm text-muted-foreground italic">
                                                   {t("budget.noItemsAssociated")}
@@ -1000,7 +1001,7 @@ const Budget = () => {
                                            <ul className="ml-6 list-disc pl-4 space-y-1">
                                              {otherItems.map((item, idx) => (
                                                <li key={idx} className="text-sm text-muted-foreground">
-                                                 {item.name}
+                                                 {translateBudgetItemName(t, item.name)}
                                                </li>
                                              ))}
                                            </ul>
@@ -1017,15 +1018,15 @@ const Budget = () => {
                                        <div key={taskTitle}>
                                           <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                                            {taskTitle === OTHER_ITEMS_KEY ? t("categories.otherItems") : taskTitle}
-                                         </div>
-                                         <ul className="ml-6 list-disc pl-4 space-y-1">
-                                           {items.map((item, idx) => (
-                                             <li key={idx} className="text-sm text-muted-foreground">
-                                               {item.name}
-                                             </li>
-                                           ))}
-                                         </ul>
+                                            {taskTitle === OTHER_ITEMS_KEY ? t("categories.otherItems") : translateBudgetTaskTitle(t, category.name, taskTitle)}
+                                          </div>
+                                          <ul className="ml-6 list-disc pl-4 space-y-1">
+                                            {items.map((item, idx) => (
+                                              <li key={idx} className="text-sm text-muted-foreground">
+                                                {translateBudgetItemName(t, item.name)}
+                                              </li>
+                                            ))}
+                                          </ul>
                                        </div>
                                      ))}
                                    </div>
@@ -1035,8 +1036,8 @@ const Budget = () => {
                               {/* Analysis summary (if present) */}
                               {showAnalysisSummary && (
                                 <div className="text-sm text-muted-foreground">
-                                  <span className="font-medium">Analyse:</span> {category.description}
-                                </div>
+                                   <span className="font-medium">{t("budget.analysisLabel")}:</span> {category.description}
+                                 </div>
                               )}
                             </div>
                           </CollapsibleContent>

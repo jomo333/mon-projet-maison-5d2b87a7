@@ -63,6 +63,7 @@ import {
 import { cn } from "@/lib/utils";
 import { groupItemsByTask, getTasksForCategory, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
+import { translateBudgetItemName, translateNoItemsMessage } from "@/lib/budgetItemI18n";
 import { translateWarnings, translateRecommendations } from "@/lib/budgetWarningsI18n";
 import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import { 
@@ -789,11 +790,11 @@ export function BudgetAnalysisResults({
                                         key={itemIndex}
                                         className="grid grid-cols-12 gap-2 text-sm py-1 items-center"
                                       >
-                                        <div className="col-span-5 truncate" title={item.name}>
-                                          {item.name}
+                                        <div className="col-span-5 truncate" title={translateBudgetItemName(t, item.name)}>
+                                          {translateBudgetItemName(t, item.name)}
                                         </div>
                                         <div className="col-span-3 text-center text-muted-foreground">
-                                          {item.quantity} {item.unit}
+                                          {item.quantity} {translateBudgetItemName(t, item.unit)}
                                         </div>
                                         <div className="col-span-4 text-right flex items-center justify-end gap-1">
                                           {editingItem?.catIndex === catIndex &&

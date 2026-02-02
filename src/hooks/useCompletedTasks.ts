@@ -75,6 +75,10 @@ export function useCompletedTasks(projectId: string | null) {
         message: `📏 Prendre les mesures en chantier pour "${schedule.step_name}"${schedule.measurement_notes ? ` - ${schedule.measurement_notes}` : ""}`,
         is_dismissed: false,
       });
+
+      // Effacer le cache localStorage pour que le modal réapparaisse
+      localStorage.removeItem(`alert_modal_shown_${projectId}`);
+      localStorage.removeItem(`alert_modal_snooze_${projectId}`);
     }
 
     // Invalider les alertes pour rafraîchir l'UI

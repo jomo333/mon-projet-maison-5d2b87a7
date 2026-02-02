@@ -1,5 +1,5 @@
 import { useSubscription, PlanLimits, Usage } from "./useSubscription";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAdmin } from "./useAdmin";
 
 export type LimitType = "projects" | "ai_analyses" | "storage";
@@ -21,6 +21,7 @@ export interface PlanLimitsHook {
   canCreateProject: () => LimitCheckResult;
   canUseAI: () => LimitCheckResult;
   canUpload: (fileSizeBytes: number) => LimitCheckResult;
+  hasFullManagement: boolean; // Premium features (alerts, quote analysis, RBQ verification)
   refetch: () => Promise<void>;
 }
 
@@ -119,6 +120,13 @@ export function usePlanLimits(): PlanLimitsHook {
     [limits, usage]
   );
 
+  // Check if user has "Gestion complète" plan (premium features)
+  const hasFullManagement = useMemo(() => {
+    if (isAdmin) return true; // Admins always have full access
+    const currentPlan = plan?.name || "";
+    return currentPlan === "Gestion complète";
+  }, [plan?.name, isAdmin]);
+
   return {
     limits,
     usage,
@@ -128,6 +136,7 @@ export function usePlanLimits(): PlanLimitsHook {
     canCreateProject,
     canUseAI,
     canUpload,
+    hasFullManagement,
     refetch,
   };
 }

@@ -509,6 +509,12 @@
     "upgrade": "Passer à un forfait supérieur",
     "gb": "Go"
   },
+  "premiumFeatures": {
+    "quoteAnalysisRestricted": "L'analyse IA des soumissions avec vérification RBQ/taxes est réservée au forfait Gestion complète",
+    "alertsRestricted": "Les alertes de conflits et rappels de contact sous-traitants sont réservés au forfait Gestion complète",
+    "upgradeToUnlock": "Passez au forfait Gestion complète pour débloquer cette fonctionnalité",
+    "viewPlans": "Voir les forfaits"
+  },
   "projects": {
     "title": "Mes Projets",
     "subtitle": "Retrouvez et gérez tous vos projets de construction",
@@ -1575,7 +1581,9 @@
         "features": [
           "1 projet actif",
           "25 analyses IA par mois",
-          "Analyse détaillée par étape et par corps de métier",
+          "Analyse des soumissions par étape",
+          "Vérification des licences RBQ et numéros de taxes",
+          "Alertes de conflits et rappels de contact sous-traitants",
           "Détection des incohérences et oublis critiques",
           "Centralisation complète des documents",
           "Accès étendu au code du bâtiment",

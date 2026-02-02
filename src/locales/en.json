@@ -509,6 +509,12 @@
     "upgrade": "Upgrade to a higher plan",
     "gb": "GB"
   },
+  "premiumFeatures": {
+    "quoteAnalysisRestricted": "AI quote analysis with RBQ/tax verification is reserved for the Complete Management plan",
+    "alertsRestricted": "Conflict alerts and subcontractor contact reminders are reserved for the Complete Management plan",
+    "upgradeToUnlock": "Upgrade to Complete Management to unlock this feature",
+    "viewPlans": "View plans"
+  },
   "projects": {
     "title": "My Projects",
     "subtitle": "Find and manage all your construction projects",
@@ -1575,7 +1581,9 @@
         "features": [
           "1 active project",
           "25 AI analyses per month",
-          "Detailed analysis by step and trade",
+          "Quote analysis by construction step",
+          "RBQ license and tax number verification",
+          "Conflict alerts and subcontractor contact reminders",
           "Detection of inconsistencies and critical omissions",
           "Complete document centralization",
           "Extended access to building code",

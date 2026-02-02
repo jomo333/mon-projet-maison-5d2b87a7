@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { getSignedUrl } from "@/hooks/useSignedUrl";
 import { useTranslation } from "react-i18next";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +48,8 @@ import {
   RefreshCw,
   Hammer,
   RotateCcw,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
@@ -118,9 +122,13 @@ export function CategorySubmissionsDialog({
   onSave,
 }: CategorySubmissionsDialogProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Get syncAlertsFromSoumissions from useProjectSchedule
   const { syncAlertsFromSoumissions } = useProjectSchedule(projectId);
+  
+  // Check if user has premium plan for quote analysis
+  const { hasFullManagement } = usePlanLimits();
   
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
@@ -1889,19 +1897,32 @@ export function CategorySubmissionsDialog({
                     onChange={handleFileUpload}
                   />
                   {documents.length > 0 && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={analyzing}
-                      onClick={analyzeDocuments}
-                    >
-                      {analyzing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4" />
-                      )}
-                      <span className="ml-2">Analyser IA</span>
-                    </Button>
+                    hasFullManagement ? (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={analyzing}
+                        onClick={analyzeDocuments}
+                      >
+                        {analyzing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        <span className="ml-2">{t("budget.analyzeAI", "Analyser IA")}</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/plans")}
+                        className="gap-2"
+                      >
+                        <Lock className="h-4 w-4" />
+                        <Crown className="h-4 w-4" />
+                        <span>{t("budget.analyzeAI", "Analyser IA")}</span>
+                      </Button>
+                    )
                   )}
                 </div>
               </div>

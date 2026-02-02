@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { format, parseISO, isPast, isToday, addDays, isBefore } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +13,14 @@ import {
   Bell,
   AlertTriangle,
   PhoneCall,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
 import { translateAlertMessage } from "@/lib/alertMessagesI18n";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 interface AlertsPanelProps {
   alerts: ScheduleAlert[];
@@ -52,7 +56,9 @@ const alertTypeConfig: Record<
 
 export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const dateLocale = getDateLocale();
+  const { hasFullManagement, loading: planLoading } = usePlanLimits();
   
   const sortedAlerts = [...alerts].sort((a, b) => {
     const dateA = parseISO(a.alert_date);
@@ -75,6 +81,47 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
     }
     return { level: "upcoming", labelKey: "upcoming", variant: "secondary" as const };
   };
+
+  // Show upgrade prompt for non-premium users
+  if (!planLoading && !hasFullManagement) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            {t("schedule.alertsAndReminders")}
+            <Badge variant="secondary" className="ml-2">
+              <Crown className="h-3 w-3 mr-1" />
+              Premium
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 space-y-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <Lock className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {t("premiumFeatures.alertsRestricted")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("premiumFeatures.upgradeToUnlock")}
+              </p>
+            </div>
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => navigate("/plans")}
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              {t("premiumFeatures.viewPlans")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (alerts.length === 0) {
     return (

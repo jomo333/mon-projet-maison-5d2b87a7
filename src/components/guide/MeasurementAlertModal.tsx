@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
 import { translateAlertMessage } from "@/lib/alertMessagesI18n";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 interface MeasurementAlertModalProps {
   alerts: ScheduleAlert[];
@@ -94,6 +95,9 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   const dateLocale = getDateLocale();
   const [isOpen, setIsOpen] = useState(false);
   
+  // Check if user has premium plan for alerts
+  const { hasFullManagement, loading: planLoading } = usePlanLimits();
+  
   // Initialize acknowledged alerts synchronously from localStorage
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(
     () => getStoredAcknowledgedAlerts(projectId)
@@ -124,8 +128,11 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
     visibleAlerts.push(alert);
   }
 
-  // Check if we should show the modal
+  // Check if we should show the modal - only for premium users
   useEffect(() => {
+    if (planLoading) return;
+    if (!hasFullManagement) return; // Don't show modal for non-premium users
+    
     if (visibleAlerts.length > 0 && projectId) {
       // Check localStorage to see if we've snoozed
       const snoozeKey = `alert_modal_snooze_${projectId}`;
@@ -140,7 +147,7 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
       // Show modal immediately if there are new alerts
       setIsOpen(true);
     }
-  }, [visibleAlerts.length, projectId]);
+  }, [visibleAlerts.length, projectId, hasFullManagement, planLoading]);
 
   const getAlertUrgency = (alertDate: string) => {
     const date = parseISO(alertDate);
@@ -153,7 +160,8 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
     return { level: "upcoming", labelKey: "upcoming", variant: "secondary" as const };
   };
 
-  if (visibleAlerts.length === 0) {
+  // Don't render anything for non-premium users or if no alerts
+  if (!hasFullManagement || visibleAlerts.length === 0) {
     return null;
   }
 

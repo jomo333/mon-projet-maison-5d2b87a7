@@ -60,6 +60,10 @@ const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; r
   },
 };
 
+// Étapes qui doivent être traitées en parallèle (ne pas avancer le cursor principal)
+// Ces étapes commencent après leur étape prérequise mais n'affectent pas la séquence des travaux intérieurs
+const parallelSteps: Set<string> = new Set(["exterieur"]);
+
 export const useProjectSchedule = (projectId: string | null) => {
   const queryClient = useQueryClient();
 
@@ -546,11 +550,21 @@ export const useProjectSchedule = (projectId: string | null) => {
           continue;
         } else {
           // Cette étape N'A PAS de date manuelle - la décaler automatiquement
-          let newStart = cursor || (s.start_date ? parseISO(s.start_date) : new Date());
+          const isParallelStep = parallelSteps.has(s.step_id);
           
-          // Respecter les contraintes de délai (cure béton)
-          if (requiredStartDate && newStart < requiredStartDate) {
+          // Pour les étapes parallèles (ex: extérieur), utiliser la date de fin de l'étape prérequise
+          // au lieu du cursor principal
+          let newStart: Date;
+          if (isParallelStep && requiredStartDate) {
+            // L'étape parallèle commence après son étape prérequise, pas après le cursor
             newStart = requiredStartDate;
+          } else {
+            newStart = cursor || (s.start_date ? parseISO(s.start_date) : new Date());
+            
+            // Respecter les contraintes de délai (cure béton) pour les étapes séquentielles
+            if (requiredStartDate && newStart < requiredStartDate) {
+              newStart = requiredStartDate;
+            }
           }
           
           const newStartStr = format(newStart, "yyyy-MM-dd");
@@ -564,14 +578,22 @@ export const useProjectSchedule = (projectId: string | null) => {
             updatesToApply.push({ id: s.id, patch });
           }
           
-          // Mettre à jour cursor et stepEndDates
+          // Mettre à jour stepEndDates
           stepEndDates[s.step_id] = newEndStr;
-          cursor = addBusinessDays(parseISO(newEndStr), 1);
+          
+          // Pour les étapes parallèles, NE PAS avancer le cursor principal
+          // Elles s'exécutent en même temps que les travaux intérieurs
+          if (!isParallelStep) {
+            cursor = addBusinessDays(parseISO(newEndStr), 1);
+          }
         }
       } else if (s.start_date && s.end_date) {
         // Étapes avant l'étape focus - juste mettre à jour le cursor
         stepEndDates[s.step_id] = s.end_date;
-        cursor = addBusinessDays(parseISO(s.end_date), 1);
+        // Ne pas avancer le cursor pour les étapes parallèles
+        if (!parallelSteps.has(s.step_id)) {
+          cursor = addBusinessDays(parseISO(s.end_date), 1);
+        }
       }
     }
 

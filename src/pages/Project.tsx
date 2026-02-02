@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDateLocale } from "@/lib/i18n";
+import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 const Project = () => {
   const { t, i18n } = useTranslation();
@@ -370,7 +371,7 @@ const Project = () => {
                   </AlertTitle>
                   <AlertDescription className="flex items-start justify-between gap-4">
                     <span className="text-amber-600 dark:text-amber-300">
-                      {alert.message.replace('⚠️ URGENT: ', '')}
+                      {translateAlertMessage(alert.message.replace('⚠️ URGENT: ', ''), i18n.language)}
                     </span>
                     <Button
                       variant="ghost"

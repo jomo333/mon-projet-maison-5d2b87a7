@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
+import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 interface AlertsPanelProps {
   alerts: ScheduleAlert[];
@@ -50,7 +51,7 @@ const alertTypeConfig: Record<
 };
 
 export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   
   const sortedAlerts = [...alerts].sort((a, b) => {
@@ -154,7 +155,7 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
                         })}
                       </span>
                     </div>
-                    <p className="text-sm font-medium">{alert.message}</p>
+                    <p className="text-sm font-medium">{translateAlertMessage(alert.message, i18n.language)}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {config?.labelKey ? t(`schedule.alertTypes.${config.labelKey}`) : ""}
                     </p>

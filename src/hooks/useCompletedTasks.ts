@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { constructionSteps } from "@/data/constructionSteps";
+import { getAlertMessage } from "@/lib/alertMessagesI18n";
 
 export interface CompletedTask {
   id: string;
@@ -16,14 +17,6 @@ const MEASUREMENT_TRIGGER_TASKS: Record<string, { targetSteps: string[]; taskId:
     taskId: "tirage-joints",
     targetSteps: ["cuisine-sdb"],
   },
-};
-
-// Messages personnalisés par étape cible
-const getAlertMessage = (stepId: string, stepName: string, measurementNotes?: string | null): string => {
-  if (stepId === "cuisine-sdb") {
-    return `Contactez votre ébéniste pour la prise des mesures en chantier pour "${stepName}"${measurementNotes ? ` - ${measurementNotes}` : ""}`;
-  }
-  return `📏 Prendre les mesures en chantier pour "${stepName}"${measurementNotes ? ` - ${measurementNotes}` : ""}`;
 };
 
 export function useCompletedTasks(projectId: string | null) {
@@ -80,7 +73,7 @@ export function useCompletedTasks(projectId: string | null) {
         schedule_id: schedule.id,
         alert_type: "measurement",
         alert_date: new Date().toISOString().split("T")[0],
-        message: getAlertMessage(schedule.step_id, schedule.step_name, schedule.measurement_notes),
+        message: getAlertMessage(schedule.step_id, schedule.step_name, schedule.measurement_notes, "fr"),
         is_dismissed: false,
       });
 

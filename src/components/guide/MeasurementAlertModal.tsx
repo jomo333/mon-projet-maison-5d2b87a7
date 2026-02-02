@@ -23,6 +23,7 @@ import { Bell, Phone, Factory, Ruler, PhoneCall, AlertTriangle, Clock, ChevronDo
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
+import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 interface MeasurementAlertModalProps {
   alerts: ScheduleAlert[];
@@ -70,7 +71,7 @@ const reminderOptions: ReminderOption[] = [
 ];
 
 export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertModalProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
@@ -192,7 +193,7 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
                         })}
                       </span>
                     </div>
-                    <p className="font-medium text-foreground">{alert.message}</p>
+                    <p className="font-medium text-foreground">{translateAlertMessage(alert.message, i18n.language)}</p>
                     {config?.labelKey && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {t(`schedule.alertTypes.${config.labelKey}`)}

@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
 import { getDateLocale } from "@/lib/i18n";
+import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 interface StepAlertsProps {
   alerts: ScheduleAlert[];
@@ -55,7 +56,7 @@ const alertTypeConfig: Record<
 };
 
 export const StepAlerts = ({ alerts, scheduleId, onDismiss }: StepAlertsProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   
   // Filtrer les alertes pour cette étape spécifique
@@ -141,7 +142,7 @@ export const StepAlerts = ({ alerts, scheduleId, onDismiss }: StepAlertsProps) =
                     </span>
                   </AlertTitle>
                   <AlertDescription className="text-sm font-medium text-foreground">
-                    {alert.message}
+                    {translateAlertMessage(alert.message, i18n.language)}
                   </AlertDescription>
                   {config?.labelKey && (
                     <p className="text-xs text-muted-foreground mt-1">

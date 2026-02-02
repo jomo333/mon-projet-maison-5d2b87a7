@@ -616,6 +616,7 @@
     "contingencyBudget": "Contingency budget (5%)",
     "taxesTpsQst": "Taxes (GST 5% + QST 9.975%)",
     "manageBudgetSubmissions": "Manage budget and submissions",
+    "analysisLabel": "Analysis",
     "amountPlaceholder": "0.00",
     "categories": {
       "Excavation": "Excavation",

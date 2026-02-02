@@ -1174,7 +1174,8 @@
       "noResultsFound": "I couldn't find any results matching your search. Try other terms like: guardrail, staircase, insulation, ventilation, front setback...",
       "clarificationPrompt": "To refine my answer, could you clarify:",
       "ifCondition": "If",
-      "errorOccurred": "An error occurred. Please try again.",
+    "errorOccurred": "An error occurred. Please try again.",
+    "authRequired": "You must be logged in to use this feature.",
       "principle": "Principle",
       "practicalTips": "Practical tips"
     },

@@ -1174,7 +1174,8 @@
       "noResultsFound": "Je n'ai pas trouvé de résultat correspondant à votre recherche. Essayez avec d'autres termes comme: garde-corps, escalier, isolation, ventilation, marge avant...",
       "clarificationPrompt": "Pour affiner ma réponse, pourriez-vous préciser:",
       "ifCondition": "Si",
-      "errorOccurred": "Une erreur s'est produite. Veuillez réessayer.",
+    "errorOccurred": "Une erreur s'est produite. Veuillez réessayer.",
+    "authRequired": "Vous devez être connecté pour utiliser cette fonctionnalité.",
       "principle": "Principe",
       "practicalTips": "Conseils pratiques"
     },

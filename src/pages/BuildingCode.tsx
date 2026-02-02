@@ -523,12 +523,28 @@ const BuildingCode = () => {
       .map(m => ({ role: m.role, content: m.content }));
 
     try {
-      // Call the AI edge function
+      // Get user session for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        const errorMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: t("buildingCode.results.authRequired", "Vous devez être connecté pour utiliser cette fonctionnalité."),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsSearching(false);
+        return;
+      }
+
+      // Call the AI edge function with user's access token
       const { data, error } = await supabase.functions.invoke('search-building-code', {
         body: {
           query,
           conversationHistory,
           lang: i18n.language === 'en' ? 'en' : 'fr',
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
       });
 

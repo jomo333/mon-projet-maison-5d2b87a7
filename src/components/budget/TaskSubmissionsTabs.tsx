@@ -37,27 +37,40 @@ interface TaskSubmissionsTabsProps {
   onAddTask?: (taskTitle: string) => void;
 }
 
+// Normalize a string for matching (remove accents, lowercase, trim)
+const normalizeForMatch = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s*\([^)]*\)\s*/g, '') // Remove parenthetical suffixes like (HVAC)
+    .replace(/\s+/g, ' ')
+    .trim();
+
 // Get tasks for a given category from the mapping
 export function getTasksForCategory(categoryName: string): TaskKeywordMapping[] {
-  // Normalize category name for matching
-  const normalizedName = categoryName
-    .replace(/\s*\([^)]*\)\s*/g, '') // Remove parenthetical suffixes like (HVAC)
-    .trim();
-  
-  // Try direct match first
-  if (categoryTaskMappings[normalizedName]) {
-    return categoryTaskMappings[normalizedName];
-  }
-  
-  // Try with original name
+  // First try direct match
   if (categoryTaskMappings[categoryName]) {
     return categoryTaskMappings[categoryName];
   }
   
-  // Try partial match
+  // Normalize category name for matching
+  const normalizedInput = normalizeForMatch(categoryName);
+  
+  // Try normalized match against all keys
   for (const key of Object.keys(categoryTaskMappings)) {
-    if (key.toLowerCase().includes(normalizedName.toLowerCase()) ||
-        normalizedName.toLowerCase().includes(key.toLowerCase())) {
+    // Skip internal exclusion keys
+    if (key.startsWith('_')) continue;
+    
+    const normalizedKey = normalizeForMatch(key);
+    
+    // Exact normalized match
+    if (normalizedKey === normalizedInput) {
+      return categoryTaskMappings[key];
+    }
+    
+    // Partial match (one contains the other)
+    if (normalizedKey.includes(normalizedInput) || normalizedInput.includes(normalizedKey)) {
       return categoryTaskMappings[key];
     }
   }

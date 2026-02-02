@@ -1834,30 +1834,40 @@ export function CategorySubmissionsDialog({
 
                 {/* Supplier Notice Section - Only show when supplier is selected */}
                 {supplierName && (
-                  <div className="pt-3 border-t">
-                    <h4 className="font-medium text-foreground mb-2">
-                      {t("categorySubmissions.supplierNotice.title")}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {t("categorySubmissions.supplierNotice.description")}
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="supplier-lead-days">
-                        {t("categorySubmissions.supplierNotice.label")}
-                      </Label>
-                      <div className="relative max-w-xs">
-                        <Input
-                          id="supplier-lead-days"
-                          type="number"
-                          min={0}
-                          value={supplierLeadDays ?? ""}
-                          onChange={(e) => setSupplierLeadDays(e.target.value ? parseInt(e.target.value) : null)}
-                          placeholder={t("categorySubmissions.supplierNotice.placeholder")}
-                        />
+                  <div className="mt-4 p-4 bg-amber-500/10 border-2 border-amber-500/50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-500/20 rounded-full shrink-0">
+                        <Phone className="h-5 w-5 text-amber-600" />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t("categorySubmissions.supplierNotice.tooltip")}
-                      </p>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <h4 className="font-semibold text-amber-700 dark:text-amber-400 text-base">
+                            {t("categorySubmissions.supplierNotice.title")}
+                          </h4>
+                          <p className="text-sm text-amber-700/80 dark:text-amber-300/80 mt-1">
+                            {t("categorySubmissions.supplierNotice.description")}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="supplier-lead-days" className="text-amber-700 dark:text-amber-400 font-medium">
+                            {t("categorySubmissions.supplierNotice.label")}
+                          </Label>
+                          <div className="relative max-w-xs">
+                            <Input
+                              id="supplier-lead-days"
+                              type="number"
+                              min={0}
+                              value={supplierLeadDays ?? ""}
+                              onChange={(e) => setSupplierLeadDays(e.target.value ? parseInt(e.target.value) : null)}
+                              placeholder={t("categorySubmissions.supplierNotice.placeholder")}
+                              className="border-amber-500/50 focus:border-amber-500 focus:ring-amber-500/30"
+                            />
+                          </div>
+                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70">
+                            {t("categorySubmissions.supplierNotice.tooltip")}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

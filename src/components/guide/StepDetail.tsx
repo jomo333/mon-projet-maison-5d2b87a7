@@ -16,6 +16,7 @@ import { SoumissionsManager } from "./SoumissionsManager";
 import { StepPhotoUpload } from "@/components/project/StepPhotoUpload";
 import { StylePhotosUpload } from "./StylePhotosUpload";
 import { TaskDatePicker } from "./TaskDatePicker";
+import { StepAlerts } from "./StepAlerts";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useTaskDates } from "@/hooks/useTaskDates";
 import { toast } from "@/hooks/use-toast";
@@ -86,7 +87,7 @@ export function StepDetail({
   });
   
   // Utiliser directement useProjectSchedule pour synchroniser avec l'échéancier
-  const { schedules, updateScheduleAndRecalculate, updateScheduleAsync, isUpdating } = useProjectSchedule(projectId || null);
+  const { schedules, alerts, updateScheduleAndRecalculate, updateScheduleAsync, dismissAlert, isUpdating } = useProjectSchedule(projectId || null);
   
   // Hook pour les notes des tâches
   const { taskDates, getTaskDate, upsertTaskDateAsync } = useTaskDates(projectId || null);
@@ -452,6 +453,15 @@ export function StepDetail({
           </CardContent>
         )}
       </Card>
+
+      {/* Alertes pour cette étape */}
+      {projectId && currentSchedule && (
+        <StepAlerts
+          alerts={alerts}
+          scheduleId={currentSchedule.id}
+          onDismiss={dismissAlert}
+        />
+      )}
 
       {/* Tasks */}
       <Card>

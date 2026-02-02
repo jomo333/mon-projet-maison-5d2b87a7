@@ -13,6 +13,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -50,6 +56,7 @@ import {
   RotateCcw,
   Lock,
   Crown,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
@@ -1912,16 +1919,27 @@ export function CategorySubmissionsDialog({
                         <span className="ml-2">{t("budget.analyzeAI", "Analyser IA")}</span>
                       </Button>
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate("/plans")}
-                        className="gap-2"
-                      >
-                        <Lock className="h-4 w-4" />
-                        <Crown className="h-4 w-4" />
-                        <span>{t("budget.analyzeAI", "Analyser IA")}</span>
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate("/forfaits")}
+                              className="gap-2"
+                            >
+                              <Lock className="h-4 w-4" />
+                              <Crown className="h-4 w-4" />
+                              <span>{t("budget.analyzeAI", "Analyser IA")}</span>
+                              <Info className="h-3 w-3 opacity-70" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p className="text-xs font-medium mb-1">{t("premiumFeatures.quoteAnalysisTooltip")}</p>
+                            <p className="text-xs text-muted-foreground">{t("premiumFeatures.quoteAnalysisPlan")}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )
                   )}
                 </div>

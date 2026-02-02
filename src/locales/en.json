@@ -513,7 +513,11 @@
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "AI quote analysis with RBQ/tax verification is reserved for the Complete Management plan",
+    "quoteAnalysisTooltip": "Automatic analysis of your quotes by construction step, verification of RBQ licenses and contractor tax numbers.",
+    "quoteAnalysisPlan": "Available with Complete Management plan",
     "alertsRestricted": "Conflict alerts and subcontractor contact reminders are reserved for the Complete Management plan",
+    "alertsTooltip": "Receive automatic alerts for schedule conflicts and reminders to contact your subcontractors at the right time.",
+    "alertsPlan": "Available with Complete Management plan",
     "upgradeToUnlock": "Upgrade to Complete Management to unlock this feature",
     "viewPlans": "View plans"
   },

@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Phone,
   Factory,
   Ruler,
@@ -15,6 +21,7 @@ import {
   PhoneCall,
   Lock,
   Crown,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleAlert } from "@/hooks/useProjectSchedule";
@@ -101,22 +108,33 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
             <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
               <Lock className="h-6 w-6 text-muted-foreground" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t("premiumFeatures.alertsRestricted")}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                {t("premiumFeatures.alertsTooltip")}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("premiumFeatures.upgradeToUnlock")}
+              <p className="text-xs text-muted-foreground">
+                {t("premiumFeatures.alertsPlan")}
               </p>
             </div>
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => navigate("/plans")}
-            >
-              <Crown className="h-4 w-4 mr-2" />
-              {t("premiumFeatures.viewPlans")}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => navigate("/forfaits")}
+                    className="gap-2"
+                  >
+                    <Crown className="h-4 w-4" />
+                    {t("premiumFeatures.viewPlans")}
+                    <Info className="h-3 w-3 opacity-70" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">{t("premiumFeatures.alertsRestricted")}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>

@@ -513,7 +513,11 @@
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "L'analyse IA des soumissions avec vérification RBQ/taxes est réservée au forfait Gestion complète",
+    "quoteAnalysisTooltip": "Analyse automatique de vos soumissions par étape de construction, vérification des licences RBQ et numéros de taxes des entrepreneurs.",
+    "quoteAnalysisPlan": "Disponible avec le forfait Gestion complète",
     "alertsRestricted": "Les alertes de conflits et rappels de contact sous-traitants sont réservés au forfait Gestion complète",
+    "alertsTooltip": "Recevez des alertes automatiques en cas de conflits d'échéancier et des rappels pour contacter vos sous-traitants au bon moment.",
+    "alertsPlan": "Disponible avec le forfait Gestion complète",
     "upgradeToUnlock": "Passez au forfait Gestion complète pour débloquer cette fonctionnalité",
     "viewPlans": "Voir les forfaits"
   },

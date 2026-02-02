@@ -731,7 +731,8 @@ export const useProjectSchedule = (projectId: string | null) => {
 
   const checkConflicts = (schedules: ScheduleItem[]): { date: string; trades: string[] }[] => {
     const conflicts: { date: string; trades: string[] }[] = [];
-    const dateTradeMap: Record<string, Set<string>> = {};
+    // Map: date -> { trade, scheduleId, isManualDate }[]
+    const dateTradeMap: Record<string, Array<{ trade: string; scheduleId: string; isManualDate: boolean }>> = {};
 
     // Trades à ignorer pour les conflits (administratifs/préparation)
     const ignoredTrades = ["autre", "inspecteur"];
@@ -752,20 +753,32 @@ export const useProjectSchedule = (projectId: string | null) => {
         const dateStr = format(currentDate, "yyyy-MM-dd");
 
         if (!dateTradeMap[dateStr]) {
-          dateTradeMap[dateStr] = new Set();
+          dateTradeMap[dateStr] = [];
         }
-        dateTradeMap[dateStr].add(schedule.trade_type);
+        dateTradeMap[dateStr].push({
+          trade: schedule.trade_type,
+          scheduleId: schedule.id,
+          isManualDate: schedule.is_manual_date,
+        });
       }
     }
 
-    for (const [date, trades] of Object.entries(dateTradeMap)) {
-      const tradesArray = Array.from(trades);
-      if (tradesArray.length > 1) {
+    for (const [date, entries] of Object.entries(dateTradeMap)) {
+      // Récupérer les trades uniques pour cette date
+      const uniqueTrades = [...new Set(entries.map(e => e.trade))];
+      
+      if (uniqueTrades.length > 1) {
+        // Vérifier si AU MOINS UNE des étapes a une date verrouillée manuellement
+        const hasManualDate = entries.some(e => e.isManualDate);
+        
+        // N'afficher le conflit que si l'utilisateur a verrouillé au moins une date
+        if (!hasManualDate) continue;
+        
         // Vérifier si tous les métiers peuvent travailler en parallèle
         let hasRealConflict = false;
-        for (let i = 0; i < tradesArray.length; i++) {
-          for (let j = i + 1; j < tradesArray.length; j++) {
-            if (!canWorkInParallel(tradesArray[i], tradesArray[j])) {
+        for (let i = 0; i < uniqueTrades.length; i++) {
+          for (let j = i + 1; j < uniqueTrades.length; j++) {
+            if (!canWorkInParallel(uniqueTrades[i], uniqueTrades[j])) {
               hasRealConflict = true;
               break;
             }
@@ -774,7 +787,7 @@ export const useProjectSchedule = (projectId: string | null) => {
         }
         
         if (hasRealConflict) {
-          conflicts.push({ date, trades: tradesArray });
+          conflicts.push({ date, trades: uniqueTrades });
         }
       }
     }

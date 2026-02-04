@@ -830,93 +830,36 @@ const Budget = () => {
             </Card>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Pie Chart */}
-            <Card className="animate-fade-in" style={{ animationDelay: "300ms" }}>
-              <CardHeader>
-                <CardTitle className="font-display">{t("budget.distribution")}</CardTitle>
-                <CardDescription>{t("budget.distributionDesc")}</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-col items-center gap-6">
-                  {/* Pie Chart Container */}
-                  <div className="h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={45}
-                          outerRadius={80}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: number, name: string) => [`${value.toLocaleString()} $`, name]}
-                          labelFormatter={() => ''}
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            padding: '8px 12px',
-                          }}
-                          itemStyle={{
-                            color: 'hsl(var(--foreground))',
-                            fontWeight: 500,
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  
-                  {/* Légende claire avec montants */}
-                  <div className="w-full space-y-2 max-h-[200px] overflow-y-auto">
-                    {pieData.map((entry, index) => {
-                      const percentage = totalBudget > 0 ? ((entry.value / totalBudget) * 100).toFixed(1) : 0;
-                      return (
-                        <div key={index} className="flex items-center justify-between gap-3 py-1.5 px-2 rounded-md hover:bg-muted/50">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div 
-                              className="w-4 h-4 rounded shrink-0" 
-                              style={{ backgroundColor: entry.color }}
-                            />
-                            <span className="font-medium truncate">{entry.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 text-sm">
-                            <span className="text-muted-foreground">{percentage}%</span>
-                            <span className="font-medium">{entry.value.toLocaleString()} $</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+          {/* Budget détaillé par catégorie - SECTION PRINCIPALE */}
+          <Card className="animate-fade-in border-2 border-primary/20 shadow-lg" style={{ animationDelay: "300ms" }}>
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-display text-xl flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                    </div>
+                    {t("budget.detailedBudget")}
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    {t("budget.detailedBudgetDesc")}
+                  </CardDescription>
                 </div>
-              </CardContent>
-            </Card>
+                <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30">
+                  {budgetCategories.length} {t("budget.categories", "catégories")}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(() => {
+                const subTotal = budgetCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
+                const contingence = subTotal * 0.05;
+                const tps = (subTotal + contingence) * 0.05;
+                const tvq = (subTotal + contingence) * 0.09975;
+                const taxes = tps + tvq;
 
-            {/* Category List */}
-            <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
-              <CardHeader>
-                <CardTitle className="font-display">{t("budget.detailedBudget")}</CardTitle>
-                <CardDescription>
-                  {t("budget.detailedBudgetDesc")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const subTotal = budgetCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
-                  const contingence = subTotal * 0.05;
-                  const tps = (subTotal + contingence) * 0.05;
-                  const tvq = (subTotal + contingence) * 0.09975;
-                  const taxes = tps + tvq;
-
-                  return (
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                return (
+                  <div className="divide-y">
                       {budgetCategories.map((category) => {
                     const percent = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
                     const isOverBudget = category.spent > category.budget;
@@ -940,17 +883,17 @@ const Budget = () => {
                         open={isExpanded} 
                         onOpenChange={() => toggleCategory(category.name)}
                       >
-                        <div className="rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-4 p-3">
+                        <div className={`hover:bg-muted/50 transition-colors ${isExpanded ? 'bg-muted/30' : ''}`}>
+                          <div className="flex items-center gap-4 p-4">
                             <CollapsibleTrigger asChild>
                               <div className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer">
                                 <div
-                                  className="w-4 h-4 rounded shrink-0"
+                                  className="w-5 h-5 rounded-md shrink-0 shadow-sm"
                                   style={{ backgroundColor: category.color }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium truncate">{translateCategoryName(category.name)}</span>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-semibold text-base">{translateCategoryName(category.name)}</span>
                                     {isOverBudget && (
                                       <Badge variant="destructive" className="text-xs">
                                         <AlertTriangle className="h-3 w-3 mr-1" />
@@ -965,38 +908,39 @@ const Budget = () => {
                                   </div>
                                   <Progress
                                     value={Math.min(percent, 100)}
-                                    className="mt-2 h-1.5"
+                                    className="mt-2 h-2"
                                   />
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <div className="text-sm font-medium">
+                                <div className="text-right shrink-0 min-w-[140px]">
+                                  <div className="text-base font-bold text-foreground">
                                     {category.spent.toLocaleString()} $
                                   </div>
                                   <div className="text-xs text-muted-foreground">
                                     / {Math.round(category.budget * 0.90).toLocaleString()} - {Math.round(category.budget * 1.10).toLocaleString()} $
                                   </div>
                                 </div>
-                                <div className="shrink-0">
+                                <div className="shrink-0 p-1">
                                   {isExpanded ? (
-                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
                                   ) : (
-                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
                                   )}
                                 </div>
                               </div>
                             </CollapsibleTrigger>
                             <Button 
-                              variant="ghost" 
-                              size="icon" 
+                              variant="outline" 
+                              size="sm" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditCategory(category, e);
                               }}
                               disabled={!selectedProjectId}
                               title={selectedProjectId ? t("budget.manageBudgetSubmissions") : t("toasts.noProjectSelected")}
-                              className={!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}
+                              className={`shrink-0 ${!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
-                              <Edit2 className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">{t("common.edit")}</span>
                             </Button>
                           </div>
                           
@@ -1177,14 +1121,14 @@ const Budget = () => {
                       })}
 
                       {/* Budget imprévu 5% */}
-                      <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 p-3">
+                      <div className="p-4 bg-warning/5 border-t-2 border-t-warning">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded shrink-0 bg-amber-500" />
-                            <span className="font-medium text-amber-700 dark:text-amber-400">{t("budget.contingencyBudget")}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 rounded-md shrink-0 bg-warning shadow-sm" />
+                            <span className="font-semibold text-base">{t("budget.contingencyBudget")}</span>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                          <div className="text-right shrink-0 min-w-[140px]">
+                            <div className="text-base font-bold">
                               {Math.round(contingence * 0.90).toLocaleString()} $ - {Math.round(contingence * 1.10).toLocaleString()} $
                             </div>
                           </div>
@@ -1192,14 +1136,14 @@ const Budget = () => {
                       </div>
 
                       {/* Taxes (TPS + TVQ) */}
-                      <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 p-3">
+                      <div className="p-4 bg-primary/5 border-t-2 border-t-primary">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded shrink-0 bg-blue-500" />
-                            <span className="font-medium text-blue-700 dark:text-blue-400">{t("budget.taxesTpsQst")}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 rounded-md shrink-0 bg-primary shadow-sm" />
+                            <span className="font-semibold text-base">{t("budget.taxesTpsQst")}</span>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                          <div className="text-right shrink-0 min-w-[140px]">
+                            <div className="text-base font-bold">
                               {Math.round(taxes * 0.90).toLocaleString()} $ - {Math.round(taxes * 1.10).toLocaleString()} $
                             </div>
                           </div>
@@ -1210,7 +1154,74 @@ const Budget = () => {
                 })()}
               </CardContent>
             </Card>
-          </div>
+          
+          {/* Répartition du budget - Graphique camembert */}
+          <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
+            <CardHeader>
+              <CardTitle className="font-display">{t("budget.distribution")}</CardTitle>
+              <CardDescription>{t("budget.distributionDesc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex flex-col lg:flex-row items-center gap-6">
+                {/* Pie Chart Container */}
+                <div className="h-[250px] w-full lg:w-1/2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => [`${value.toLocaleString()} $`, name]}
+                        labelFormatter={() => ''}
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                        }}
+                        itemStyle={{
+                          color: 'hsl(var(--foreground))',
+                          fontWeight: 500,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Légende claire avec montants */}
+                <div className="w-full lg:w-1/2 space-y-2 max-h-[300px] overflow-y-auto">
+                  {pieData.map((entry, index) => {
+                    const percentage = totalBudget > 0 ? ((entry.value / totalBudget) * 100).toFixed(1) : 0;
+                    return (
+                      <div key={index} className="flex items-center justify-between gap-3 py-1.5 px-2 rounded-md hover:bg-muted/50">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div 
+                            className="w-4 h-4 rounded shrink-0" 
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <span className="font-medium truncate text-sm">{entry.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 text-sm">
+                          <span className="text-muted-foreground">{percentage}%</span>
+                          <span className="font-medium">{entry.value.toLocaleString()} $</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Category Submissions Dialog */}
           {editingCategory && selectedProjectId && (

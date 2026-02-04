@@ -664,11 +664,13 @@ const ProjectGallery = () => {
       }
     });
 
-    // Sort: retenus first, then by name
+    // Sort by construction order (using soumissionTrades order), not alphabetically
+    // Keep the order from soumissionTrades which is already in construction sequence
+    const tradeOrderMap = new Map(soumissionTrades.map((t, i) => [t.id, i]));
     return result.sort((a, b) => {
-      if (a.isRetenu && !b.isRetenu) return -1;
-      if (!a.isRetenu && b.isRetenu) return 1;
-      return a.name.localeCompare(b.name);
+      const orderA = tradeOrderMap.get(a.id) ?? 999;
+      const orderB = tradeOrderMap.get(b.id) ?? 999;
+      return orderA - orderB;
     });
   };
 

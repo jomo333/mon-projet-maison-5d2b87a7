@@ -939,8 +939,8 @@ const Budget = () => {
                               title={selectedProjectId ? t("budget.manageBudgetSubmissions") : t("toasts.noProjectSelected")}
                               className={`shrink-0 ${!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
-                              <Edit2 className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">{t("common.edit")}</span>
+                              <FileText className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">{t("budget.addSubmissions")}</span>
                             </Button>
                           </div>
                           

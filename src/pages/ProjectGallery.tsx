@@ -179,9 +179,56 @@ const ProjectGallery = () => {
     };
   }, [previewDocument?.url]);
 
+  // Get fresh signed URL from a stored URL (which may be expired signed URL or path)
+  const getFreshSignedUrl = async (fileUrl: string): Promise<string> => {
+    // Extract the path from the URL
+    const bucketMarker = "/task-attachments/";
+    const signMarker = "/storage/v1/object/sign/task-attachments/";
+    
+    let path = "";
+    
+    if (fileUrl.includes(signMarker)) {
+      // It's a signed URL - extract path after the sign marker
+      const startIdx = fileUrl.indexOf(signMarker) + signMarker.length;
+      const endIdx = fileUrl.indexOf("?");
+      path = endIdx > 0 ? fileUrl.slice(startIdx, endIdx) : fileUrl.slice(startIdx);
+    } else if (fileUrl.includes(bucketMarker)) {
+      // It's a public URL
+      const startIdx = fileUrl.indexOf(bucketMarker) + bucketMarker.length;
+      const endIdx = fileUrl.indexOf("?");
+      path = endIdx > 0 ? fileUrl.slice(startIdx, endIdx) : fileUrl.slice(startIdx);
+    } else {
+      // Assume it's already a path
+      path = fileUrl;
+    }
+    
+    if (!path) return fileUrl;
+    
+    // Decode the path in case it's URL encoded
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      // Already decoded
+    }
+    
+    // Generate a fresh signed URL
+    const { data, error } = await supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(path, 3600);
+    
+    if (error || !data?.signedUrl) {
+      console.error("Failed to get signed URL:", error);
+      return fileUrl;
+    }
+    
+    return data.signedUrl;
+  };
+
   const downloadFile = async (fileUrl: string, fileName: string) => {
     try {
-      const response = await fetch(fileUrl);
+      // Get fresh signed URL first
+      const freshUrl = await getFreshSignedUrl(fileUrl);
+      const response = await fetch(freshUrl);
       if (!response.ok) throw new Error('Erreur de téléchargement');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -196,6 +243,16 @@ const ProjectGallery = () => {
       console.error('Download error:', error);
       window.open(fileUrl, '_blank');
     }
+  };
+
+  // Preview document with fresh signed URL
+  const openDocumentPreview = async (doc: { file_url: string; file_name: string; file_type: string }) => {
+    const freshUrl = await getFreshSignedUrl(doc.file_url);
+    setPreviewDocument({
+      url: freshUrl,
+      name: doc.file_name,
+      type: doc.file_type,
+    });
   };
 
   // Download all files as organized ZIP
@@ -1113,11 +1170,7 @@ const ProjectGallery = () => {
                                               size="icon"
                                               className="h-8 w-8"
                                               title="Visualiser"
-                                              onClick={() => setPreviewDocument({
-                                                url: doc.file_url,
-                                                name: doc.file_name,
-                                                type: doc.file_type,
-                                              })}
+                                              onClick={() => openDocumentPreview(doc)}
                                             >
                                               <Eye className="h-4 w-4" />
                                             </Button>
@@ -1212,11 +1265,7 @@ const ProjectGallery = () => {
                                         variant="ghost"
                                         size="icon"
                                         title={t("common.view")}
-                                        onClick={() => setPreviewDocument({
-                                          url: doc.file_url,
-                                          name: doc.file_name,
-                                          type: doc.file_type
-                                        })}
+                                        onClick={() => openDocumentPreview(doc)}
                                       >
                                         <Eye className="h-4 w-4" />
                                       </Button>
@@ -1280,11 +1329,7 @@ const ProjectGallery = () => {
                                           size="icon"
                                           className="h-8 w-8"
                                           title="Visualiser"
-                                          onClick={() => setPreviewDocument({
-                                            url: doc.file_url,
-                                            name: doc.file_name,
-                                            type: doc.file_type,
-                                          })}
+                                          onClick={() => openDocumentPreview(doc)}
                                         >
                                           <Eye className="h-4 w-4" />
                                         </Button>

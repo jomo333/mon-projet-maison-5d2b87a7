@@ -668,7 +668,7 @@ const BuildingCode = () => {
                   <p>{t("buildingCode.disclaimer.recommendation")}</p>
                   <p className="font-medium">{t("buildingCode.disclaimer.liability")}</p>
                   <a
-                    href="https://www.rbq.gouv.qc.ca/domaines-dintervention/batiment/les-codes-et-les-normes.html"
+                    href={i18n.language === 'en' ? "https://www.rbq.gouv.qc.ca/en/laws-regulations-and-codes/construction-code-and-safety-code/construction-code/" : "https://www.rbq.gouv.qc.ca/domaines-dintervention/batiment/les-codes-et-les-normes.html"}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-block mt-2 underline underline-offset-4 text-primary"

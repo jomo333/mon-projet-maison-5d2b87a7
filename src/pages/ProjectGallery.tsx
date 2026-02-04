@@ -531,33 +531,71 @@ const ProjectGallery = () => {
     }
   };
 
-  // Get soumissions data by trade
-  const getSoumissionsByTrade = () => {
-    return soumissionTrades.map(trade => {
-      const status = soumissionStatuses.find(s => s.task_id === `soumission-${trade.id}`);
-      const docs = soumissionDocs.filter(d => d.task_id === `soumission-${trade.id}`);
+  // Get soumissions data - now based on actual database data, not static trades list
+  const getSoumissionsFromData = () => {
+    // Build from actual statuses in database
+    const result: {
+      id: string;
+      name: string;
+      status: typeof soumissionStatuses[0] | undefined;
+      docs: typeof soumissionDocs;
+      supplierInfo: ReturnType<typeof parseSupplierInfo>;
+      isRetenu: boolean;
+      supplierName: string | null;
+      supplierPhone: string | null;
+      contactPerson: string | null;
+      contactPersonPhone: string | null;
+      amount: string | null;
+    }[] = [];
+
+    // Get all unique task_ids from both statuses and docs
+    const taskIds = new Set<string>();
+    soumissionStatuses.forEach(s => taskIds.add(s.task_id));
+    soumissionDocs.forEach(d => taskIds.add(d.task_id));
+
+    taskIds.forEach(taskId => {
+      const categoryId = taskId.replace('soumission-', '');
+      const status = soumissionStatuses.find(s => s.task_id === taskId);
+      const docs = soumissionDocs.filter(d => d.task_id === taskId);
       const supplierInfo = status ? parseSupplierInfo(status.notes) : null;
       const isRetenu = supplierInfo?.isCompleted === true;
-      
-      return {
-        ...trade,
+
+      // Format category name - capitalize and replace hyphens
+      const formatCategoryName = (id: string) => {
+        return id.split('-').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      };
+
+      result.push({
+        id: categoryId,
+        name: formatCategoryName(categoryId),
         status,
         docs,
         supplierInfo,
         isRetenu,
         supplierName: supplierInfo?.supplierName || null,
         supplierPhone: supplierInfo?.supplierPhone || null,
+        contactPerson: supplierInfo?.contactPerson || null,
+        contactPersonPhone: supplierInfo?.contactPersonPhone || null,
         amount: supplierInfo?.amount || null,
-      };
+      });
+    });
+
+    // Sort: retenus first, then by name
+    return result.sort((a, b) => {
+      if (a.isRetenu && !b.isRetenu) return -1;
+      if (!a.isRetenu && b.isRetenu) return 1;
+      return a.name.localeCompare(b.name);
     });
   };
 
-  const soumissionsData = getSoumissionsByTrade();
+  const soumissionsData = getSoumissionsFromData();
   const retenuCount = soumissionsData.filter(s => s.isRetenu).length;
   const totalDocsCount = soumissionDocs.length;
   
   // Filter AI analyses documents
-  const analysisDocs = documents.filter(d => d.category === 'analyse' && d.step_id === 'soumissions');
+  const analysisDocs = soumissionDocs.filter(d => d.category === 'analyse');
 
   const getStepTitle = (stepId: string) => {
     const step = constructionSteps.find(s => s.id === stepId);
@@ -1021,15 +1059,21 @@ const ProjectGallery = () => {
                           <Card key={trade.id} className="border-green-200 bg-green-50/50">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
-                                <div>
+                                <div className="flex-1">
                                   <h4 className="font-medium flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                                     {trade.name}
                                   </h4>
                                   {trade.supplierName && (
-                                    <p className="text-sm mt-1 flex items-center gap-1">
-                                      <User className="h-3 w-3" />
+                                    <p className="text-sm mt-1 font-medium">
                                       {trade.supplierName}
+                                    </p>
+                                  )}
+                                  {trade.contactPerson && (
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                      <User className="h-3 w-3" />
+                                      {trade.contactPerson}
+                                      {trade.contactPersonPhone && ` - ${trade.contactPersonPhone}`}
                                     </p>
                                   )}
                                   {trade.supplierPhone && (
@@ -1040,7 +1084,7 @@ const ProjectGallery = () => {
                                   )}
                                 </div>
                                 {trade.amount && (
-                                  <Badge variant="secondary" className="text-green-700">
+                                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                                     {parseFloat(trade.amount).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' })}
                                   </Badge>
                                 )}
@@ -1110,9 +1154,13 @@ const ProjectGallery = () => {
                       <div className="grid gap-3 md:grid-cols-2">
                         {analysisDocs.map((doc) => {
                           const isPreviewable = canPreview(doc.file_type);
-                          // Extract trade name from task_id (e.g., "soumission-excavation" -> "excavation")
-                          const tradeId = doc.task_id.replace('soumission-', '');
-                          const trade = soumissionTrades.find(t => t.id === tradeId);
+                          // Extract category name from task_id (e.g., "soumission-chauffage-et-ventilation" -> "Chauffage Et Ventilation")
+                          const categoryId = doc.task_id.replace('soumission-', '');
+                          const formatCategoryName = (id: string) => {
+                            return id.split('-').map(word => 
+                              word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                          };
                           return (
                             <Card key={doc.id} className="border-primary/20 bg-primary/5">
                               <CardContent className="p-4">
@@ -1122,11 +1170,9 @@ const ProjectGallery = () => {
                                       <Sparkles className="h-4 w-4 text-primary" />
                                       {doc.file_name}
                                     </h4>
-                                    {trade && (
-                                      <p className="text-sm text-muted-foreground mt-1">
-                                        {trade.name}
-                                      </p>
-                                    )}
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {formatCategoryName(categoryId)}
+                                    </p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                       {new Date(doc.created_at).toLocaleDateString(i18n.language)}
                                     </p>
@@ -1164,14 +1210,15 @@ const ProjectGallery = () => {
                     </div>
                   )}
 
-                  {/* En attente */}
+                  {/* En attente - only show categories with documents but not retained */}
+                  {soumissionsData.filter(s => !s.isRetenu && s.docs.length > 0).length > 0 && (
                   <div>
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                       <Clock className="h-5 w-5 text-amber-600" />
-                      En attente ({soumissionTrades.length - retenuCount})
+                      En attente ({soumissionsData.filter(s => !s.isRetenu && s.docs.length > 0).length})
                     </h3>
                     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                      {soumissionsData.filter(s => !s.isRetenu).map((trade) => (
+                      {soumissionsData.filter(s => !s.isRetenu && s.docs.length > 0).map((trade) => (
                         <Card key={trade.id} className="border-dashed">
                           <CardContent className="p-3 space-y-2">
                             <div className="flex items-center justify-between">
@@ -1232,6 +1279,7 @@ const ProjectGallery = () => {
                       ))}
                     </div>
                   </div>
+                  )}
                 </div>
               )}
             </TabsContent>

@@ -588,9 +588,8 @@ const ProjectGallery = () => {
     }
   };
 
-  // Get soumissions data - now based on actual database data, not static trades list
+  // Get soumissions data - include ALL trades, not just those with data
   const getSoumissionsFromData = () => {
-    // Build from actual statuses in database
     const result: {
       id: string;
       name: string;
@@ -605,28 +604,17 @@ const ProjectGallery = () => {
       amount: string | null;
     }[] = [];
 
-    // Get all unique task_ids from both statuses and docs
-    const taskIds = new Set<string>();
-    soumissionStatuses.forEach(s => taskIds.add(s.task_id));
-    soumissionDocs.forEach(d => taskIds.add(d.task_id));
-
-    taskIds.forEach(taskId => {
-      const categoryId = taskId.replace('soumission-', '');
+    // Start with ALL trades from the static list
+    soumissionTrades.forEach(trade => {
+      const taskId = `soumission-${trade.id}`;
       const status = soumissionStatuses.find(s => s.task_id === taskId);
       const docs = soumissionDocs.filter(d => d.task_id === taskId);
       const supplierInfo = status ? parseSupplierInfo(status.notes) : null;
       const isRetenu = supplierInfo?.isCompleted === true;
 
-      // Format category name - capitalize and replace hyphens
-      const formatCategoryName = (id: string) => {
-        return id.split('-').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
-      };
-
       result.push({
-        id: categoryId,
-        name: formatCategoryName(categoryId),
+        id: trade.id,
+        name: trade.name,
         status,
         docs,
         supplierInfo,
@@ -637,6 +625,43 @@ const ProjectGallery = () => {
         contactPersonPhone: supplierInfo?.contactPersonPhone || null,
         amount: supplierInfo?.amount || null,
       });
+    });
+
+    // Also include any task_ids from data that are not in the static list
+    const staticIds = new Set(soumissionTrades.map(t => t.id));
+    const allTaskIds = new Set<string>();
+    soumissionStatuses.forEach(s => allTaskIds.add(s.task_id));
+    soumissionDocs.forEach(d => allTaskIds.add(d.task_id));
+
+    allTaskIds.forEach(taskId => {
+      const categoryId = taskId.replace('soumission-', '');
+      if (!staticIds.has(categoryId)) {
+        const status = soumissionStatuses.find(s => s.task_id === taskId);
+        const docs = soumissionDocs.filter(d => d.task_id === taskId);
+        const supplierInfo = status ? parseSupplierInfo(status.notes) : null;
+        const isRetenu = supplierInfo?.isCompleted === true;
+
+        // Format category name - capitalize and replace hyphens
+        const formatCategoryName = (id: string) => {
+          return id.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ');
+        };
+
+        result.push({
+          id: categoryId,
+          name: formatCategoryName(categoryId),
+          status,
+          docs,
+          supplierInfo,
+          isRetenu,
+          supplierName: supplierInfo?.supplierName || null,
+          supplierPhone: supplierInfo?.supplierPhone || null,
+          contactPerson: supplierInfo?.contactPerson || null,
+          contactPersonPhone: supplierInfo?.contactPersonPhone || null,
+          amount: supplierInfo?.amount || null,
+        });
+      }
     });
 
     // Sort: retenus first, then by name

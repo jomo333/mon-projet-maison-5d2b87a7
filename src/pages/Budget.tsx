@@ -686,7 +686,7 @@ const Budget = () => {
                         <SelectContent>
                           {projects.map((project) => (
                             <SelectItem key={project.id} value={project.id}>
-                              {project.name} {project.project_type && `(${project.project_type})`}
+                              {project.name} {project.project_type && `(${translateProjectType(project.project_type)})`}
                             </SelectItem>
                           ))}
                         </SelectContent>

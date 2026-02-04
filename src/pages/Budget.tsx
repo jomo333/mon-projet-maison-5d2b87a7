@@ -846,7 +846,7 @@ const Budget = () => {
                   </CardDescription>
                 </div>
                 <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30">
-                  {budgetCategories.length} {t("budget.categories", "catégories")}
+                  {budgetCategories.length} {t("budget.categoriesCount", "catégories")}
                 </Badge>
               </div>
             </CardHeader>

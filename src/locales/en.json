@@ -1277,7 +1277,8 @@
     },
     "municipalitySet": "Municipality set: {{municipality}}. {{extra}}",
     "hasData": "I have specific data for this city. Ask your question.",
-    "noMunicipalData": "This municipality is not in our database. I will provide references from the Quebec Construction Code, but please verify specific requirements with your municipality."
+    "noMunicipalData": "This municipality is not in our database. I will provide references from the Quebec Construction Code, but please verify specific requirements with your municipality.",
+    "officialLinkLabel": "Consult the official Building Code text"
   },
   "dashboard": {
     "title": "Dashboard",

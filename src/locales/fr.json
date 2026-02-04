@@ -1277,7 +1277,8 @@
     },
     "municipalitySet": "Municipalité définie: {{municipality}}. {{extra}}",
     "hasData": "J'ai des données spécifiques pour cette ville. Posez votre question.",
-    "noMunicipalData": "Cette municipalité n'est pas dans notre base de données. Je vous fournirai les références du Code de construction du Québec, mais veuillez vérifier les exigences spécifiques auprès de votre municipalité."
+    "noMunicipalData": "Cette municipalité n'est pas dans notre base de données. Je vous fournirai les références du Code de construction du Québec, mais veuillez vérifier les exigences spécifiques auprès de votre municipalité.",
+    "officialLinkLabel": "Consulter le texte officiel du Code du bâtiment"
   },
   "dashboard": {
     "title": "Tableau de bord",

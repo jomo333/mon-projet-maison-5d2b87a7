@@ -264,7 +264,10 @@ export function CategorySubmissionsDialog({
           isDIY: notes.isDIY || false,
           materialCostOnly: notes.materialCostOnly ? parseFloat(notes.materialCostOnly) : 0,
           orderLeadDays: notes.orderLeadDays ?? null,
-        } as SubCategory;
+          // Include quotes and itemNotes from saved data
+          quotes: notes.quotes || [],
+          itemNotes: notes.itemNotes || '',
+        } as SubCategory & { quotes?: DIYSupplierQuote[]; itemNotes?: string };
       });
     },
     enabled: !!projectId && open,

@@ -10,17 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2, Upload, FileImage, X, File as FileIcon, CalendarIcon, DollarSign, Footprints } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, MapPin, HardHat, CheckCircle2, Loader2, Upload, FileImage, X, File as FileIcon, CalendarIcon, DollarSign, Footprints, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { stageToGuideStep, shouldOfferPlanUpload } from "@/lib/projectStageMapping";
 import { usePdfToImage } from "@/hooks/use-pdf-to-image";
-import { generateProjectSchedule, calculateTotalProjectDuration } from "@/lib/scheduleGenerator";
+import { generateProjectSchedule, calculateTotalProjectDuration, estimateEarliestWorkStartDate } from "@/lib/scheduleGenerator";
 import { ProjectSummary } from "@/components/start/ProjectSummary";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { startingStepOptions, isPreparationStep } from "@/lib/startingStepOptions";
@@ -875,6 +876,9 @@ const StartProject = () => {
 
               {projectData.targetStartDate && (() => {
                 const duration = calculateTotalProjectDuration(projectData.currentStage);
+                const earliestWorkStart = estimateEarliestWorkStartDate(projectData.currentStage);
+                const isTargetTooEarly = earliestWorkStart > projectData.targetStartDate;
+
                 return (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
@@ -904,6 +908,20 @@ const StartProject = () => {
                       <li>{t("startProject.autoSchedule.permitAlerts")}</li>
                       <li>{t("startProject.autoSchedule.supplierDelays")}</li>
                     </ul>
+
+                    {isTargetTooEarly && duration.preparationDays > 0 && (
+                      <Alert className="border-warning/50 bg-warning/5">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        <AlertTitle className="text-warning">
+                          {t("startProject.targetDateWarning.title")}
+                        </AlertTitle>
+                        <AlertDescription className="text-warning/90">
+                          {t("startProject.targetDateWarning.description", {
+                            earliest: format(parseISO(earliestWorkStart), "PPP", { locale: getDateLocale() }),
+                          })}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </div>
                 );
               })()}

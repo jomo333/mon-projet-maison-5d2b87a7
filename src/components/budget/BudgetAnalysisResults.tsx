@@ -61,6 +61,7 @@ import {
   Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/i18n";
 import { groupItemsByTask, getTasksForCategory, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import { translateBudgetItemName, translateNoItemsMessage } from "@/lib/budgetItemI18n";

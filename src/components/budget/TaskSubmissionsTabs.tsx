@@ -248,7 +248,7 @@ export function TaskSubmissionsTabs({
                     <span className="font-medium">{sub?.supplierName}</span>
                     {sub?.amount && sub.amount > 0 && (
                       <span className="text-primary font-bold">
-                        {sub.amount.toLocaleString("fr-CA")} $
+                        {formatCurrency(sub.amount)}
                       </span>
                     )}
                   </div>

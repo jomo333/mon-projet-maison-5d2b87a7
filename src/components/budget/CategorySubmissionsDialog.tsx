@@ -2349,46 +2349,6 @@ export function CategorySubmissionsDialog({
                   </div>
                 </div>
 
-                {/* Supplier Notice Section - Only show when supplier is selected */}
-                {supplierName && (
-                  <div className="mt-4 p-4 bg-amber-500/10 border-2 border-amber-500/50 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-500/20 rounded-full shrink-0">
-                        <Phone className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <h4 className="font-semibold text-amber-700 dark:text-amber-400 text-base">
-                            {t("categorySubmissions.supplierNotice.title")}
-                          </h4>
-                          <p className="text-sm text-amber-700/80 dark:text-amber-300/80 mt-1">
-                            {t("categorySubmissions.supplierNotice.description")}
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="supplier-lead-days" className="text-amber-700 dark:text-amber-400 font-medium">
-                            {t("categorySubmissions.supplierNotice.label")}
-                          </Label>
-                          <div className="relative max-w-xs">
-                            <Input
-                              id="supplier-lead-days"
-                              type="number"
-                              min={0}
-                              value={supplierLeadDays ?? ""}
-                              onChange={(e) => setSupplierLeadDays(e.target.value ? parseInt(e.target.value) : null)}
-                              placeholder={t("categorySubmissions.supplierNotice.placeholder")}
-                              className="border-amber-500/50 focus:border-amber-500 focus:ring-amber-500/30"
-                            />
-                          </div>
-                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70">
-                            {t("categorySubmissions.supplierNotice.tooltip")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {supplierStatus?.isCompleted && (
                   <Badge variant="secondary" className="w-fit bg-success/10 text-success">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -2401,17 +2361,6 @@ export function CategorySubmissionsDialog({
             <div className="h-2" />
           </div>
           </ScrollArea>
-          
-          {/* Scroll indicator when supplier is selected (indicates more content below) */}
-          {supplierName && (
-            <div className="absolute bottom-0 left-0 right-4 h-12 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none flex items-end justify-center pb-1">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground animate-bounce">
-                <span>↓</span>
-                <span>Préavis fournisseur</span>
-                <span>↓</span>
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="mt-4 flex justify-between">

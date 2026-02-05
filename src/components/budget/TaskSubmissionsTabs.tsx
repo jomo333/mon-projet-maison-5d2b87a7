@@ -257,7 +257,7 @@ export function TaskSubmissionsTabs({
           </div>
           <div className="flex justify-between font-bold text-sm pt-2 mt-2 border-t border-primary/20">
             <span>Total</span>
-            <span className="text-primary">{grandTotal.toLocaleString("fr-CA")} $</span>
+            <span className="text-primary">{formatCurrency(grandTotal)}</span>
           </div>
         </div>
       )}

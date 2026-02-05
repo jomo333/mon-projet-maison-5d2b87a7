@@ -189,14 +189,7 @@ export function BudgetAnalysisResults({
 
   const translatedProjectSummary = translateProjectSummary(analysis.projectSummary);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-CA", {
-      style: "currency",
-      currency: "CAD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  // Use centralized formatCurrency from i18n (already imported)
 
   const toggleCategory = (index: number) => {
     const newExpanded = new Set(expandedCategories);

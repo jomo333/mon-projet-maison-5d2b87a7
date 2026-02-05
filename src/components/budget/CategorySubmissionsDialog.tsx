@@ -721,6 +721,156 @@ export function CategorySubmissionsDialog({
     setDiyAnalysisResult(null);
     setShowDIYAnalysis(false);
   };
+  
+  // DIY Items handlers (new simplified table)
+  const handleAddDIYItem = async (name: string) => {
+    const id = Date.now().toString();
+    const newItem: DIYItem = {
+      id,
+      name,
+      totalAmount: 0,
+      quotes: [],
+      hasAnalysis: false,
+    };
+    
+    // Save to database
+    const notes = JSON.stringify({
+      subCategoryName: name,
+      amount: "0",
+      isDIY: true,
+      materialCostOnly: 0,
+      quotes: [],
+    });
+    
+    await supabase
+      .from('task_dates')
+      .insert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: `soumission-${tradeId}-sub-${id}`,
+        notes,
+      });
+    
+    setDiyItems(prev => [...prev, newItem]);
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    toast.success(t("toasts.subCategoryAddedDiy", { name }));
+  };
+  
+  const handleRemoveDIYItem = async (id: string) => {
+    await supabase
+      .from('task_dates')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('step_id', 'soumissions')
+      .eq('task_id', `soumission-${tradeId}-sub-${id}`);
+    
+    const removedItem = diyItems.find(item => item.id === id);
+    setDiyItems(prev => prev.filter(item => item.id !== id));
+    
+    if (removedItem) {
+      const newTotalSpent = diyItems
+        .filter(item => item.id !== id)
+        .reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+      setSpent(newTotalSpent.toString());
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    toast.success(t("toasts.subcategoryDeleted"));
+  };
+  
+  const handleUpdateDIYItem = async (updatedItem: DIYItem) => {
+    // Calculate total from quotes
+    const quotesTotal = updatedItem.quotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+    updatedItem.totalAmount = quotesTotal;
+    
+    setDiyItems(prev => prev.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ));
+    
+    // Save to database
+    const notes = JSON.stringify({
+      subCategoryName: updatedItem.name,
+      amount: updatedItem.totalAmount.toString(),
+      isDIY: true,
+      materialCostOnly: updatedItem.totalAmount,
+      quotes: updatedItem.quotes,
+      orderLeadDays: updatedItem.orderLeadDays,
+      hasAnalysis: updatedItem.hasAnalysis,
+      itemNotes: updatedItem.notes,
+    });
+    
+    await supabase
+      .from('task_dates')
+      .upsert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: `soumission-${tradeId}-sub-${updatedItem.id}`,
+        notes,
+      }, { onConflict: 'project_id,step_id,task_id' });
+    
+    // Update total spent
+    const newTotalSpent = diyItems
+      .map(item => item.id === updatedItem.id ? updatedItem.totalAmount : item.totalAmount)
+      .reduce((sum, amt) => sum + (amt || 0), 0);
+    setSpent(newTotalSpent.toString());
+    
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    
+    // Sync alerts if order lead days set
+    if (updatedItem.orderLeadDays && updatedItem.orderLeadDays > 0) {
+      try {
+        await syncAlertsFromSoumissions();
+      } catch (e) {
+        console.error("Error syncing alerts:", e);
+      }
+    }
+    
+    toast.success(t("common.save") + " ✓");
+  };
+  
+  const handleAddQuote = (itemId: string, quote: Omit<DIYSupplierQuote, "id">) => {
+    const quoteId = Date.now().toString();
+    const newQuote: DIYSupplierQuote = { ...quote, id: quoteId };
+    
+    setDiyItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const updatedQuotes = [...item.quotes, newQuote];
+        const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+        return { ...item, quotes: updatedQuotes, totalAmount: newTotal };
+      }
+      return item;
+    }));
+  };
+  
+  const handleRemoveQuote = (itemId: string, quoteId: string) => {
+    setDiyItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const updatedQuotes = item.quotes.filter(q => q.id !== quoteId);
+        const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+        return { ...item, quotes: updatedQuotes, totalAmount: newTotal };
+      }
+      return item;
+    }));
+  };
+  
+  const handleAnalyzeDIYItem = async (itemId: string) => {
+    const item = diyItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Set active sub-category for analysis
+    setActiveSubCategoryId(itemId);
+    setAnalyzingDIYItemId(itemId);
+    
+    // Trigger the existing DIY analysis
+    await analyzeDIYMaterials();
+    
+    // Mark as analyzed
+    setDiyItems(prev => prev.map(i => 
+      i.id === itemId ? { ...i, hasAnalysis: true } : i
+    ));
+    
+    setAnalyzingDIYItemId(null);
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

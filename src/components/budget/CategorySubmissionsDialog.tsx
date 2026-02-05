@@ -2362,8 +2362,21 @@ export function CategorySubmissionsDialog({
                 )}
               </div>
             </div>
+            {/* Extra padding at the bottom to ensure visibility */}
+            <div className="h-2" />
           </div>
           </ScrollArea>
+          
+          {/* Scroll indicator when supplier is selected (indicates more content below) */}
+          {supplierName && (
+            <div className="absolute bottom-0 left-0 right-4 h-12 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none flex items-end justify-center pb-1">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground animate-bounce">
+                <span>↓</span>
+                <span>Préavis fournisseur</span>
+                <span>↓</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-4 flex justify-between">

@@ -1279,7 +1279,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-sm font-medium">{option.optionName}</span>
                               <span className="text-sm font-semibold text-primary shrink-0">
-                                {parseFloat(option.amount).toLocaleString('fr-CA')} $
+                                {formatCurrency(parseFloat(option.amount))}
                               </span>
                             </div>
                             {option.description && (

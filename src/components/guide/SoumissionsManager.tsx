@@ -1236,7 +1236,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                               )}
                               {contact.amount && (
                                 <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded">
-                                  {parseFloat(contact.amount).toLocaleString('fr-CA')} $
+                                  {formatCurrency(parseFloat(contact.amount))}
                                 </span>
                               )}
                             </div>

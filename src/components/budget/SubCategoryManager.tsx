@@ -175,7 +175,7 @@ export function SubCategoryManager({
               </span>
               <span className="font-bold text-lg text-amber-600 dark:text-amber-400 flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                {totalAmount.toLocaleString("fr-CA")} $
+                {formatCurrency(totalAmount)}
               </span>
             </div>
           )}

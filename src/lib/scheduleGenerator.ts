@@ -201,6 +201,35 @@ export function calculateEndDate(startDate: string, businessDays: number): strin
 }
 
 /**
+ * Estime la date la plus tôt possible pour commencer les travaux (excavation)
+ * selon les étapes de préparation restantes, en partant d'aujourd'hui.
+ *
+ * NOTE: estimation basée sur les durées par défaut (sans superficie).
+ */
+export function estimateEarliestWorkStartDate(startingStepId?: string): string {
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const startFromStep = startingStepId || "planification";
+  const startIndex = constructionSteps.findIndex((s) => s.id === startFromStep);
+  const stepsToSchedule = startIndex >= 0 ? constructionSteps.slice(startIndex) : constructionSteps;
+  const prepSteps = stepsToSchedule.filter((s) => preparationSteps.includes(s.id));
+
+  if (prepSteps.length === 0) {
+    return today;
+  }
+
+  let current = today;
+  for (const step of prepSteps) {
+    const duration = defaultDurations[step.id] || 5;
+    const endDate = calculateEndDate(current, duration);
+    // On avance au prochain jour ouvrable entre les étapes
+    current = calculateEndDate(endDate, 1);
+  }
+
+  return current;
+}
+
+/**
  * Calcule la date de début en soustrayant des jours ouvrables (vers le passé)
  */
 function calculateStartDateBackward(endDate: string, businessDays: number): string {

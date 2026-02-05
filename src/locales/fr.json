@@ -1403,6 +1403,10 @@
     "currentStageHelp": "Sélectionnez l'étape actuelle de votre projet",
     "targetDate": "Quand souhaitez-vous commencer les travaux?",
     "targetDateHelp": "Cette date nous permettra de créer un échéancier préliminaire",
+    "targetDateWarning": {
+      "title": "Date trop tôt",
+      "description": "Avec les étapes de préparation restantes, l'excavation ne pourra pas commencer avant le {{earliest}}."
+    },
     "selectADate": "Sélectionner une date",
     "skipForNow": "Passer pour l'instant",
     "dateSelectedFor": "Date sélectionnée pour",

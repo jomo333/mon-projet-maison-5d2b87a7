@@ -876,6 +876,9 @@ const StartProject = () => {
 
               {projectData.targetStartDate && (() => {
                 const duration = calculateTotalProjectDuration(projectData.currentStage);
+                const earliestWorkStart = estimateEarliestWorkStartDate(projectData.currentStage);
+                const isTargetTooEarly = earliestWorkStart > projectData.targetStartDate;
+
                 return (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
@@ -905,6 +908,20 @@ const StartProject = () => {
                       <li>{t("startProject.autoSchedule.permitAlerts")}</li>
                       <li>{t("startProject.autoSchedule.supplierDelays")}</li>
                     </ul>
+
+                    {isTargetTooEarly && duration.preparationDays > 0 && (
+                      <Alert className="border-warning/50 bg-warning/5">
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        <AlertTitle className="text-warning">
+                          {t("startProject.targetDateWarning.title")}
+                        </AlertTitle>
+                        <AlertDescription className="text-warning/90">
+                          {t("startProject.targetDateWarning.description", {
+                            earliest: format(parseISO(earliestWorkStart), "PPP", { locale: getDateLocale() }),
+                          })}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </div>
                 );
               })()}

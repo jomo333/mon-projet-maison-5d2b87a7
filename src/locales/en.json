@@ -1403,6 +1403,10 @@
     "currentStageHelp": "Select your project's current stage",
     "targetDate": "When would you like to start construction?",
     "targetDateHelp": "This date will help us create a preliminary schedule",
+    "targetDateWarning": {
+      "title": "Date is too soon",
+      "description": "With the remaining preparation steps, excavation can't start before {{earliest}}."
+    },
     "selectADate": "Select a date",
     "skipForNow": "Skip for now",
     "dateSelectedFor": "Date selected for",

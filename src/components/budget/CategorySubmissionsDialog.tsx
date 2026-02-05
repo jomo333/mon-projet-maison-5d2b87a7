@@ -493,13 +493,24 @@ export function CategorySubmissionsDialog({
       .replace(/_+/g, '_'); // Replace multiple underscores with single
   };
 
+  // Sanitize path segment for storage (remove accents and special characters)
+  const sanitizePathSegment = (segment: string): string => {
+    return segment
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[^a-zA-Z0-9-]/g, '-') // Replace special chars with hyphen
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .toLowerCase();
+  };
+
   // Upload mutation - uses currentTaskId for sub-category support
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error("Non authentifié");
       
       const sanitizedName = sanitizeFileName(file.name);
-      const subPath = activeSubCategoryId ? `${tradeId}/sub-${activeSubCategoryId}` : tradeId;
+      const sanitizedTradeId = sanitizePathSegment(tradeId);
+      const subPath = activeSubCategoryId ? `${sanitizedTradeId}/sub-${activeSubCategoryId}` : sanitizedTradeId;
       // Path format: user_id/project_id/soumissions/trade/filename
       const fileName = `${user.id}/${projectId}/soumissions/${subPath}/${Date.now()}_${sanitizedName}`;
       

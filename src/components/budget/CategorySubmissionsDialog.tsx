@@ -493,6 +493,16 @@ export function CategorySubmissionsDialog({
       .replace(/_+/g, '_'); // Replace multiple underscores with single
   };
 
+  // Sanitize path segment for storage (remove accents and special characters)
+  const sanitizePathSegment = (segment: string): string => {
+    return segment
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[^a-zA-Z0-9-]/g, '-') // Replace special chars with hyphen
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .toLowerCase();
+  };
+
   // Upload mutation - uses currentTaskId for sub-category support
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {

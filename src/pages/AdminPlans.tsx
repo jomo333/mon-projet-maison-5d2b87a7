@@ -224,12 +224,7 @@ export default function AdminPlans() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-CA", {
-      style: "currency",
-      currency: "CAD",
-    }).format(value);
-  };
+  // Use centralized formatCurrency from i18n (already imported at top)
 
   return (
     <AdminGuard>

@@ -228,7 +228,7 @@ export function MyProjectSection() {
                     {project.total_budget && project.total_budget > 0 && (
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-4 w-4" />
-                        <span>{project.total_budget.toLocaleString("fr-CA")} $</span>
+                        <span>{formatCurrency(project.total_budget)}</span>
                       </div>
                     )}
                   </div>

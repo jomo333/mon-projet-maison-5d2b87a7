@@ -2060,7 +2060,42 @@ export function CategorySubmissionsDialog({
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">Coût retenu</div>
                       <div className="font-bold text-2xl text-primary">
-                        {formatCurrency(parseInt(spent || selectedAmount || '0'))}
+                        {formatCurrency(parseFloat(spent || selectedAmount || '0') || 0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Supplier Notice Section - Integrated in supplier card */}
+                <div className="pt-3 mt-3 border-t border-primary/20">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/40 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 bg-amber-500/20 rounded-full shrink-0">
+                        <Phone className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-medium text-amber-700 dark:text-amber-400 text-sm">
+                            {t("categorySubmissions.supplierNotice.title")}
+                          </h5>
+                          <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            Important
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-amber-700/70 dark:text-amber-300/70">
+                          {t("categorySubmissions.supplierNotice.description")}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            value={supplierLeadDays ?? ""}
+                            onChange={(e) => setSupplierLeadDays(e.target.value ? parseInt(e.target.value) : null)}
+                            placeholder={t("categorySubmissions.supplierNotice.placeholder")}
+                            className="max-w-[120px] h-8 text-sm border-amber-500/50 focus:border-amber-500"
+                          />
+                          <span className="text-xs text-muted-foreground">{t("categorySubmissions.supplierNotice.label")}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

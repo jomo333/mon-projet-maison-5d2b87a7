@@ -1794,7 +1794,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                       <span className="font-medium text-blue-700 dark:text-blue-400">{t("planAnalyzer.taxesLabel")}</span>
                     </div>
                     <span className="text-blue-700 dark:text-blue-400 font-medium text-sm">
-                      {Math.round(taxes * 0.90).toLocaleString()} $ - {Math.round(taxes * 1.10).toLocaleString()} $
+                      {formatCurrency(Math.round(taxes * 0.90))} - {formatCurrency(Math.round(taxes * 1.10))}
                     </span>
                   </div>
                 </div>

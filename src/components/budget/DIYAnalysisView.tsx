@@ -225,7 +225,7 @@ export function DIYAnalysisView({
                   onClick={() => onApplyEstimate(estimatedTotal)}
                 >
                   <DollarSign className="h-5 w-5 mr-2" />
-                  Appliquer: {estimatedTotal.toLocaleString('fr-CA')} $
+                  Appliquer: {formatCurrency(estimatedTotal)}
                 </Button>
               </div>
             )}

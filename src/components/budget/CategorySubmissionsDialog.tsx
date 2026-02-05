@@ -2255,6 +2255,8 @@ export function CategorySubmissionsDialog({
             )}
 
             {/* Manual Supplier Entry or Selected Supplier Details */}
+            {/* Hide in DIY mode since DIY sub-categories don't have suppliers */}
+            {!subCategories.find(sc => sc.id === activeSubCategoryId)?.isDIY && (
             <div className="space-y-3">
               <h4 className="font-medium flex items-center gap-2">
                 <User className="h-4 w-4" />

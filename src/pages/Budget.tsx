@@ -940,10 +940,10 @@ const Budget = () => {
                                 </div>
                                 <div className="text-right shrink-0 min-w-[140px]">
                                   <div className="text-base font-bold text-foreground">
-                                    {category.spent.toLocaleString()} $
+                                    {formatCurrency(category.spent)}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    / {Math.round(category.budget * 0.90).toLocaleString()} - {Math.round(category.budget * 1.10).toLocaleString()} $
+                                    / {formatCurrency(Math.round(category.budget * 0.90))} - {formatCurrency(Math.round(category.budget * 1.10))}
                                   </div>
                                 </div>
                                 <div className="shrink-0 p-1">

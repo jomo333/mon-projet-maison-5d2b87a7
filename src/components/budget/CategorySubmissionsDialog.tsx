@@ -509,7 +509,8 @@ export function CategorySubmissionsDialog({
       if (!user) throw new Error("Non authentifié");
       
       const sanitizedName = sanitizeFileName(file.name);
-      const subPath = activeSubCategoryId ? `${tradeId}/sub-${activeSubCategoryId}` : tradeId;
+      const sanitizedTradeId = sanitizePathSegment(tradeId);
+      const subPath = activeSubCategoryId ? `${sanitizedTradeId}/sub-${activeSubCategoryId}` : sanitizedTradeId;
       // Path format: user_id/project_id/soumissions/trade/filename
       const fileName = `${user.id}/${projectId}/soumissions/${subPath}/${Date.now()}_${sanitizedName}`;
       

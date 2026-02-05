@@ -2126,7 +2126,7 @@ export function CategorySubmissionsDialog({
                           const total = extractedSuppliers.reduce((sum, s) => sum + parseInt(s.amount || '0'), 0);
                           const average = Math.round(total / extractedSuppliers.length);
                           setBudget(average.toString());
-                          toast.success(`Budget estimé mis à jour: ${average.toLocaleString('fr-CA')} $`);
+                          toast.success(`Budget estimé mis à jour: ${formatCurrency(average)}`);
                         }}
                         className="gap-2 shrink-0"
                       >

@@ -112,7 +112,7 @@ export function ConstructionStages() {
 
                 <div className="text-right shrink-0 hidden sm:block">
                   <div className="text-sm font-medium">
-                    {stage.spent.toLocaleString()} $ / {stage.budget.toLocaleString()} $
+                    {formatCurrency(stage.spent)} / {formatCurrency(stage.budget)}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Échéance: {stage.dueDate}

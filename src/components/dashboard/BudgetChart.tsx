@@ -41,7 +41,7 @@ export function BudgetChart() {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                 }}
-                formatter={(value: number) => [`${value.toLocaleString()} $`, '']}
+                formatter={(value: number) => [formatCurrency(value), '']}
               />
               <Bar dataKey="prevu" name="Budget prévu" radius={[4, 4, 0, 0]}>
                 {data.map((_, index) => (

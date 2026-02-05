@@ -237,11 +237,11 @@ export function AnalysisFullView({
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm text-muted-foreground">Montant retenu:</span>
                       <span className="font-bold text-xl text-primary">
-                        {parseAmount(
+                        {formatCurrency(parseAmount(
                           selectedOptionIndex !== null && selectedSupplier.options?.[selectedOptionIndex]
                             ? selectedSupplier.options[selectedOptionIndex].amount
                             : selectedSupplier.amount
-                        ).toLocaleString('fr-CA')} $
+                        ))}
                       </span>
                   </div>
                 </div>

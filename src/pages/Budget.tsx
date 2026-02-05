@@ -762,6 +762,7 @@ const Budget = () => {
                       {formatCurrency(Math.round(displayBudget * 0.90))} à {formatCurrency(Math.round(displayBudget * 1.10))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{t("budget.budgetRange")}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.budgetIncludes")}</p>
                   </>
                 ) : (
                   <>
@@ -787,6 +788,9 @@ const Budget = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   {percentUsed.toFixed(1)}% {t("budget.percentUsed")}
                 </p>
+                {totalSpent > 0 && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.spentIncludes")}</p>
+                )}
               </CardContent>
             </Card>
 
@@ -799,9 +803,12 @@ const Budget = () => {
               </CardHeader>
               <CardContent>
                 {hasAnalyzedBudget ? (
-                  <div className="text-xl font-bold font-display text-success">
-                    {formatCurrency(Math.round(displayRemaining * 0.90))} à {formatCurrency(Math.round(displayRemaining * 1.10))}
-                  </div>
+                  <>
+                    <div className="text-xl font-bold font-display text-success">
+                      {formatCurrency(Math.round(displayRemaining * 0.90))} à {formatCurrency(Math.round(displayRemaining * 1.10))}
+                    </div>
+                    <p className="text-xs text-muted-foreground/70 mt-1 italic">{t("budget.remainingIncludes")}</p>
+                  </>
                 ) : (
                   <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
                 )}

@@ -3817,5 +3817,31 @@
       "understandAnalysis": "Understand my analysis",
       "technicalIssue": "Technical issue"
     }
+  },
+  "diyItems": {
+    "title": "Materials to buy (DIY)",
+    "addItem": "Add an item",
+    "noItems": "No DIY items",
+    "addHint": "Add materials you buy yourself (e.g., Ceramic tiles, Light fixtures...)",
+    "item": "Item",
+    "quotes": "Quotes",
+    "leadTime": "Lead time",
+    "total": "Total",
+    "totalMaterials": "Total DIY materials",
+    "addDialogTitle": "Add a DIY item",
+    "itemName": "Item name",
+    "itemPlaceholder": "E.g., Bathroom tiles, Light fixtures...",
+    "suggestions": "Suggestions",
+    "notesLabel": "Notes / Description",
+    "notesPlaceholder": "E.g., 12x24 gray ceramic for bathroom, model X from Canac...",
+    "orderLeadLabel": "Order lead time",
+    "quotesLabel": "Supplier quotes",
+    "addQuote": "Add quote",
+    "noQuotes": "No quotes added",
+    "store": "Store",
+    "description": "Description",
+    "amount": "Amount",
+    "storePlaceholder": "E.g., Canac, Home Depot...",
+    "descPlaceholder": "E.g., 12x24 ceramic"
   }
 }

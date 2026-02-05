@@ -3817,5 +3817,31 @@
       "understandAnalysis": "Comprendre mon analyse",
       "technicalIssue": "Problème technique"
     }
+  },
+  "diyItems": {
+    "title": "Matériaux à acheter (DIY)",
+    "addItem": "Ajouter un item",
+    "noItems": "Aucun item DIY",
+    "addHint": "Ajoutez les matériaux que vous achetez vous-même (ex: Céramique, Luminaires...)",
+    "item": "Item",
+    "quotes": "Devis",
+    "leadTime": "Préavis",
+    "total": "Total",
+    "totalMaterials": "Total matériaux DIY",
+    "addDialogTitle": "Ajouter un item DIY",
+    "itemName": "Nom de l'item",
+    "itemPlaceholder": "Ex: Céramique salle de bain, Luminaires...",
+    "suggestions": "Suggestions",
+    "notesLabel": "Notes / Description",
+    "notesPlaceholder": "Ex: Céramique 12x24 gris pour salle de bain, modèle X de chez Canac...",
+    "orderLeadLabel": "Préavis commande",
+    "quotesLabel": "Devis fournisseurs",
+    "addQuote": "Ajouter devis",
+    "noQuotes": "Aucun devis ajouté",
+    "store": "Magasin",
+    "description": "Description",
+    "amount": "Montant",
+    "storePlaceholder": "Ex: Canac, Rona...",
+    "descPlaceholder": "Ex: Céramique 12x24"
   }
 }

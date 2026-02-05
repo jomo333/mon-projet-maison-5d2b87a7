@@ -64,6 +64,7 @@ import { AnalysisFullView } from "./AnalysisFullView";
 import { DIYAnalysisView } from "./DIYAnalysisView";
 import { SubCategoryManager, type SubCategory } from "./SubCategoryManager";
 import { TaskSubmissionsTabs, getTasksForCategory } from "./TaskSubmissionsTabs";
+import { DIYItemsTable, type DIYItem, type DIYSupplierQuote } from "./DIYItemsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CategorySubmissionsDialogProps {
@@ -177,6 +178,10 @@ export function CategorySubmissionsDialog({
   const [activeSubCategoryId, setActiveSubCategoryId] = useState<string | null>(null);
   const [viewingSubCategory, setViewingSubCategory] = useState(false);
   
+  // DIY Items state (new simplified table view)
+  const [diyItems, setDiyItems] = useState<DIYItem[]>([]);
+  const [analyzingDIYItemId, setAnalyzingDIYItemId] = useState<string | null>(null);
+  
   // Task-based organization state
   // 'single' = one submission for all tasks, 'tasks' = per-task, 'subcategories' = custom sub-categories
   const [viewMode, setViewMode] = useState<'single' | 'subcategories' | 'tasks'>('single');
@@ -259,7 +264,10 @@ export function CategorySubmissionsDialog({
           isDIY: notes.isDIY || false,
           materialCostOnly: notes.materialCostOnly ? parseFloat(notes.materialCostOnly) : 0,
           orderLeadDays: notes.orderLeadDays ?? null,
-        } as SubCategory;
+          // Include quotes and itemNotes from saved data
+          quotes: notes.quotes || [],
+          itemNotes: notes.itemNotes || '',
+        } as SubCategory & { quotes?: DIYSupplierQuote[]; itemNotes?: string };
       });
     },
     enabled: !!projectId && open,
@@ -357,6 +365,24 @@ export function CategorySubmissionsDialog({
   useEffect(() => {
     if (savedSubCategories.length > 0) {
       setSubCategories(savedSubCategories);
+      
+      // Also sync to DIY items format with quotes from saved data
+      const diyItemsFromDb: DIYItem[] = savedSubCategories
+        .filter(sc => sc.isDIY)
+        .map(sc => {
+          // Cast to access extended properties
+          const scWithExtras = sc as SubCategory & { quotes?: DIYSupplierQuote[]; itemNotes?: string };
+          return {
+            id: sc.id,
+            name: sc.name,
+            totalAmount: sc.amount || 0,
+            quotes: scWithExtras.quotes || [],
+            orderLeadDays: sc.orderLeadDays,
+            hasAnalysis: sc.hasAnalysis,
+            notes: scWithExtras.itemNotes || '',
+          };
+        });
+      setDiyItems(diyItemsFromDb);
     }
   }, [savedSubCategories]);
   
@@ -715,6 +741,156 @@ export function CategorySubmissionsDialog({
     setViewingSubCategory(false);
     setDiyAnalysisResult(null);
     setShowDIYAnalysis(false);
+  };
+  
+  // DIY Items handlers (new simplified table)
+  const handleAddDIYItem = async (name: string) => {
+    const id = Date.now().toString();
+    const newItem: DIYItem = {
+      id,
+      name,
+      totalAmount: 0,
+      quotes: [],
+      hasAnalysis: false,
+    };
+    
+    // Save to database
+    const notes = JSON.stringify({
+      subCategoryName: name,
+      amount: "0",
+      isDIY: true,
+      materialCostOnly: 0,
+      quotes: [],
+    });
+    
+    await supabase
+      .from('task_dates')
+      .insert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: `soumission-${tradeId}-sub-${id}`,
+        notes,
+      });
+    
+    setDiyItems(prev => [...prev, newItem]);
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    toast.success(t("toasts.subCategoryAddedDiy", { name }));
+  };
+  
+  const handleRemoveDIYItem = async (id: string) => {
+    await supabase
+      .from('task_dates')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('step_id', 'soumissions')
+      .eq('task_id', `soumission-${tradeId}-sub-${id}`);
+    
+    const removedItem = diyItems.find(item => item.id === id);
+    setDiyItems(prev => prev.filter(item => item.id !== id));
+    
+    if (removedItem) {
+      const newTotalSpent = diyItems
+        .filter(item => item.id !== id)
+        .reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+      setSpent(newTotalSpent.toString());
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    toast.success(t("toasts.subcategoryDeleted"));
+  };
+  
+  const handleUpdateDIYItem = async (updatedItem: DIYItem) => {
+    // Calculate total from quotes
+    const quotesTotal = updatedItem.quotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+    updatedItem.totalAmount = quotesTotal;
+    
+    setDiyItems(prev => prev.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ));
+    
+    // Save to database
+    const notes = JSON.stringify({
+      subCategoryName: updatedItem.name,
+      amount: updatedItem.totalAmount.toString(),
+      isDIY: true,
+      materialCostOnly: updatedItem.totalAmount,
+      quotes: updatedItem.quotes,
+      orderLeadDays: updatedItem.orderLeadDays,
+      hasAnalysis: updatedItem.hasAnalysis,
+      itemNotes: updatedItem.notes,
+    });
+    
+    await supabase
+      .from('task_dates')
+      .upsert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: `soumission-${tradeId}-sub-${updatedItem.id}`,
+        notes,
+      }, { onConflict: 'project_id,step_id,task_id' });
+    
+    // Update total spent
+    const newTotalSpent = diyItems
+      .map(item => item.id === updatedItem.id ? updatedItem.totalAmount : item.totalAmount)
+      .reduce((sum, amt) => sum + (amt || 0), 0);
+    setSpent(newTotalSpent.toString());
+    
+    queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
+    
+    // Sync alerts if order lead days set
+    if (updatedItem.orderLeadDays && updatedItem.orderLeadDays > 0) {
+      try {
+        await syncAlertsFromSoumissions();
+      } catch (e) {
+        console.error("Error syncing alerts:", e);
+      }
+    }
+    
+    toast.success(t("common.save") + " ✓");
+  };
+  
+  const handleAddQuote = (itemId: string, quote: Omit<DIYSupplierQuote, "id">) => {
+    const quoteId = Date.now().toString();
+    const newQuote: DIYSupplierQuote = { ...quote, id: quoteId };
+    
+    setDiyItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const updatedQuotes = [...item.quotes, newQuote];
+        const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+        return { ...item, quotes: updatedQuotes, totalAmount: newTotal };
+      }
+      return item;
+    }));
+  };
+  
+  const handleRemoveQuote = (itemId: string, quoteId: string) => {
+    setDiyItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const updatedQuotes = item.quotes.filter(q => q.id !== quoteId);
+        const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+        return { ...item, quotes: updatedQuotes, totalAmount: newTotal };
+      }
+      return item;
+    }));
+  };
+  
+  const handleAnalyzeDIYItem = async (itemId: string) => {
+    const item = diyItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Set active sub-category for analysis
+    setActiveSubCategoryId(itemId);
+    setAnalyzingDIYItemId(itemId);
+    
+    // Trigger the existing DIY analysis
+    await analyzeDIYMaterials();
+    
+    // Mark as analyzed
+    setDiyItems(prev => prev.map(i => 
+      i.id === itemId ? { ...i, hasAnalysis: true } : i
+    ));
+    
+    setAnalyzingDIYItemId(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1704,16 +1880,16 @@ export function CategorySubmissionsDialog({
                         {t("categorySubmissions.taskSubmissions.diyModeDescription")}
                       </p>
                     </div>
-                    <SubCategoryManager
-                      subCategories={subCategories}
-                      onAddSubCategory={handleAddSubCategory}
-                      onRemoveSubCategory={handleRemoveSubCategory}
-                      onSelectSubCategory={handleSelectSubCategory}
-                      activeSubCategoryId={activeSubCategoryId}
+                    <DIYItemsTable
+                      items={diyItems}
+                      onAddItem={handleAddDIYItem}
+                      onRemoveItem={handleRemoveDIYItem}
+                      onUpdateItem={handleUpdateDIYItem}
+                      onAddQuote={handleAddQuote}
+                      onRemoveQuote={handleRemoveQuote}
+                      onAnalyzeItem={projectPlans.length > 0 ? handleAnalyzeDIYItem : undefined}
+                      analyzingItemId={analyzingDIYItemId}
                       categoryName={categoryName}
-                      projectPlans={projectPlans}
-                      onAnalyzeDIY={analyzeDIYMaterials}
-                      analyzingDIY={analyzingDIY}
                     />
                   </TabsContent>
                 </Tabs>

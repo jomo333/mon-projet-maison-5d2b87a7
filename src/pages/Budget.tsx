@@ -1208,7 +1208,7 @@ const Budget = () => {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number, name: string) => [`${value.toLocaleString()} $`, name]}
+                        formatter={(value: number, name: string) => [formatCurrency(value), name]}
                         labelFormatter={() => ''}
                         contentStyle={{
                           backgroundColor: 'hsl(var(--card))',

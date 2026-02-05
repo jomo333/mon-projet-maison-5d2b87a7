@@ -1767,7 +1767,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                         <span className="font-medium">{getCategoryLabel(t, cat.name)}</span>
                       </div>
                       <span className="text-muted-foreground font-medium text-sm">
-                        {Math.round(cat.budget * 0.90).toLocaleString()} $ - {Math.round(cat.budget * 1.10).toLocaleString()} $
+                        {formatCurrency(Math.round(cat.budget * 0.90))} - {formatCurrency(Math.round(cat.budget * 1.10))}
                       </span>
                     </div>
                   ))}

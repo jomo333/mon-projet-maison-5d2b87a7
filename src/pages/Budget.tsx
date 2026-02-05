@@ -1171,7 +1171,7 @@ const Budget = () => {
                           </div>
                           <div className="text-right shrink-0 min-w-[140px]">
                             <div className="text-base font-bold">
-                              {Math.round(taxes * 0.90).toLocaleString()} $ - {Math.round(taxes * 1.10).toLocaleString()} $
+                              {formatCurrency(Math.round(taxes * 0.90))} - {formatCurrency(Math.round(taxes * 1.10))}
                             </div>
                           </div>
                         </div>

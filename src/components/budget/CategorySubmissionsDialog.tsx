@@ -258,6 +258,7 @@ export function CategorySubmissionsDialog({
           hasAnalysis: notes.hasAnalysis || false,
           isDIY: notes.isDIY || false,
           materialCostOnly: notes.materialCostOnly ? parseFloat(notes.materialCostOnly) : 0,
+          orderLeadDays: notes.orderLeadDays ?? null,
         } as SubCategory;
       });
     },

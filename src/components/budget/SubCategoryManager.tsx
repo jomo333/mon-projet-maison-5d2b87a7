@@ -31,6 +31,7 @@ export interface SubCategory {
   hasAnalysis?: boolean;
   isDIY?: boolean; // Fait par moi-même
   materialCostOnly?: number; // Coût matériaux seulement
+  orderLeadDays?: number; // Préavis de commande en jours
 }
 
 interface SubCategoryManagerProps {

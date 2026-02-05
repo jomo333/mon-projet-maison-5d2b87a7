@@ -366,17 +366,22 @@ export function CategorySubmissionsDialog({
     if (savedSubCategories.length > 0) {
       setSubCategories(savedSubCategories);
       
-      // Also sync to DIY items format
+      // Also sync to DIY items format with quotes from saved data
       const diyItemsFromDb: DIYItem[] = savedSubCategories
         .filter(sc => sc.isDIY)
-        .map(sc => ({
-          id: sc.id,
-          name: sc.name,
-          totalAmount: sc.amount || 0,
-          quotes: [], // Will be loaded from notes
-          orderLeadDays: sc.orderLeadDays,
-          hasAnalysis: sc.hasAnalysis,
-        }));
+        .map(sc => {
+          // Cast to access extended properties
+          const scWithExtras = sc as SubCategory & { quotes?: DIYSupplierQuote[]; itemNotes?: string };
+          return {
+            id: sc.id,
+            name: sc.name,
+            totalAmount: sc.amount || 0,
+            quotes: scWithExtras.quotes || [],
+            orderLeadDays: sc.orderLeadDays,
+            hasAnalysis: sc.hasAnalysis,
+            notes: scWithExtras.itemNotes || '',
+          };
+        });
       setDiyItems(diyItemsFromDb);
     }
   }, [savedSubCategories]);

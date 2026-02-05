@@ -487,14 +487,23 @@ export const useProjectSchedule = (projectId: string | null) => {
       });
     }
 
-    // 4. Delete existing supplier_call alerts and recreate
+    // 4. Delete existing supplier_call and material_order alerts and recreate
     const scheduleIds = schedules.map(s => s.id);
     if (scheduleIds.length > 0) {
+      // Delete supplier_call alerts
       await supabase
         .from("schedule_alerts")
         .delete()
         .eq("project_id", projectId)
         .eq("alert_type", "supplier_call")
+        .in("schedule_id", scheduleIds);
+      
+      // Delete material_order alerts
+      await supabase
+        .from("schedule_alerts")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("alert_type", "material_order")
         .in("schedule_id", scheduleIds);
     }
 

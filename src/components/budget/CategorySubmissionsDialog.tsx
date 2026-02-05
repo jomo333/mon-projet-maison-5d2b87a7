@@ -2360,6 +2360,7 @@ export function CategorySubmissionsDialog({
                 )}
               </div>
             </div>
+            )}
             {/* Extra padding at the bottom to ensure visibility */}
             <div className="h-2" />
           </div>

@@ -947,9 +947,6 @@ export function CategorySubmissionsDialog({
     }));
   };
 
-  // State for DIY document upload
-  const [uploadingDIYItemId, setUploadingDIYItemId] = useState<string | null>(null);
-
   // Handler for uploading documents to a DIY item
   const handleUploadDIYDocument = async (itemId: string, file: File) => {
     if (!user) return;

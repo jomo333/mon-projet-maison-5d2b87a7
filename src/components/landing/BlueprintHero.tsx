@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import logoSlim from "@/assets/logo-slim.png";
+import blueprintBg from "@/assets/blueprint-background.jpg";
 
 export function BlueprintHero() {
   const navigate = useNavigate();
@@ -15,36 +16,18 @@ export function BlueprintHero() {
   ];
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-navy blueprint-pattern">
-      {/* House outline SVG background */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <svg
-          viewBox="0 0 400 320"
-          className="w-[600px] h-[480px] md:w-[800px] md:h-[640px] lg:w-[1000px] lg:h-[800px] opacity-[0.08]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1"
-        >
-          <path
-            d="M200 40 L360 140 L360 280 L40 280 L40 140 Z"
-            className="text-slate-200"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M140 280 L140 200 L200 200 L200 280"
-            className="text-slate-200"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <rect x="240" y="180" width="60" height="50" className="text-slate-200" rx="2" />
-          <path d="M250 205 L270 185 L290 205" className="text-slate-200" strokeLinecap="round" strokeLinejoin="round" />
-          <rect x="80" y="180" width="40" height="50" className="text-slate-200" rx="2" />
-          <line x1="100" y1="180" x2="100" y2="230" className="text-slate-200" />
-          <line x1="80" y1="205" x2="120" y2="205" className="text-slate-200" />
-          <path d="M200 40 L200 10 L230 10 L230 60" className="text-slate-200" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-navy">
+      {/* Blueprint background image */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url(${blueprintBg})`,
+          backgroundSize: '130%',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.25,
+        }}
+      />
 
       <div className="container relative z-10">
         <div className="mx-auto max-w-4xl text-center">

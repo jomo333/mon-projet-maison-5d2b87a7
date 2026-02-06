@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -39,6 +40,8 @@ import {
   Clock,
   FileText,
   Loader2,
+  Phone,
+  Building2,
 } from "lucide-react";
 
 export interface DIYSupplierQuote {
@@ -59,6 +62,12 @@ export interface DIYItem {
   notes?: string;
 }
 
+export interface DIYSelectedSupplier {
+  name: string;
+  phone?: string;
+  orderLeadDays?: number;
+}
+
 interface DIYItemsTableProps {
   items: DIYItem[];
   onAddItem: (name: string) => void;
@@ -69,6 +78,8 @@ interface DIYItemsTableProps {
   onAnalyzeItem?: (itemId: string) => void;
   analyzingItemId?: string | null;
   categoryName: string;
+  selectedSupplier?: DIYSelectedSupplier;
+  onUpdateSupplier?: (supplier: DIYSelectedSupplier) => void;
 }
 
 // Default suggestions based on category

@@ -178,19 +178,13 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
       }
     }
     
-    // Fallback: assign sequential document number based on order
-    if (!docRef && contacts.length === 0) {
-      docRef = 'Doc 1';
-    } else if (!docRef) {
-      // Check if previous contacts have doc refs to continue the sequence
-      const lastDocRef = contacts[contacts.length - 1]?.documentRef;
-      if (lastDocRef) {
-        const lastNum = parseInt(lastDocRef.replace(/\D/g, '')) || 0;
-        docRef = `Doc ${lastNum + 1}`;
-      }
+    // Fallback: assign sequential document number based on the block index (not contacts.length)
+    // This ensures each unique block gets a unique document number
+    if (!docRef) {
+      docRef = `Doc ${blockIndex + 1}`;
     }
     
-    currentDocRef = docRef || currentDocRef;
+    currentDocRef = docRef;
     
     const nameMatch = block.match(/🏢\s*\*?\*?([^*\n(]+?)(?:\s*\([^)]+\))?(?:\s*[-–—]|\*\*)/);
     const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);

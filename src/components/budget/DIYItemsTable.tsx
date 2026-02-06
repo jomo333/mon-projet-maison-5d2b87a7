@@ -40,8 +40,6 @@ import {
   Clock,
   FileText,
   Loader2,
-  Phone,
-  Building2,
   Upload,
   Download,
 } from "lucide-react";
@@ -553,75 +551,7 @@ export function DIYItemsTable({
         </>
       )}
 
-      {/* Selected Supplier Card (DIY specific) - always visible (even with 0 items) */}
-      {onUpdateSupplier && (
-        <Card className="border-amber-200 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
-              <Building2 className="h-4 w-4" />
-              {t("diyItems.selectedSupplier", "Fournisseur principal")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <Store className="h-3 w-3" />
-                  {t("diyItems.supplierName", "Nom du fournisseur")}
-                </label>
-                <Input
-                  value={selectedSupplier?.name || ""}
-                  onChange={(e) => handleUpdateSupplierField("name", e.target.value)}
-                  placeholder={t("diyItems.supplierNamePlaceholder", "Ex: Canac, Rona, Réno-Dépôt...")}
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {t("diyItems.supplierPhone", "Téléphone")}
-                </label>
-                <Input
-                  value={selectedSupplier?.phone || ""}
-                  onChange={(e) => handleUpdateSupplierField("phone", e.target.value)}
-                  placeholder={t("diyItems.supplierPhonePlaceholder", "Ex: 450-123-4567")}
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            {/* Order Lead Time */}
-            <div className="p-3 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-100/50 dark:bg-amber-900/30">
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {t("diyItems.orderLeadDays", "Préavis de commande")}:
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={selectedSupplier?.orderLeadDays ?? ""}
-                  onChange={(e) =>
-                    handleUpdateSupplierField(
-                      "orderLeadDays",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  placeholder="0"
-                  className="w-20 h-8 text-sm"
-                />
-                <span className="text-xs text-muted-foreground">{t("common.days", "jours")}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {t(
-                  "diyItems.orderLeadHint",
-                  "Une alerte sera créée X jours avant le début de l'étape pour commander vos matériaux."
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Selected Supplier Card removed - DIY mode doesn't need supplier selection */}
 
       {/* Add Quote Dialog */}
       <Dialog open={!!addingQuoteToItemId} onOpenChange={(open) => !open && setAddingQuoteToItemId(null)}>

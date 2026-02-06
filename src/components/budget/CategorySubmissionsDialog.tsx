@@ -962,7 +962,9 @@ export function CategorySubmissionsDialog({
     try {
       const fileExt = file.name.split(".").pop();
       const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-      const fileName = `${user.id}/diy-items/${tradeId}/${itemId}/${uniqueId}.${fileExt}`;
+      // Sanitize tradeId to remove accents and special characters
+      const sanitizedTradeId = sanitizePathSegment(tradeId);
+      const fileName = `${user.id}/diy-items/${sanitizedTradeId}/${itemId}/${uniqueId}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from("task-attachments")

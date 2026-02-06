@@ -122,6 +122,9 @@ export function DIYItemsTable({
   categoryName,
   selectedSupplier,
   onUpdateSupplier,
+  onUploadDocument,
+  onDeleteDocument,
+  uploadingItemId,
 }: DIYItemsTableProps) {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -133,6 +136,7 @@ export function DIYItemsTable({
     description: "",
     amount: 0,
   });
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const suggestions = defaultItemSuggestions[categoryName] || [];
   const totalAmount = items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);

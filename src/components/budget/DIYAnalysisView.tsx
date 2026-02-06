@@ -224,26 +224,60 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
     let amount = '';
     
     // Multiple patterns for amounts - expanded to catch more formats
+    // Order matters: more specific patterns first
     const amountPatterns = [
-      /Montant\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i,
-      /Prix\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i,
-      /Sous-total\s*:?\s*([0-9\s,\.]+)\s*\$/i,
-      /💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/,
-      /Total\s*(?:HT|avant taxes)?\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
-      /Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
-      /Montant\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
-      /Prix\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
-      /:\s*([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/,
+      // Patterns with explicit labels
+      /Montant\s*(?:total\s*)?avant\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Prix\s*(?:total\s*)?avant\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Sous-total\s*(?:HT)?\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Total\s*HT\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Total\s*avant\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Grand\s*total\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      // Emoji patterns
+      /💰\s*(?:Total\s*:?\s*)?\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /💰[^0-9]*([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]{2})?)\s*\$?/,
+      // Generic patterns
+      /Montant\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Prix\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Total\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      /Coût\s*(?:total)?\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$?\*?\*?/i,
+      // Fallback: any amount with $ sign in the block
+      /\*?\*?([0-9]{1,3}(?:[\s,][0-9]{3})+(?:[,\.][0-9]{2})?)\s*\$\*?\*?/,
+      /\*?\*?([0-9]+(?:[,\.][0-9]{2})?)\s*\$\*?\*?/,
     ];
     
     for (const pattern of amountPatterns) {
       const match = block.match(pattern);
       if (match && match[1]) {
-        const parsedAmount = parseCurrencyAmount(match[1]);
-        if (parseFloat(parsedAmount) > 0) {
+        const rawAmount = match[1].trim();
+        const parsedAmount = parseCurrencyAmount(rawAmount);
+        const numericValue = parseFloat(parsedAmount);
+        // Validate: amount should be reasonable (> 10 to filter out small numbers like "1" or "2")
+        if (numericValue > 10) {
           amount = parsedAmount;
+          console.log(`[DIY Extract] Found amount ${numericValue} for supplier using pattern: ${pattern}`);
           break;
         }
+      }
+    }
+    
+    // If still no amount, try to find the largest number in the block (likely the total)
+    if (!amount) {
+      const allAmounts = block.matchAll(/([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]{2})?)\s*\$/g);
+      let maxAmount = 0;
+      let maxAmountStr = '';
+      for (const match of allAmounts) {
+        const parsed = parseCurrencyAmount(match[1]);
+        const num = parseFloat(parsed);
+        if (num > maxAmount && num > 10) {
+          maxAmount = num;
+          maxAmountStr = parsed;
+        }
+      }
+      if (maxAmountStr) {
+        amount = maxAmountStr;
+        console.log(`[DIY Extract] Found amount ${maxAmount} using fallback (largest in block)`);
       }
     }
     

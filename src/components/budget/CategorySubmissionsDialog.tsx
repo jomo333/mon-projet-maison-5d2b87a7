@@ -888,6 +888,38 @@ export function CategorySubmissionsDialog({
     
     toast.success(t("common.save") + " ✓");
   };
+
+  // Handler to update DIY supplier (independent from other modes)
+  const handleUpdateDIYSupplier = async (supplier: DIYSelectedSupplier) => {
+    setDiySupplier(supplier);
+    
+    const notes = JSON.stringify({
+      name: supplier.name,
+      phone: supplier.phone,
+      orderLeadDays: supplier.orderLeadDays,
+      isDIYSupplier: true,
+    });
+    
+    await supabase
+      .from('task_dates')
+      .upsert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: diySupplierTaskId,
+        notes,
+      }, { onConflict: 'project_id,step_id,task_id' });
+    
+    // Sync alerts if order lead days set
+    if (supplier.orderLeadDays && supplier.orderLeadDays > 0) {
+      try {
+        await syncAlertsFromSoumissions();
+      } catch (e) {
+        console.error("Error syncing DIY supplier alerts:", e);
+      }
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['diy-supplier-status', projectId, diySupplierTaskId] });
+  };
   
   const handleAddQuote = (itemId: string, quote: Omit<DIYSupplierQuote, "id">) => {
     const quoteId = Date.now().toString();

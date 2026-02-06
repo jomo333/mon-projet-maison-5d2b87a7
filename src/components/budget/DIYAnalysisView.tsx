@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,12 @@ import {
   X,
   Hammer,
   ArrowLeft,
-  DollarSign,
   ShoppingCart,
   Store,
   Phone,
   Check,
+  CheckCircle2,
+  DollarSign,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -29,6 +30,19 @@ import remarkGfm from "remark-gfm";
 interface SupplierInfo {
   name: string;
   phone: string;
+}
+
+interface SupplierOption {
+  name: string;
+  amount: string;
+  description?: string;
+}
+
+interface ExtractedContact {
+  supplierName: string;
+  phone: string;
+  amount: string;
+  options?: SupplierOption[];
 }
 
 interface DIYAnalysisViewProps {
@@ -41,95 +55,181 @@ interface DIYAnalysisViewProps {
   initialSupplier?: SupplierInfo;
 }
 
-// Parse amount from analysis result - handles French formatting (1 234,56 $)
-const extractEstimatedTotal = (analysisResult: string): number | null => {
-  const patterns = [
-    /\*\*TOTAL ESTIMÉ\*\*[^$]*?([0-9\s,\.]+)\s*\$/i,
-    /TOTAL ESTIMÉ[^$]*?([0-9\s,\.]+)\s*\$/i,
-    /\|\s*\*?\*?TOTAL[^|]*\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/i,
-  ];
+// Helper function to parse currency strings like "8 353,79 $", "25,652$", "25652"
+const parseAmount = (amount: string | undefined): number => {
+  if (!amount) return 0;
   
-  for (const pattern of patterns) {
-    const match = analysisResult.match(pattern);
-    if (match) {
-      let rawValue = match[1].trim();
-      rawValue = rawValue.replace(/\s/g, '');
-      if (rawValue.includes(',')) {
-        rawValue = rawValue.replace(',', '.');
-      }
-      const amount = parseFloat(rawValue);
-      if (amount > 0 && !isNaN(amount)) return Math.round(amount * 100) / 100;
+  let cleaned = amount.replace(/\$/g, '').trim();
+  cleaned = cleaned.replace(/\s/g, '');
+  
+  const hasComma = cleaned.includes(',');
+  const hasPeriod = cleaned.includes('.');
+  
+  if (hasComma && !hasPeriod) {
+    cleaned = cleaned.replace(',', '.');
+  } else if (hasComma && hasPeriod) {
+    const commaPos = cleaned.lastIndexOf(',');
+    const periodPos = cleaned.lastIndexOf('.');
+    
+    if (commaPos > periodPos) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
     }
   }
-  return null;
+  
+  cleaned = cleaned.replace(/[^\d.]/g, '');
+  return Math.round(parseFloat(cleaned) || 0);
 };
 
-// Extract supplier info from analysis result
-const extractSupplierInfo = (analysisResult: string): SupplierInfo => {
-  let name = "";
-  let phone = "";
+// Helper to parse French/English currency formats for extraction
+const parseCurrencyAmount = (rawAmount: string): string => {
+  let cleaned = rawAmount.trim();
+  cleaned = cleaned.replace(/\s/g, '');
   
-  // Patterns for supplier name extraction - ordered by priority
-  const namePatterns = [
-    // Format from analyze-soumissions: **🏢 Centre de Carreaux Céramique Italien Inc. (via Éco Dépôt Céramique)**
-    /\*\*🏢\s*([^*\n(]+?)(?:\s*\([^)]+\))?\s*[-–—]/i,
-    /\*\*🏢\s*([^*\n(]+?)(?:\s*\([^)]+\))?\*\*/i,
-    // Without emoji: **Entreprise Name**
-    /\*\*([A-ZÀ-Ü][^*\n]{2,50}(?:Inc\.|Ltée|Ltd|Enr\.)?)(?:\s*\([^)]+\))?\*\*/,
-    // Table format: | Fournisseur | Canac |
-    /\|\s*(?:\*\*)?Fournisseur(?:\*\*)?\s*\|\s*(?:\*\*)?([^|*\n]+?)(?:\*\*)?\s*\|/i,
-    // Markdown bold: **Fournisseur:** Canac
-    /\*\*Fournisseur\s*:?\*\*\s*:?\s*([^\n*]+)/i,
-    // Simple format: Fournisseur: Canac
-    /Fournisseur\s*:\s*([^\n|]+)/i,
-    // Magasin format
-    /\*\*Magasin\s*:?\*\*\s*:?\s*([^\n*]+)/i,
-    /Magasin\s*:\s*([^\n|]+)/i,
-    // Entreprise format
-    /\*\*Entreprise\s*:?\*\*\s*:?\s*([^\n*]+)/i,
-    /Entreprise\s*:\s*([^\n|]+)/i,
-    // Nom du fournisseur format
-    /Nom du fournisseur\s*:\s*([^\n|]+)/i,
-  ];
+  const hasComma = cleaned.includes(',');
+  const hasPeriod = cleaned.includes('.');
   
-  for (const pattern of namePatterns) {
-    const match = analysisResult.match(pattern);
-    if (match && match[1]) {
-      const extracted = match[1].trim();
-      // Skip if it looks like a phone number or contains common non-name patterns
-      if (extracted && !extracted.match(/^\d/) && extracted.length > 1 && extracted.length < 100) {
-        name = extracted;
-        break;
+  if (hasComma && !hasPeriod) {
+    cleaned = cleaned.replace(',', '.');
+  } else if (hasComma && hasPeriod) {
+    const commaPos = cleaned.lastIndexOf(',');
+    const periodPos = cleaned.lastIndexOf('.');
+    
+    if (commaPos > periodPos) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  }
+  
+  return cleaned;
+};
+
+// Extract multiple suppliers from analysis result
+const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
+  const contacts: ExtractedContact[] = [];
+  
+  // Helper to normalize supplier names for comparison
+  const normalizeSupplierName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+  };
+  
+  // Helper to check if a supplier already exists and merge data if needed
+  const addOrMergeSupplier = (newContact: ExtractedContact) => {
+    const normalizedName = normalizeSupplierName(newContact.supplierName);
+    const existingIndex = contacts.findIndex(
+      c => normalizeSupplierName(c.supplierName) === normalizedName
+    );
+    
+    if (existingIndex >= 0) {
+      const existing = contacts[existingIndex];
+      if (!existing.amount && newContact.amount) {
+        existing.amount = newContact.amount;
+      }
+      if (!existing.phone && newContact.phone) {
+        existing.phone = newContact.phone;
+      }
+      if (newContact.options && newContact.options.length > 0) {
+        const existingOptions = existing.options || [];
+        const existingOptionNames = new Set(existingOptions.map(o => normalizeSupplierName(o.name)));
+        for (const opt of newContact.options) {
+          if (!existingOptionNames.has(normalizeSupplierName(opt.name))) {
+            existingOptions.push(opt);
+          }
+        }
+        existing.options = existingOptions.length > 0 ? existingOptions : undefined;
+      }
+    } else {
+      contacts.push(newContact);
+    }
+  };
+  
+  // Try to extract from the emoji-based format
+  const companyBlocks = analysisResult.split(/(?=\*\*🏢)/);
+  
+  for (const block of companyBlocks) {
+    if (!block.includes('🏢')) continue;
+    
+    const nameMatch = block.match(/🏢\s*\*?\*?([^*\n(]+?)(?:\s*\([^)]+\))?(?:\s*[-–—]|\*\*)/);
+    const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
+    let amount = '';
+    
+    // Multiple patterns for amounts
+    const amountMatch1 = block.match(/Montant\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
+    const amountMatch2 = block.match(/Prix\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
+    const amountMatch3 = block.match(/Sous-total\s*:?\s*([0-9\s,\.]+)\s*\$/i);
+    const amountMatch4 = block.match(/Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i);
+    const amountMatch5 = block.match(/💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/);
+    
+    if (amountMatch1) amount = parseCurrencyAmount(amountMatch1[1]);
+    else if (amountMatch2) amount = parseCurrencyAmount(amountMatch2[1]);
+    else if (amountMatch3) amount = parseCurrencyAmount(amountMatch3[1]);
+    else if (amountMatch5) amount = parseCurrencyAmount(amountMatch5[1]);
+    else if (amountMatch4) amount = parseCurrencyAmount(amountMatch4[1]);
+    
+    if (nameMatch) {
+      const options: SupplierOption[] = [];
+      
+      // Look for option patterns
+      const optionMatches = block.matchAll(/(?:Option|Forfait|Package|OPTION)\s*(?:SÉPARÉE\s*:?\s*)?([A-Za-zÀ-ÿ0-9\s]+?)\s*:?\s*([0-9\s,\.]+)\s*\$/gi);
+      for (const match of optionMatches) {
+        options.push({
+          name: match[1].trim(),
+          amount: parseCurrencyAmount(match[2]),
+        });
+      }
+      
+      addOrMergeSupplier({
+        supplierName: nameMatch[1].trim().replace(/\*+/g, ''),
+        phone: phoneMatch ? phoneMatch[1].trim() : '',
+        amount: amount,
+        options: options.length > 0 ? options : undefined,
+      });
+    }
+  }
+  
+  // Try to extract amounts from comparison table for suppliers without amounts
+  const tableAmounts: Record<string, string> = {};
+  const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/g);
+  for (const row of tableRows) {
+    const name = row[1].trim();
+    const amt = parseCurrencyAmount(row[2]);
+    if (name && !name.includes('Entreprise') && !name.includes('---') && !name.includes('Critère') && amt) {
+      tableAmounts[name.toLowerCase()] = amt;
+    }
+  }
+  
+  // Fill in missing amounts from table
+  for (const contact of contacts) {
+    if (!contact.amount) {
+      const key = contact.supplierName.toLowerCase();
+      for (const [tableName, tableAmt] of Object.entries(tableAmounts)) {
+        if (key.includes(tableName) || tableName.includes(key)) {
+          contact.amount = tableAmt;
+          break;
+        }
       }
     }
   }
   
-  // Patterns for phone extraction - ordered by priority
-  const phonePatterns = [
-    // Format from analyze-soumissions: - 📞 Téléphone: 514 323-8936
-    /📞\s*T[ée]l[ée]phone\s*:\s*([0-9\s\-().]+)/i,
-    // List format: - Téléphone: 514 323-8936
-    /-\s*T[ée]l[ée]phone\s*:\s*([0-9\s\-().]+)/i,
-    // Table format: | Téléphone | (418) 123-4567 |
-    /\|\s*(?:\*\*)?T[ée]l[ée]phone(?:\*\*)?\s*\|\s*(?:\*\*)?([^|*\n]+?)(?:\*\*)?\s*\|/i,
-    // Markdown bold: **Téléphone:** (418) 123-4567
-    /\*\*T[ée]l[ée]phone\s*:?\*\*\s*:?\s*([^\n*]+)/i,
-    // Simple format: Téléphone: (418) 123-4567
-    /T[ée]l[ée]phone\s*:\s*([0-9\s\-().]+)/i,
-  ];
-  
-  for (const pattern of phonePatterns) {
-    const match = analysisResult.match(pattern);
-    if (match) {
-      const extracted = match[1] ? match[1].trim() : match[0].trim();
-      if (extracted && extracted.match(/\d/)) {
-        phone = extracted;
-        break;
-      }
+  // If no contacts found, try to extract from comparison table directly
+  if (contacts.length === 0) {
+    for (const [name, amt] of Object.entries(tableAmounts)) {
+      addOrMergeSupplier({
+        supplierName: name.charAt(0).toUpperCase() + name.slice(1),
+        phone: '',
+        amount: amt,
+      });
     }
   }
   
-  return { name, phone };
+  return contacts.filter(c => c.supplierName && c.supplierName.length > 1);
 };
 
 export function DIYAnalysisView({
@@ -142,27 +242,75 @@ export function DIYAnalysisView({
   initialSupplier,
 }: DIYAnalysisViewProps) {
   const { t } = useTranslation();
-  const estimatedTotal = extractEstimatedTotal(analysisResult);
-  const extractedSupplier = extractSupplierInfo(analysisResult);
   
-  const [supplierName, setSupplierName] = useState("");
-  const [supplierPhone, setSupplierPhone] = useState("");
+  // Extract suppliers from analysis
+  const extractedSuppliers = useMemo(() => extractSuppliers(analysisResult), [analysisResult]);
+  
+  const [selectedSupplierIndex, setSelectedSupplierIndex] = useState<number | null>(null);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
+  
+  // Manual input fields (for when no supplier is detected or user wants to override)
+  const [manualSupplierName, setManualSupplierName] = useState("");
+  const [manualSupplierPhone, setManualSupplierPhone] = useState("");
+  const [manualAmount, setManualAmount] = useState("");
 
-  // Auto-fill supplier info when analysis result changes
+  // Auto-select first supplier when analysis changes
   useEffect(() => {
     if (open) {
-      // Priority: initial supplier > extracted from analysis
-      const nameToUse = initialSupplier?.name || extractedSupplier.name || "";
-      const phoneToUse = initialSupplier?.phone || extractedSupplier.phone || "";
-      setSupplierName(nameToUse);
-      setSupplierPhone(phoneToUse);
+      if (extractedSuppliers.length > 0) {
+        setSelectedSupplierIndex(0);
+        setSelectedOptionIndex(null);
+      } else {
+        setSelectedSupplierIndex(null);
+        setSelectedOptionIndex(null);
+      }
+      
+      // Pre-fill manual fields from initial supplier
+      if (initialSupplier?.name) {
+        setManualSupplierName(initialSupplier.name);
+        setManualSupplierPhone(initialSupplier.phone || "");
+      }
     }
-  }, [open, analysisResult, initialSupplier?.name, initialSupplier?.phone, extractedSupplier.name, extractedSupplier.phone]);
+  }, [open, extractedSuppliers.length, initialSupplier?.name, initialSupplier?.phone]);
 
-  const handleApply = () => {
-    if (estimatedTotal && onApplyEstimate) {
-      const supplier = supplierName.trim() ? { name: supplierName.trim(), phone: supplierPhone.trim() } : undefined;
-      onApplyEstimate(estimatedTotal, supplier);
+  const selectedSupplier = selectedSupplierIndex !== null ? extractedSuppliers[selectedSupplierIndex] : null;
+
+  const handleSelectSupplier = (index: number) => {
+    setSelectedSupplierIndex(index);
+    setSelectedOptionIndex(null);
+  };
+
+  const handleSelectOption = (optionIndex: number) => {
+    setSelectedOptionIndex(optionIndex);
+  };
+
+  const handleConfirmSelection = () => {
+    if (!onApplyEstimate) return;
+
+    let amount = 0;
+    let supplier: SupplierInfo | undefined;
+
+    if (selectedSupplier) {
+      // Get amount from selected option or supplier
+      const amountStr = selectedOptionIndex !== null && selectedSupplier.options?.[selectedOptionIndex]
+        ? selectedSupplier.options[selectedOptionIndex].amount
+        : selectedSupplier.amount;
+      amount = parseAmount(amountStr);
+      supplier = {
+        name: selectedSupplier.supplierName,
+        phone: selectedSupplier.phone || "",
+      };
+    } else if (manualSupplierName.trim()) {
+      // Use manual input
+      amount = parseAmount(manualAmount);
+      supplier = {
+        name: manualSupplierName.trim(),
+        phone: manualSupplierPhone.trim(),
+      };
+    }
+
+    if (amount > 0) {
+      onApplyEstimate(amount, supplier);
     }
   };
 
@@ -171,6 +319,17 @@ export function DIYAnalysisView({
     const key = `budget.categories.${name}`;
     const translated = t(key);
     return translated === key ? name : translated;
+  };
+
+  // Calculate the selected amount for display
+  const getSelectedAmount = (): number => {
+    if (selectedSupplier) {
+      const amountStr = selectedOptionIndex !== null && selectedSupplier.options?.[selectedOptionIndex]
+        ? selectedSupplier.options[selectedOptionIndex].amount
+        : selectedSupplier.amount;
+      return parseAmount(amountStr);
+    }
+    return parseAmount(manualAmount);
   };
 
   return (
@@ -202,10 +361,10 @@ export function DIYAnalysisView({
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                Résumé détaillé des matériaux
+                Résumé détaillé des soumissions
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Liste complète des matériaux nécessaires avec prix Québec 2025
+                Analyse comparative des devis reçus
               </p>
             </div>
             <ScrollArea className="flex-1 p-6">
@@ -233,70 +392,153 @@ export function DIYAnalysisView({
             </ScrollArea>
           </div>
 
-          {/* Right Panel - Summary & Actions */}
-          <div className="w-[350px] min-w-[350px] flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
+          {/* Right Panel - Supplier Selection */}
+          <div className="w-[380px] min-w-[380px] flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
                 <ShoppingCart className="h-5 w-5" />
                 Fournisseur à retenir
               </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Sélectionnez le fournisseur de votre choix
+              </p>
             </div>
             
             <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {/* Estimated Total Card */}
-                {estimatedTotal && (
-                  <div className="rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-white dark:bg-background p-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Coût total estimé des matériaux:
-                    </p>
-                    <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-                      {formatCurrency(estimatedTotal)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Taxes incluses (TPS + TVQ)
-                    </p>
-                  </div>
-                )}
-
-                {/* Supplier Selection Form */}
-                <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-4 space-y-4">
-                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                    <Store className="h-5 w-5" />
-                    <span className="font-medium">Informations du fournisseur</span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="supplier-name" className="text-sm">
-                        Nom du magasin / fournisseur
-                      </Label>
-                      <Input
-                        id="supplier-name"
-                        placeholder="Ex: Canac, Rona, Home Depot..."
-                        value={supplierName}
-                        onChange={(e) => setSupplierName(e.target.value)}
-                        className="border-amber-200 dark:border-amber-800 focus:border-amber-400"
-                      />
+              <div className="space-y-3">
+                {extractedSuppliers.length === 0 ? (
+                  <>
+                    <div className="text-center py-4 text-muted-foreground">
+                      <Store className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Aucun fournisseur détecté automatiquement</p>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="supplier-phone" className="text-sm">
-                        Téléphone (optionnel)
-                      </Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="supplier-phone"
-                          placeholder="(XXX) XXX-XXXX"
-                          value={supplierPhone}
-                          onChange={(e) => setSupplierPhone(e.target.value)}
-                          className="pl-10 border-amber-200 dark:border-amber-800 focus:border-amber-400"
-                        />
+                    {/* Manual input form */}
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                        <Store className="h-5 w-5" />
+                        <span className="font-medium">Saisie manuelle</span>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="manual-supplier-name" className="text-sm">
+                            Nom du fournisseur
+                          </Label>
+                          <Input
+                            id="manual-supplier-name"
+                            placeholder="Ex: Canac, Rona, Home Depot..."
+                            value={manualSupplierName}
+                            onChange={(e) => setManualSupplierName(e.target.value)}
+                            className="border-amber-200 dark:border-amber-800"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="manual-supplier-phone" className="text-sm">
+                            Téléphone (optionnel)
+                          </Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="manual-supplier-phone"
+                              placeholder="(XXX) XXX-XXXX"
+                              value={manualSupplierPhone}
+                              onChange={(e) => setManualSupplierPhone(e.target.value)}
+                              className="pl-10 border-amber-200 dark:border-amber-800"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="manual-amount" className="text-sm">
+                            Montant ($)
+                          </Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="manual-amount"
+                              placeholder="0.00"
+                              value={manualAmount}
+                              onChange={(e) => setManualAmount(e.target.value)}
+                              className="pl-10 border-amber-200 dark:border-amber-800"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                ) : (
+                  extractedSuppliers.map((supplier, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleSelectSupplier(index)}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedSupplierIndex === index
+                          ? 'border-amber-500 bg-amber-100/50 dark:bg-amber-900/30 shadow-lg'
+                          : 'border-amber-200 dark:border-amber-800 hover:border-amber-400 hover:bg-white dark:hover:bg-background'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2 flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center gap-2">
+                            {selectedSupplierIndex === index && (
+                              <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            )}
+                            <span className="truncate">🏢 {supplier.supplierName}</span>
+                          </div>
+                          {supplier.phone && (
+                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                              <Phone className="h-4 w-4 shrink-0" />
+                              <span>{supplier.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-bold text-xl text-amber-600 dark:text-amber-400">
+                            {formatCurrency(parseAmount(supplier.amount))}
+                          </div>
+                          {parseAmount(supplier.amount) > 0 && (
+                            <div className="text-xs text-muted-foreground">avant taxes</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Options for selected supplier */}
+                      {selectedSupplierIndex === index && supplier.options && supplier.options.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800 space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Options disponibles:</p>
+                          <div className="grid gap-2">
+                            {supplier.options.map((option, optIndex) => (
+                              <div
+                                key={optIndex}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectOption(optIndex);
+                                }}
+                                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                                  selectedOptionIndex === optIndex
+                                    ? 'border-amber-500 bg-amber-200/50 dark:bg-amber-800/30'
+                                    : 'border-amber-200 dark:border-amber-800 hover:border-amber-400 bg-white/50 dark:bg-background/50'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-sm">{option.name}</span>
+                                  <span className="font-bold text-amber-600 dark:text-amber-400">
+                                    {formatCurrency(parseAmount(option.amount))}
+                                  </span>
+                                </div>
+                                {option.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
 
                 {/* DIY Badge */}
                 <div className="flex justify-center pt-4">
@@ -308,19 +550,34 @@ export function DIYAnalysisView({
               </div>
             </ScrollArea>
 
-            {/* Apply Button */}
-            {estimatedTotal && onApplyEstimate && (
+            {/* Selection Summary & Confirm */}
+            {(selectedSupplier || (manualSupplierName.trim() && parseAmount(manualAmount) > 0)) && (
               <div className="p-4 border-t bg-background">
+                <div className="rounded-lg bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 mb-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Fournisseur sélectionné:</p>
+                  <p className="font-semibold text-lg">
+                    {selectedSupplier ? selectedSupplier.supplierName : manualSupplierName}
+                  </p>
+                  {(selectedSupplier?.phone || manualSupplierPhone) && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedSupplier?.phone || manualSupplierPhone}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-sm text-muted-foreground">Montant retenu:</span>
+                    <span className="font-bold text-xl text-amber-600 dark:text-amber-400">
+                      {formatCurrency(getSelectedAmount())}
+                    </span>
+                  </div>
+                </div>
                 <Button 
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
                   size="lg"
-                  onClick={handleApply}
+                  onClick={handleConfirmSelection}
                 >
                   <Check className="h-5 w-5 mr-2" />
-                  {supplierName.trim() 
-                    ? `Retenir ${supplierName.trim()} - ${formatCurrency(estimatedTotal)}`
-                    : `Appliquer: ${formatCurrency(estimatedTotal)}`
-                  }
+                  Confirmer et enregistrer
                 </Button>
               </div>
             )}

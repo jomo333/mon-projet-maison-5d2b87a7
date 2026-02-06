@@ -1291,40 +1291,6 @@ export function CategorySubmissionsDialog({
       
       const nameMatch = block.match(/🏢\s*\*?\*?([^*\n]+)/);
       const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
-      
-      // Helper to parse French/English currency formats
-      // French: "8 353,79" (space=thousand, comma=decimal)
-      // English: "8,353.79" (comma=thousand, period=decimal)
-      const parseCurrencyAmount = (rawAmount: string): string => {
-        let cleaned = rawAmount.trim();
-        
-        // Remove spaces (thousand separators in French)
-        cleaned = cleaned.replace(/\s/g, '');
-        
-        const hasComma = cleaned.includes(',');
-        const hasPeriod = cleaned.includes('.');
-        
-        if (hasComma && !hasPeriod) {
-          // French format: comma is decimal (e.g., "8353,79")
-          cleaned = cleaned.replace(',', '.');
-        } else if (hasComma && hasPeriod) {
-          // Mixed format - determine by position
-          const commaPos = cleaned.lastIndexOf(',');
-          const periodPos = cleaned.lastIndexOf('.');
-          
-          if (commaPos > periodPos) {
-            // French: "8.353,79" -> remove periods, comma to period
-            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-          } else {
-            // English: "8,353.79" -> just remove commas
-            cleaned = cleaned.replace(/,/g, '');
-          }
-        }
-        // If only period, already correct format
-        
-        return cleaned;
-      };
-      
       // Multiple patterns for amounts - more flexible matching (supports decimals and spaces)
       let amount = '';
       

@@ -1201,6 +1201,39 @@ export function CategorySubmissionsDialog({
   const parseExtractedContacts = (analysisResult: string): ExtractedContact[] => {
     const contacts: ExtractedContact[] = [];
     
+    // Helper to parse French/English currency formats
+    // French: "8 353,79" (space=thousand, comma=decimal)
+    // English: "8,353.79" (comma=thousand, period=decimal)
+    const parseCurrencyAmount = (rawAmount: string): string => {
+      let cleaned = rawAmount.trim();
+      
+      // Remove spaces (thousand separators in French)
+      cleaned = cleaned.replace(/\s/g, '');
+      
+      const hasComma = cleaned.includes(',');
+      const hasPeriod = cleaned.includes('.');
+      
+      if (hasComma && !hasPeriod) {
+        // French format: comma is decimal (e.g., "8353,79")
+        cleaned = cleaned.replace(',', '.');
+      } else if (hasComma && hasPeriod) {
+        // Mixed format - determine by position
+        const commaPos = cleaned.lastIndexOf(',');
+        const periodPos = cleaned.lastIndexOf('.');
+        
+        if (commaPos > periodPos) {
+          // French: "8.353,79" -> remove periods, comma to period
+          cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+          // English: "8,353.79" -> just remove commas
+          cleaned = cleaned.replace(/,/g, '');
+        }
+      }
+      // If only period, already correct format
+      
+      return cleaned;
+    };
+    
     // Helper to normalize supplier names for comparison
     const normalizeSupplierName = (name: string): string => {
       return name
@@ -1258,38 +1291,37 @@ export function CategorySubmissionsDialog({
       
       const nameMatch = block.match(/🏢\s*\*?\*?([^*\n]+)/);
       const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
-      
       // Multiple patterns for amounts - more flexible matching (supports decimals and spaces)
       let amount = '';
       
-      // Pattern 1: Montant avant taxes: 30 833.04 $ or Montant avant taxes: 30 833 $
-      const amountMatch1 = block.match(/Montant\s*avant\s*taxes\s*:?\s*([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i);
+      // Pattern 1: Montant avant taxes: 30 833.04 $ or 8 353,79 $
+      const amountMatch1 = block.match(/Montant\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
       // Pattern 2: Prix avant taxes: X $ 
-      const amountMatch2 = block.match(/Prix\s*avant\s*taxes\s*:?\s*([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i);
+      const amountMatch2 = block.match(/Prix\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
       // Pattern 3: Sous-total: X $
-      const amountMatch3 = block.match(/Sous-total\s*:?\s*([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i);
+      const amountMatch3 = block.match(/Sous-total\s*:?\s*([0-9\s,\.]+)\s*\$/i);
       // Pattern 4: Total avec taxes: X $ (fallback - will use net price if available)
-      const amountMatch4 = block.match(/Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$\*?\*?/i);
+      const amountMatch4 = block.match(/Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i);
       // Pattern 5: Any number followed by $ in the pricing section
-      const amountMatch5 = block.match(/💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:\.[0-9]+)?)\s*\$/);
+      const amountMatch5 = block.match(/💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/);
       
       // Priority: before taxes > subtotal > with taxes
-      if (amountMatch1) amount = amountMatch1[1].replace(/[\s,]/g, '');
-      else if (amountMatch2) amount = amountMatch2[1].replace(/[\s,]/g, '');
-      else if (amountMatch3) amount = amountMatch3[1].replace(/[\s,]/g, '');
-      else if (amountMatch5) amount = amountMatch5[1].replace(/[\s,]/g, '');
-      else if (amountMatch4) amount = amountMatch4[1].replace(/[\s,]/g, '');
+      if (amountMatch1) amount = parseCurrencyAmount(amountMatch1[1]);
+      else if (amountMatch2) amount = parseCurrencyAmount(amountMatch2[1]);
+      else if (amountMatch3) amount = parseCurrencyAmount(amountMatch3[1]);
+      else if (amountMatch5) amount = parseCurrencyAmount(amountMatch5[1]);
+      else if (amountMatch4) amount = parseCurrencyAmount(amountMatch4[1]);
       
       if (nameMatch) {
         // Try to extract options from the block
         const options: SupplierOption[] = [];
         
         // Look for option patterns like "Option A: X $" or "Forfait Premium: X $"
-        const optionMatches = block.matchAll(/(?:Option|Forfait|Package|OPTION)\s*(?:SÉPARÉE\s*:?\s*)?([A-Za-zÀ-ÿ0-9\s]+?)\s*:?\s*([0-9\s,]+(?:\.[0-9]+)?)\s*\$/gi);
+        const optionMatches = block.matchAll(/(?:Option|Forfait|Package|OPTION)\s*(?:SÉPARÉE\s*:?\s*)?([A-Za-zÀ-ÿ0-9\s]+?)\s*:?\s*([0-9\s,\.]+)\s*\$/gi);
         for (const match of optionMatches) {
           options.push({
             name: match[1].trim(),
-            amount: match[2].replace(/[\s,]/g, ''),
+            amount: parseCurrencyAmount(match[2]),
           });
         }
         
@@ -1305,10 +1337,10 @@ export function CategorySubmissionsDialog({
     
     // Try to extract amounts from comparison table for suppliers without amounts
     const tableAmounts: Record<string, string> = {};
-    const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,]+)\s*\$\*?\*?\s*\|/g);
+    const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/g);
     for (const row of tableRows) {
       const name = row[1].trim();
-      const amt = row[2].replace(/[\s,]/g, '');
+      const amt = parseCurrencyAmount(row[2]);
       if (name && !name.includes('Entreprise') && !name.includes('---') && !name.includes('Critère') && amt) {
         tableAmounts[name.toLowerCase()] = amt;
       }

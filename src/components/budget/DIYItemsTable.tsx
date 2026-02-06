@@ -107,6 +107,8 @@ export function DIYItemsTable({
   onAnalyzeItem,
   analyzingItemId,
   categoryName,
+  selectedSupplier,
+  onUpdateSupplier,
 }: DIYItemsTableProps) {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -121,6 +123,16 @@ export function DIYItemsTable({
 
   const suggestions = defaultItemSuggestions[categoryName] || [];
   const totalAmount = items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+
+  const handleUpdateSupplierField = (field: keyof DIYSelectedSupplier, value: string | number | undefined) => {
+    if (onUpdateSupplier) {
+      onUpdateSupplier({
+        ...selectedSupplier,
+        name: selectedSupplier?.name || "",
+        [field]: value,
+      });
+    }
+  };
 
   const handleAddItem = (name: string) => {
     if (name.trim()) {

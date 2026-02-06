@@ -43,6 +43,7 @@ interface ExtractedContact {
   phone: string;
   amount: string;
   productName?: string; // Product name to differentiate same supplier with different products
+  documentRef?: string; // Document reference (e.g., "Doc 1", "Document 2")
   options?: SupplierOption[];
 }
 
@@ -134,8 +135,62 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
   // Try to extract from the emoji-based format
   const companyBlocks = analysisResult.split(/(?=\*\*🏢)/);
   
-  for (const block of companyBlocks) {
+  // Track document references from the analysis
+  let currentDocRef = '';
+  
+  for (let blockIndex = 0; blockIndex < companyBlocks.length; blockIndex++) {
+    const block = companyBlocks[blockIndex];
     if (!block.includes('🏢')) continue;
+    
+    // Try to extract document reference from various patterns
+    const docPatterns = [
+      /📄\s*(?:Document|Doc\.?)\s*:?\s*(\d+|[A-Za-z])/i,
+      /\*\*(?:Document|Doc\.?)\s*(\d+|[A-Za-z])\*\*/i,
+      /(?:Document|Doc\.?)\s*#?\s*(\d+)/i,
+      /Soumission\s*#?\s*(\d+)/i,
+      /Devis\s*#?\s*(\d+)/i,
+      /📑\s*(\d+)/,
+    ];
+    
+    let docRef = '';
+    for (const pattern of docPatterns) {
+      const match = block.match(pattern);
+      if (match && match[1]) {
+        docRef = `Doc ${match[1]}`;
+        break;
+      }
+    }
+    
+    // If no doc ref found in block, check if there's a section header before this block
+    if (!docRef) {
+      // Look backwards in the original text to find document headers
+      const blockStart = analysisResult.indexOf(block);
+      if (blockStart > 0) {
+        const textBefore = analysisResult.substring(Math.max(0, blockStart - 500), blockStart);
+        const headerMatch = textBefore.match(/(?:#+\s*)?(?:Document|Doc\.?|Soumission|Devis)\s*#?\s*(\d+|[A-Za-z])/gi);
+        if (headerMatch && headerMatch.length > 0) {
+          const lastMatch = headerMatch[headerMatch.length - 1];
+          const numMatch = lastMatch.match(/(\d+|[A-Za-z])$/);
+          if (numMatch) {
+            docRef = `Doc ${numMatch[1]}`;
+          }
+        }
+      }
+    }
+    
+    // Fallback: assign sequential document number based on order
+    if (!docRef && contacts.length === 0) {
+      docRef = 'Doc 1';
+    } else if (!docRef) {
+      // Check if previous contacts have doc refs to continue the sequence
+      const lastDocRef = contacts[contacts.length - 1]?.documentRef;
+      if (lastDocRef) {
+        const lastNum = parseInt(lastDocRef.replace(/\D/g, '')) || 0;
+        docRef = `Doc ${lastNum + 1}`;
+      }
+    }
+    
+    currentDocRef = docRef || currentDocRef;
     
     const nameMatch = block.match(/🏢\s*\*?\*?([^*\n(]+?)(?:\s*\([^)]+\))?(?:\s*[-–—]|\*\*)/);
     const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
@@ -168,18 +223,29 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
     
     let amount = '';
     
-    // Multiple patterns for amounts
-    const amountMatch1 = block.match(/Montant\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
-    const amountMatch2 = block.match(/Prix\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i);
-    const amountMatch3 = block.match(/Sous-total\s*:?\s*([0-9\s,\.]+)\s*\$/i);
-    const amountMatch4 = block.match(/Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i);
-    const amountMatch5 = block.match(/💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/);
+    // Multiple patterns for amounts - expanded to catch more formats
+    const amountPatterns = [
+      /Montant\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i,
+      /Prix\s*avant\s*taxes\s*:?\s*([0-9\s,\.]+)\s*\$/i,
+      /Sous-total\s*:?\s*([0-9\s,\.]+)\s*\$/i,
+      /💰[^$]*?([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/,
+      /Total\s*(?:HT|avant taxes)?\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
+      /Total\s*avec\s*taxes\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
+      /Montant\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
+      /Prix\s*:?\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?/i,
+      /:\s*([0-9]{1,3}(?:[\s,][0-9]{3})*(?:[,\.][0-9]+)?)\s*\$/,
+    ];
     
-    if (amountMatch1) amount = parseCurrencyAmount(amountMatch1[1]);
-    else if (amountMatch2) amount = parseCurrencyAmount(amountMatch2[1]);
-    else if (amountMatch3) amount = parseCurrencyAmount(amountMatch3[1]);
-    else if (amountMatch5) amount = parseCurrencyAmount(amountMatch5[1]);
-    else if (amountMatch4) amount = parseCurrencyAmount(amountMatch4[1]);
+    for (const pattern of amountPatterns) {
+      const match = block.match(pattern);
+      if (match && match[1]) {
+        const parsedAmount = parseCurrencyAmount(match[1]);
+        if (parseFloat(parsedAmount) > 0) {
+          amount = parsedAmount;
+          break;
+        }
+      }
+    }
     
     if (nameMatch) {
       const supplierName = nameMatch[1].trim().replace(/\*+/g, '');
@@ -201,6 +267,7 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
           phone: phoneMatch ? phoneMatch[1].trim() : '',
           amount: amount,
           productName: productName || undefined,
+          documentRef: currentDocRef || `Doc ${contacts.length + 1}`,
           options: options.length > 0 ? options : undefined,
         });
       }
@@ -505,6 +572,15 @@ export function DIYAnalysisView({
                           : 'border-amber-200 dark:border-amber-800 hover:border-amber-400 hover:bg-white dark:hover:bg-background'
                       }`}
                     >
+                      {/* Document reference badge */}
+                      {supplier.documentRef && (
+                        <div className="mb-2">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">
+                            📄 {supplier.documentRef}
+                          </span>
+                        </div>
+                      )}
+                      
                       {/* Header row with supplier name and amount */}
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -516,9 +592,15 @@ export function DIYAnalysisView({
                           </span>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="font-bold text-lg text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                            {formatCurrency(parseAmount(supplier.amount))}
-                          </div>
+                          {parseAmount(supplier.amount) > 0 ? (
+                            <div className="font-bold text-lg text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                              {formatCurrency(parseAmount(supplier.amount))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground italic">
+                              Prix non disponible
+                            </div>
+                          )}
                         </div>
                       </div>
                       

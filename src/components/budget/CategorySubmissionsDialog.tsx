@@ -2285,11 +2285,14 @@ export function CategorySubmissionsDialog({
                       onUpdateItem={handleUpdateDIYItem}
                       onAddQuote={handleAddQuote}
                       onRemoveQuote={handleRemoveQuote}
-                      onAnalyzeItem={projectPlans.length > 0 ? handleAnalyzeDIYItem : undefined}
+                      onAnalyzeItem={handleAnalyzeDIYItem}
                       analyzingItemId={analyzingDIYItemId}
                       categoryName={categoryName}
                       selectedSupplier={diySupplier}
                       onUpdateSupplier={handleUpdateDIYSupplier}
+                      onUploadDocument={handleUploadDIYDocument}
+                      onDeleteDocument={handleDeleteDIYDocument}
+                      uploadingItemId={uploadingDIYItemId}
                     />
                   </TabsContent>
                 </Tabs>

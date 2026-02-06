@@ -2632,8 +2632,8 @@ export function CategorySubmissionsDialog({
             )}
 
             {/* Manual Supplier Entry or Selected Supplier Details */}
-            {/* Hide in DIY mode (subcategories tab) since DIY items don't have suppliers */}
-            {viewMode !== 'subcategories' && !subCategories.find(sc => sc.id === activeSubCategoryId)?.isDIY && (
+            {/* Hide in DIY mode (subcategories tab) since DIY items have their own independent supplier card */}
+            {viewMode !== 'subcategories' && !viewingSubCategory && !subCategories.find(sc => sc.id === activeSubCategoryId)?.isDIY && (
             <div className="space-y-3">
               <h4 className="font-medium flex items-center gap-2">
                 <User className="h-4 w-4" />

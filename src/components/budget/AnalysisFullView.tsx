@@ -20,11 +20,46 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// Helper function to parse currency strings like "25 652 $", "25,652$", "25652"
+// Helper function to parse currency strings like "8 353,79 $", "25,652$", "25652"
+// Handles French format (comma as decimal, space as thousand separator)
 const parseAmount = (amount: string | undefined): number => {
   if (!amount) return 0;
-  // Remove spaces, commas, dollar signs, and other non-numeric characters except decimal point
-  const cleaned = amount.replace(/[\s,$]/g, '').replace(/[^\d.]/g, '');
+  
+  // First, remove dollar signs and trim
+  let cleaned = amount.replace(/\$/g, '').trim();
+  
+  // Remove spaces (thousand separators in French format)
+  cleaned = cleaned.replace(/\s/g, '');
+  
+  // Check if this is French format (comma as decimal separator)
+  // French: "8353,79" - has comma, no period OR comma after period
+  // English: "8,353.79" - has period after comma
+  const hasComma = cleaned.includes(',');
+  const hasPeriod = cleaned.includes('.');
+  
+  if (hasComma && !hasPeriod) {
+    // French format: comma is decimal separator
+    cleaned = cleaned.replace(',', '.');
+  } else if (hasComma && hasPeriod) {
+    // Mixed format - determine which is decimal based on position
+    const commaPos = cleaned.lastIndexOf(',');
+    const periodPos = cleaned.lastIndexOf('.');
+    
+    if (commaPos > periodPos) {
+      // Comma is after period: French with thousand separator (rare but possible)
+      // e.g., "8.353,79" -> remove periods, replace comma with period
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Period is after comma: English format
+      // e.g., "8,353.79" -> just remove commas
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  }
+  // If only period, it's already in correct format
+  
+  // Remove any remaining non-numeric characters except decimal point
+  cleaned = cleaned.replace(/[^\d.]/g, '');
+  
   return Math.round(parseFloat(cleaned) || 0);
 };
 

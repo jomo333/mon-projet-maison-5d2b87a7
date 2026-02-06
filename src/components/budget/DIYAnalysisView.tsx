@@ -42,6 +42,7 @@ interface ExtractedContact {
   supplierName: string;
   phone: string;
   amount: string;
+  productName?: string; // Product name to differentiate same supplier with different products
   options?: SupplierOption[];
 }
 
@@ -110,8 +111,8 @@ const parseCurrencyAmount = (rawAmount: string): string => {
 const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
   const contacts: ExtractedContact[] = [];
   
-  // Helper to normalize supplier names for comparison
-  const normalizeSupplierName = (name: string): string => {
+  // Helper to normalize names for comparison
+  const normalizeName = (name: string): string => {
     return name
       .toLowerCase()
       .normalize('NFD')
@@ -120,34 +121,14 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
       .trim();
   };
   
-  // Helper to check if a supplier already exists and merge data if needed
-  const addOrMergeSupplier = (newContact: ExtractedContact) => {
-    const normalizedName = normalizeSupplierName(newContact.supplierName);
-    const existingIndex = contacts.findIndex(
-      c => normalizeSupplierName(c.supplierName) === normalizedName
+  // Helper to check if a supplier+product combo already exists
+  const isDuplicate = (supplierName: string, productName?: string): boolean => {
+    const normalizedSupplier = normalizeName(supplierName);
+    const normalizedProduct = productName ? normalizeName(productName) : '';
+    return contacts.some(c => 
+      normalizeName(c.supplierName) === normalizedSupplier &&
+      normalizeName(c.productName || '') === normalizedProduct
     );
-    
-    if (existingIndex >= 0) {
-      const existing = contacts[existingIndex];
-      if (!existing.amount && newContact.amount) {
-        existing.amount = newContact.amount;
-      }
-      if (!existing.phone && newContact.phone) {
-        existing.phone = newContact.phone;
-      }
-      if (newContact.options && newContact.options.length > 0) {
-        const existingOptions = existing.options || [];
-        const existingOptionNames = new Set(existingOptions.map(o => normalizeSupplierName(o.name)));
-        for (const opt of newContact.options) {
-          if (!existingOptionNames.has(normalizeSupplierName(opt.name))) {
-            existingOptions.push(opt);
-          }
-        }
-        existing.options = existingOptions.length > 0 ? existingOptions : undefined;
-      }
-    } else {
-      contacts.push(newContact);
-    }
   };
   
   // Try to extract from the emoji-based format
@@ -158,6 +139,33 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
     
     const nameMatch = block.match(/🏢\s*\*?\*?([^*\n(]+?)(?:\s*\([^)]+\))?(?:\s*[-–—]|\*\*)/);
     const phoneMatch = block.match(/📞\s*(?:Téléphone\s*:?\s*)?([0-9\-\.\s\(\)]+)/);
+    
+    // Try to extract product name from various patterns
+    let productName = '';
+    const productPatterns = [
+      /📦\s*(?:Produit\s*:?\s*)?([^\n📞💰]+)/i,
+      /🏷️\s*(?:Article\s*:?\s*)?([^\n📞💰]+)/i,
+      /Produit\s*:?\s*\*?\*?([^*\n|]+)/i,
+      /Article\s*:?\s*\*?\*?([^*\n|]+)/i,
+      /Description\s*:?\s*\*?\*?([^*\n|]+)/i,
+      /pour\s+(?:le\s+|la\s+|l')?([^,.\n]+?)(?:\s*[-–—]|\s*\(|\s*$)/i,
+    ];
+    
+    for (const pattern of productPatterns) {
+      const match = block.match(pattern);
+      if (match && match[1]) {
+        const candidate = match[1].trim().replace(/\*+/g, '');
+        // Avoid capturing generic text or supplier-related content
+        if (candidate.length > 2 && candidate.length < 100 && 
+            !candidate.toLowerCase().includes('téléphone') &&
+            !candidate.toLowerCase().includes('rbq') &&
+            !candidate.toLowerCase().includes('taxes')) {
+          productName = candidate;
+          break;
+        }
+      }
+    }
+    
     let amount = '';
     
     // Multiple patterns for amounts
@@ -174,6 +182,7 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
     else if (amountMatch4) amount = parseCurrencyAmount(amountMatch4[1]);
     
     if (nameMatch) {
+      const supplierName = nameMatch[1].trim().replace(/\*+/g, '');
       const options: SupplierOption[] = [];
       
       // Look for option patterns
@@ -185,47 +194,64 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
         });
       }
       
-      addOrMergeSupplier({
-        supplierName: nameMatch[1].trim().replace(/\*+/g, ''),
-        phone: phoneMatch ? phoneMatch[1].trim() : '',
-        amount: amount,
-        options: options.length > 0 ? options : undefined,
-      });
-    }
-  }
-  
-  // Try to extract amounts from comparison table for suppliers without amounts
-  const tableAmounts: Record<string, string> = {};
-  const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/g);
-  for (const row of tableRows) {
-    const name = row[1].trim();
-    const amt = parseCurrencyAmount(row[2]);
-    if (name && !name.includes('Entreprise') && !name.includes('---') && !name.includes('Critère') && amt) {
-      tableAmounts[name.toLowerCase()] = amt;
-    }
-  }
-  
-  // Fill in missing amounts from table
-  for (const contact of contacts) {
-    if (!contact.amount) {
-      const key = contact.supplierName.toLowerCase();
-      for (const [tableName, tableAmt] of Object.entries(tableAmounts)) {
-        if (key.includes(tableName) || tableName.includes(key)) {
-          contact.amount = tableAmt;
-          break;
-        }
+      // Only add if not a duplicate (same supplier + same product)
+      if (!isDuplicate(supplierName, productName)) {
+        contacts.push({
+          supplierName,
+          phone: phoneMatch ? phoneMatch[1].trim() : '',
+          amount: amount,
+          productName: productName || undefined,
+          options: options.length > 0 ? options : undefined,
+        });
       }
     }
   }
   
-  // If no contacts found, try to extract from comparison table directly
+  // Try to extract from comparison table if present
+  const tableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/g);
+  for (const row of tableRows) {
+    const col1 = row[1].trim();
+    const col2 = row[2].trim();
+    const amount = parseCurrencyAmount(row[3]);
+    
+    // Skip header rows
+    if (col1.includes('---') || col1.toLowerCase().includes('fournisseur') || 
+        col1.toLowerCase().includes('entreprise') || col1.toLowerCase().includes('critère')) {
+      continue;
+    }
+    
+    // Check if col1 is supplier and col2 is product or vice versa
+    if (amount && col1.length > 1) {
+      const isCol1Product = col1.length > 20 || col1.includes(' de ') || col1.includes(' pour ');
+      const supplierName = isCol1Product ? col2 : col1;
+      const productName = isCol1Product ? col1 : (col2.length > 5 && !col2.match(/^\d/) ? col2 : '');
+      
+      if (!isDuplicate(supplierName, productName)) {
+        contacts.push({
+          supplierName: supplierName.charAt(0).toUpperCase() + supplierName.slice(1),
+          phone: '',
+          amount: amount,
+          productName: productName || undefined,
+        });
+      }
+    }
+  }
+  
+  // Fallback: simple two-column table (supplier | amount)
   if (contacts.length === 0) {
-    for (const [name, amt] of Object.entries(tableAmounts)) {
-      addOrMergeSupplier({
-        supplierName: name.charAt(0).toUpperCase() + name.slice(1),
-        phone: '',
-        amount: amt,
-      });
+    const simpleTableRows = analysisResult.matchAll(/\|\s*\*?\*?([^|*]+)\*?\*?\s*\|\s*\*?\*?([0-9\s,\.]+)\s*\$\*?\*?\s*\|/g);
+    for (const row of simpleTableRows) {
+      const name = row[1].trim();
+      const amt = parseCurrencyAmount(row[2]);
+      if (name && !name.includes('Entreprise') && !name.includes('---') && !name.includes('Critère') && amt) {
+        if (!isDuplicate(name, undefined)) {
+          contacts.push({
+            supplierName: name.charAt(0).toUpperCase() + name.slice(1),
+            phone: '',
+            amount: amt,
+          });
+        }
+      }
     }
   }
   
@@ -487,6 +513,13 @@ export function DIYAnalysisView({
                             )}
                             <span className="truncate">🏢 {supplier.supplierName}</span>
                           </div>
+                          {/* Show product name to help distinguish same supplier with different products */}
+                          {supplier.productName && (
+                            <div className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2 bg-amber-100/50 dark:bg-amber-900/30 px-2 py-1 rounded">
+                              <span className="text-base">📦</span>
+                              <span className="font-medium truncate">{supplier.productName}</span>
+                            </div>
+                          )}
                           {supplier.phone && (
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <Phone className="h-4 w-4 shrink-0" />
@@ -558,6 +591,13 @@ export function DIYAnalysisView({
                   <p className="font-semibold text-lg">
                     {selectedSupplier ? selectedSupplier.supplierName : manualSupplierName}
                   </p>
+                  {/* Show product name in summary if available */}
+                  {selectedSupplier?.productName && (
+                    <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-1 mt-1">
+                      <span>📦</span>
+                      {selectedSupplier.productName}
+                    </p>
+                  )}
                   {(selectedSupplier?.phone || manualSupplierPhone) && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                       <Phone className="h-3 w-3" />

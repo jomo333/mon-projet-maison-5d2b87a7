@@ -569,10 +569,7 @@ const Budget = () => {
     );
     
     // Persist only this category row (avoid deleting/reinserting all categories)
-    const categoryRow = updatedCategories.find(
-      (cat) => cat.name === editingCategory.name
-    );
-    if (!categoryRow) return;
+    const categoryRow = editingCategory;
 
     const { data: updatedRows, error: updateError } = await supabase
       .from("project_budgets")

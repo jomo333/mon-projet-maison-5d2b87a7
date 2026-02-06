@@ -2567,6 +2567,7 @@ export function CategorySubmissionsDialog({
                 </div>
               )}
             </div>
+            )}
 
             {/* Selected Supplier Summary - Show when supplier is chosen - PRIORITY DISPLAY */}
             {/* Hide in DIY mode (subcategories tab) since DIY items have their own independent supplier card */}

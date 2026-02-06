@@ -1764,76 +1764,171 @@ export function CategorySubmissionsDialog({
     }
   };
   
-  // Reset all data for this category
-
+  // Reset data for the currently active mode only (single, tasks, or subcategories/DIY)
   const handleResetCategory = async () => {
     setResetting(true);
     try {
-      // 1. Delete all documents for this category (main + sub-categories + tasks)
-      const { data: allDocs } = await supabase
-        .from('task_attachments')
-        .select('id, file_url')
-        .eq('project_id', projectId)
-        .eq('step_id', 'soumissions')
-        .like('task_id', `soumission-${tradeId}%`);
+      let taskIdPattern: string;
+      let resetMessage: string;
       
-      if (allDocs && allDocs.length > 0) {
-        // Delete from storage
-        for (const doc of allDocs) {
-          const bucketMarker = "/task-attachments/";
-          const markerIndex = doc.file_url.indexOf(bucketMarker);
-          if (markerIndex >= 0) {
-            const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
-            await supabase.storage.from('task-attachments').remove([path]);
+      // Determine which mode to reset based on viewMode
+      if (viewMode === 'single') {
+        // Only reset the main category task (soumission-{tradeId} exactly, not sub-patterns)
+        taskIdPattern = `soumission-${tradeId}`;
+        resetMessage = t("categorySubmissions.taskSubmissions.resetSingleSuccess", "Mode 'Soumission unique' réinitialisé");
+        
+        // Delete documents for single mode only (exact match, not sub-categories or tasks)
+        const { data: singleDocs } = await supabase
+          .from('task_attachments')
+          .select('id, file_url')
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .eq('task_id', taskIdPattern);
+        
+        if (singleDocs && singleDocs.length > 0) {
+          for (const doc of singleDocs) {
+            const bucketMarker = "/task-attachments/";
+            const markerIndex = doc.file_url.indexOf(bucketMarker);
+            if (markerIndex >= 0) {
+              const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+              await supabase.storage.from('task-attachments').remove([path]);
+            }
           }
+          await supabase
+            .from('task_attachments')
+            .delete()
+            .eq('project_id', projectId)
+            .eq('step_id', 'soumissions')
+            .eq('task_id', taskIdPattern);
         }
         
-        // Delete from database
+        // Delete task_dates for single mode only
         await supabase
-          .from('task_attachments')
+          .from('task_dates')
           .delete()
           .eq('project_id', projectId)
           .eq('step_id', 'soumissions')
-          .like('task_id', `soumission-${tradeId}%`);
+          .eq('task_id', taskIdPattern);
+        
+        // Reset local state for single mode
+        setSupplierName("");
+        setSupplierPhone("");
+        setContactPerson("");
+        setContactPersonPhone("");
+        setSupplierLeadDays(null);
+        setSelectedAmount("");
+        setAnalysisResult(null);
+        setExtractedSuppliers([]);
+        setSelectedSupplierIndex(null);
+        setSelectedOptionIndex(null);
+        
+      } else if (viewMode === 'tasks') {
+        // Reset all task-based submissions (soumission-{tradeId}-task-*)
+        taskIdPattern = `soumission-${tradeId}-task-%`;
+        resetMessage = t("categorySubmissions.taskSubmissions.resetTasksSuccess", "Mode 'Par tâche' réinitialisé");
+        
+        // Delete documents for tasks mode
+        const { data: taskDocs } = await supabase
+          .from('task_attachments')
+          .select('id, file_url')
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .like('task_id', taskIdPattern);
+        
+        if (taskDocs && taskDocs.length > 0) {
+          for (const doc of taskDocs) {
+            const bucketMarker = "/task-attachments/";
+            const markerIndex = doc.file_url.indexOf(bucketMarker);
+            if (markerIndex >= 0) {
+              const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+              await supabase.storage.from('task-attachments').remove([path]);
+            }
+          }
+          await supabase
+            .from('task_attachments')
+            .delete()
+            .eq('project_id', projectId)
+            .eq('step_id', 'soumissions')
+            .like('task_id', taskIdPattern);
+        }
+        
+        // Delete task_dates for tasks mode
+        await supabase
+          .from('task_dates')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .like('task_id', taskIdPattern);
+        
+        // Reset local state for tasks mode
+        setActiveTaskTitle(categoryTasks.length > 0 ? categoryTasks[0].taskTitle : null);
+        setAnalysisResult(null);
+        setExtractedSuppliers([]);
+        setSelectedSupplierIndex(null);
+        setSelectedOptionIndex(null);
+        
+      } else if (viewMode === 'subcategories') {
+        // Reset all DIY/subcategory submissions (soumission-{tradeId}-sub-* and soumission-{tradeId}-diy-supplier)
+        resetMessage = t("categorySubmissions.taskSubmissions.resetDIYSuccess", "Mode 'Fait par moi-même' réinitialisé");
+        
+        // Delete documents for subcategories mode
+        const { data: subDocs } = await supabase
+          .from('task_attachments')
+          .select('id, file_url')
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .like('task_id', `soumission-${tradeId}-sub-%`);
+        
+        if (subDocs && subDocs.length > 0) {
+          for (const doc of subDocs) {
+            const bucketMarker = "/task-attachments/";
+            const markerIndex = doc.file_url.indexOf(bucketMarker);
+            if (markerIndex >= 0) {
+              const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+              await supabase.storage.from('task-attachments').remove([path]);
+            }
+          }
+          await supabase
+            .from('task_attachments')
+            .delete()
+            .eq('project_id', projectId)
+            .eq('step_id', 'soumissions')
+            .like('task_id', `soumission-${tradeId}-sub-%`);
+        }
+        
+        // Delete task_dates for subcategories mode (sub-* entries)
+        await supabase
+          .from('task_dates')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .like('task_id', `soumission-${tradeId}-sub-%`);
+        
+        // Also delete the DIY supplier entry
+        await supabase
+          .from('task_dates')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('step_id', 'soumissions')
+          .eq('task_id', `soumission-${tradeId}-diy-supplier`);
+        
+        // Reset local state for DIY mode
+        setSubCategories([]);
+        setDiyItems([]);
+        setDiySupplier({ name: "", phone: "", orderLeadDays: undefined });
+        setActiveSubCategoryId(null);
+        setDiyAnalysisResult(null);
       }
       
-      // 2. Delete all task_dates entries for this category
-      await supabase
-        .from('task_dates')
-        .delete()
-        .eq('project_id', projectId)
-        .eq('step_id', 'soumissions')
-        .like('task_id', `soumission-${tradeId}%`);
-      
-      // 3. Reset local state
-      setSupplierName("");
-      setSupplierPhone("");
-      setContactPerson("");
-      setContactPersonPhone("");
-      setSupplierLeadDays(null);
-      setSelectedAmount("");
-      setAnalysisResult(null);
-      setExtractedSuppliers([]);
-      setSelectedSupplierIndex(null);
-      setSelectedOptionIndex(null);
-      setSubCategories([]);
-      setActiveSubCategoryId(null);
-      setActiveTaskTitle(null);
-      setViewMode('single');
-      setSpent("0");
-      setDiyAnalysisResult(null);
-      
-      // 4. Update the category spent to 0
-      onSave(parseFloat(budget) || 0, 0, undefined, { closeDialog: false });
-      
-      // 5. Invalidate all queries
+      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId] });
       queryClient.invalidateQueries({ queryKey: ['category-docs', projectId] });
       queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ['task-submissions', projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ['sub-category-docs-count', projectId, tradeId] });
+      queryClient.invalidateQueries({ queryKey: ['diy-supplier-status', projectId] });
       
-      toast.success(t("categorySubmissions.taskSubmissions.resetCategorySuccess"));
+      toast.success(resetMessage);
     } catch (error) {
       console.error("Error resetting category:", error);
       toast.error("Erreur lors de la réinitialisation");

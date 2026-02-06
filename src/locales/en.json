@@ -699,7 +699,10 @@
       "resetCategoryTitle": "Reset this category?",
       "resetCategoryDescription": "This action will delete all submission data for this category: documents, selected supplier, amounts, and analyses. This action cannot be undone.",
       "resetCategoryConfirm": "Yes, reset",
-      "resetCategorySuccess": "Category reset successfully"
+      "resetCategorySuccess": "Category reset successfully",
+      "resetSingleSuccess": "'Single submission' mode reset",
+      "resetTasksSuccess": "'By task' mode reset",
+      "resetDIYSuccess": "'DIY' mode reset"
     }
   },
   "analysisFullView": {

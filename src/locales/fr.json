@@ -699,7 +699,10 @@
       "resetCategoryTitle": "Réinitialiser cette catégorie ?",
       "resetCategoryDescription": "Cette action supprimera toutes les données de soumissions pour cette catégorie : documents, fournisseur sélectionné, montants et analyses. Cette action est irréversible.",
       "resetCategoryConfirm": "Oui, réinitialiser",
-      "resetCategorySuccess": "Catégorie réinitialisée avec succès"
+      "resetCategorySuccess": "Catégorie réinitialisée avec succès",
+      "resetSingleSuccess": "Mode 'Soumission unique' réinitialisé",
+      "resetTasksSuccess": "Mode 'Par tâche' réinitialisé",
+      "resetDIYSuccess": "Mode 'Fait par moi-même' réinitialisé"
     }
   },
   "analysisFullView": {

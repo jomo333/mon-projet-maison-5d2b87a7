@@ -568,37 +568,45 @@ const Budget = () => {
       )
     );
     
-    // Immediately save to database
-    const updatedCategories = budgetCategories.map(cat => 
-      cat.name === editingCategory.name 
-        ? { ...cat, budget, spent }
-        : cat
-    );
-    
-    // Delete existing and insert updated
-    await supabase
+    // Persist only this category row (avoid deleting/reinserting all categories)
+    const categoryRow = editingCategory;
+
+    const { data: updatedRows, error: updateError } = await supabase
       .from("project_budgets")
-      .delete()
+      .update({ budget, spent })
+      .eq("project_id", selectedProjectId)
+      .eq("category_name", editingCategory.name)
+      .select("id");
+
+    if (updateError) throw updateError;
+
+    // If the row didn't exist yet (edge case), insert it
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertError } = await supabase.from("project_budgets").insert({
+        project_id: selectedProjectId,
+        category_name: categoryRow.name,
+        budget,
+        spent,
+        color: categoryRow.color,
+        description: categoryRow.description || null,
+        items: JSON.parse(JSON.stringify(categoryRow.items || [])) as Json,
+      });
+      if (insertError) throw insertError;
+    }
+
+    // Recompute total budget from DB (prevents stale-state bugs)
+    const { data: allBudgets, error: sumError } = await supabase
+      .from("project_budgets")
+      .select("budget")
       .eq("project_id", selectedProjectId);
 
-    const budgetData = updatedCategories.map(cat => ({
-      project_id: selectedProjectId,
-      category_name: cat.name,
-      budget: cat.name === editingCategory.name ? budget : cat.budget,
-      spent: cat.name === editingCategory.name ? spent : cat.spent,
-      color: cat.color,
-      description: cat.description || null,
-      items: JSON.parse(JSON.stringify(cat.items || [])) as Json,
-    }));
+    if (sumError) throw sumError;
 
-    await supabase
-      .from("project_budgets")
-      .insert(budgetData);
-
-    // Update project total budget
-    const totalBudget = updatedCategories.reduce((acc, cat) => 
-      acc + (cat.name === editingCategory.name ? budget : cat.budget), 0
+    const totalBudget = (allBudgets || []).reduce(
+      (acc, row) => acc + Number((row as any).budget || 0),
+      0
     );
+
     await supabase
       .from("projects")
       .update({ total_budget: totalBudget, updated_at: new Date().toISOString() })

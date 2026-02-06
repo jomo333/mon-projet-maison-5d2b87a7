@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { formatCurrency } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,8 @@ import {
   Loader2,
   Phone,
   Building2,
+  Upload,
+  Download,
 } from "lucide-react";
 
 export interface DIYSupplierQuote {
@@ -52,6 +54,12 @@ export interface DIYSupplierQuote {
   notes?: string;
 }
 
+export interface DIYItemDocument {
+  id: string;
+  file_name: string;
+  file_url: string;
+}
+
 export interface DIYItem {
   id: string;
   name: string;
@@ -60,6 +68,7 @@ export interface DIYItem {
   orderLeadDays?: number;
   hasAnalysis?: boolean;
   notes?: string;
+  documents?: DIYItemDocument[];
 }
 
 export interface DIYSelectedSupplier {
@@ -80,6 +89,10 @@ interface DIYItemsTableProps {
   categoryName: string;
   selectedSupplier?: DIYSelectedSupplier;
   onUpdateSupplier?: (supplier: DIYSelectedSupplier) => void;
+  // New props for document handling
+  onUploadDocument?: (itemId: string, file: File) => Promise<void>;
+  onDeleteDocument?: (itemId: string, docId: string) => Promise<void>;
+  uploadingItemId?: string | null;
 }
 
 // Default suggestions based on category

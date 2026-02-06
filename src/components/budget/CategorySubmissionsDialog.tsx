@@ -2452,7 +2452,8 @@ export function CategorySubmissionsDialog({
               );
             })()}
 
-            {/* Documents Section */}
+            {/* Documents Section - Hidden in DIY mode since DIY items have their own table */}
+            {viewMode !== 'subcategories' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium flex items-center gap-2">

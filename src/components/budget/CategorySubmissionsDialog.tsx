@@ -1994,6 +1994,8 @@ export function CategorySubmissionsDialog({
                       onAnalyzeItem={projectPlans.length > 0 ? handleAnalyzeDIYItem : undefined}
                       analyzingItemId={analyzingDIYItemId}
                       categoryName={categoryName}
+                      selectedSupplier={diySupplier}
+                      onUpdateSupplier={handleUpdateDIYSupplier}
                     />
                   </TabsContent>
                 </Tabs>

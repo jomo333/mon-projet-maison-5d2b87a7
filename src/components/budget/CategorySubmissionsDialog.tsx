@@ -182,6 +182,7 @@ export function CategorySubmissionsDialog({
   const [diyItems, setDiyItems] = useState<DIYItem[]>([]);
   const [analyzingDIYItemId, setAnalyzingDIYItemId] = useState<string | null>(null);
   const [uploadingDIYItemId, setUploadingDIYItemId] = useState<string | null>(null);
+  const [analyzedDIYItemName, setAnalyzedDIYItemName] = useState<string>(""); // Name of the item being analyzed
   
   // DIY independent supplier (separate from single/task mode suppliers)
   const [diySupplier, setDiySupplier] = useState<DIYSelectedSupplier>({ name: "", phone: "", orderLeadDays: undefined });
@@ -1069,6 +1070,8 @@ export function CategorySubmissionsDialog({
     }
     
     setAnalyzingDIYItemId(itemId);
+    setDiyAnalysisResult(""); // Reset analysis result
+    setAnalyzedDIYItemName(item.name); // Set the item name for the analysis view
     
     try {
       // Build documents array with file_name and signed file_url (format expected by edge function)
@@ -1093,50 +1096,95 @@ export function CategorySubmissionsDialog({
         return;
       }
       
-      // Call the analyze-soumissions edge function
-      const response = await supabase.functions.invoke("analyze-soumissions", {
-        body: {
-          tradeName: categoryName,
-          tradeDescription: item.name,
-          documents,
-          lang: t("common.langCode") || "fr",
-        },
-      });
-      
-      if (response.error) throw new Error(response.error.message);
-      
-      const analysisData = response.data;
-      
-      // If analysis extracted supplier contacts, create a quote from the first one
-      if (analysisData?.contacts && analysisData.contacts.length > 0) {
-        const firstContact = analysisData.contacts[0];
-        const amount = parseFloat(String(firstContact.amount || "0").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
-        
-        // Add as a quote to the item
-        const quoteId = Date.now().toString();
-        setDiyItems(prev => prev.map(i => {
-          if (i.id === itemId) {
-            const newQuote: DIYSupplierQuote = {
-              id: quoteId,
-              storeName: firstContact.supplierName || "Fournisseur",
-              description: analysisData.comparaison_json?.description_projet || "",
-              amount: amount,
-            };
-            const updatedQuotes = [...i.quotes, newQuote];
-            const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
-            return { ...i, quotes: updatedQuotes, totalAmount: newTotal, hasAnalysis: true };
-          }
-          return i;
-        }));
-        
-        toast.success(t("toasts.analysisComplete", "Analyse terminée - Devis ajouté"));
-      } else {
-        // Just mark as analyzed
-        setDiyItems(prev => prev.map(i => 
-          i.id === itemId ? { ...i, hasAnalysis: true } : i
-        ));
-        toast.success(t("toasts.analysisComplete", "Analyse terminée"));
+      // Get the auth session for the authorization header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error(t("auth.notAuthenticated", "Veuillez vous connecter"));
+        return;
       }
+      
+      // Use fetch with streaming (like analyzeDIYMaterials does)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-soumissions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            tradeName: categoryName,
+            tradeDescription: item.name,
+            documents,
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 429) {
+          toast.error(t("toasts.rateLimit", "Limite de requêtes atteinte"));
+          return;
+        }
+        if (response.status === 402) {
+          toast.error(t("toasts.insufficientCredits", "Crédits insuffisants"));
+          return;
+        }
+        throw new Error(errorData.error || "Erreur lors de l'analyse");
+      }
+      
+      if (!response.body) {
+        throw new Error("Pas de réponse du serveur");
+      }
+      
+      // Read the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let result = "";
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              result += content;
+              setDiyAnalysisResult(result);
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+      
+      // Set final result and show analysis view
+      setDiyAnalysisResult(result);
+      setShowDIYAnalysis(true);
+      
+      // Mark item as analyzed
+      setDiyItems(prev => prev.map(i => 
+        i.id === itemId ? { ...i, hasAnalysis: true } : i
+      ));
+      
+      toast.success(t("toasts.analysisComplete", "Analyse terminée"));
     } catch (error) {
       console.error("Analysis error:", error);
       toast.error(t("toasts.analysisError", "Erreur lors de l'analyse"));
@@ -3183,11 +3231,33 @@ export function CategorySubmissionsDialog({
         open={showDIYAnalysis}
         onOpenChange={setShowDIYAnalysis}
         categoryName={categoryName}
-        subCategoryName={currentSubCategoryName || ''}
+        subCategoryName={analyzedDIYItemName || currentSubCategoryName || ''}
         analysisResult={diyAnalysisResult || ''}
         onApplyEstimate={(amount) => {
-          // Update the material cost
-          if (activeSubCategoryId) {
+          // If we analyzed a DIY item, update that item
+          if (analyzedDIYItemName) {
+            const itemToUpdate = diyItems.find(i => i.name === analyzedDIYItemName);
+            if (itemToUpdate) {
+              // Add the amount as a quote to the item
+              const quoteId = Date.now().toString();
+              setDiyItems(prev => prev.map(i => {
+                if (i.id === itemToUpdate.id) {
+                  const newQuote: DIYSupplierQuote = {
+                    id: quoteId,
+                    storeName: t("diyItems.aiExtracted", "Extrait de l'analyse IA"),
+                    description: "",
+                    amount: amount,
+                  };
+                  const updatedQuotes = [...i.quotes, newQuote];
+                  const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+                  return { ...i, quotes: updatedQuotes, totalAmount: newTotal };
+                }
+                return i;
+              }));
+              toast.success(`${t("diyItems.costApplied", "Coût appliqué")}: ${formatCurrency(amount)}`);
+            }
+          } else if (activeSubCategoryId) {
+            // Original behavior for sub-categories
             setSubCategories(prev => prev.map(sc =>
               sc.id === activeSubCategoryId
                 ? { ...sc, materialCostOnly: amount, amount }
@@ -3200,9 +3270,10 @@ export function CategorySubmissionsDialog({
               .reduce((sum, amt) => sum + (amt || 0), 0);
             setSpent(newTotalSpent.toString());
             
-            toast.success(`Coût appliqué: ${formatCurrency(amount)}`);
+            toast.success(`${t("diyItems.costApplied", "Coût appliqué")}: ${formatCurrency(amount)}`);
           }
           setShowDIYAnalysis(false);
+          setAnalyzedDIYItemName(""); // Reset
         }}
       />
     </Dialog>

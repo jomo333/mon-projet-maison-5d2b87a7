@@ -181,6 +181,7 @@ export function CategorySubmissionsDialog({
   // DIY Items state (new simplified table view)
   const [diyItems, setDiyItems] = useState<DIYItem[]>([]);
   const [analyzingDIYItemId, setAnalyzingDIYItemId] = useState<string | null>(null);
+  const [uploadingDIYItemId, setUploadingDIYItemId] = useState<string | null>(null);
   
   // DIY independent supplier (separate from single/task mode suppliers)
   const [diySupplier, setDiySupplier] = useState<DIYSelectedSupplier>({ name: "", phone: "", orderLeadDays: undefined });

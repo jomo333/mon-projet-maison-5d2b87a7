@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ interface DIYAnalysisViewProps {
 
 // Parse amount from analysis result - handles French formatting (1 234,56 $)
 const extractEstimatedTotal = (analysisResult: string): number | null => {
-  // Multiple patterns to match total
   const patterns = [
     /\*\*TOTAL ESTIMÉ\*\*[^$]*?([0-9\s,\.]+)\s*\$/i,
     /TOTAL ESTIMÉ[^$]*?([0-9\s,\.]+)\s*\$/i,
@@ -53,24 +52,77 @@ const extractEstimatedTotal = (analysisResult: string): number | null => {
   for (const pattern of patterns) {
     const match = analysisResult.match(pattern);
     if (match) {
-      // French format: spaces as thousands separator, comma as decimal
-      // e.g., "4 565,60" or "4565,60"
       let rawValue = match[1].trim();
-      
-      // Remove spaces (thousands separator)
       rawValue = rawValue.replace(/\s/g, '');
-      
-      // If there's a comma, it's likely the decimal separator (French format)
-      // Convert comma to period for parseFloat
       if (rawValue.includes(',')) {
         rawValue = rawValue.replace(',', '.');
       }
-      
       const amount = parseFloat(rawValue);
       if (amount > 0 && !isNaN(amount)) return Math.round(amount * 100) / 100;
     }
   }
   return null;
+};
+
+// Extract supplier info from analysis result
+const extractSupplierInfo = (analysisResult: string): SupplierInfo => {
+  let name = "";
+  let phone = "";
+  
+  // Patterns for supplier name extraction
+  const namePatterns = [
+    // Table format: | Fournisseur | Canac |
+    /\|\s*(?:\*\*)?Fournisseur(?:\*\*)?\s*\|\s*(?:\*\*)?([^|*\n]+?)(?:\*\*)?\s*\|/i,
+    // Markdown bold: **Fournisseur:** Canac or **Fournisseur :** Canac
+    /\*\*Fournisseur\s*:?\*\*\s*:?\s*([^\n*]+)/i,
+    // Simple format: Fournisseur: Canac or Fournisseur : Canac
+    /Fournisseur\s*:\s*([^\n|]+)/i,
+    // Magasin format
+    /\*\*Magasin\s*:?\*\*\s*:?\s*([^\n*]+)/i,
+    /Magasin\s*:\s*([^\n|]+)/i,
+    // Entreprise format
+    /\*\*Entreprise\s*:?\*\*\s*:?\s*([^\n*]+)/i,
+    /Entreprise\s*:\s*([^\n|]+)/i,
+    // Nom du fournisseur format
+    /Nom du fournisseur\s*:\s*([^\n|]+)/i,
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = analysisResult.match(pattern);
+    if (match && match[1]) {
+      const extracted = match[1].trim();
+      // Skip if it looks like a phone number or contains common non-name patterns
+      if (extracted && !extracted.match(/^\d/) && extracted.length > 1 && extracted.length < 100) {
+        name = extracted;
+        break;
+      }
+    }
+  }
+  
+  // Patterns for phone extraction
+  const phonePatterns = [
+    // Table format: | Téléphone | (418) 123-4567 |
+    /\|\s*(?:\*\*)?T[ée]l[ée]phone(?:\*\*)?\s*\|\s*(?:\*\*)?([^|*\n]+?)(?:\*\*)?\s*\|/i,
+    // Markdown bold: **Téléphone:** (418) 123-4567
+    /\*\*T[ée]l[ée]phone\s*:?\*\*\s*:?\s*([^\n*]+)/i,
+    // Simple format: Téléphone: (418) 123-4567
+    /T[ée]l[ée]phone\s*:\s*([^\n|]+)/i,
+    // Phone number pattern in parentheses format
+    /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/,
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = analysisResult.match(pattern);
+    if (match) {
+      const extracted = match[1] ? match[1].trim() : match[0].trim();
+      if (extracted && extracted.match(/\d/)) {
+        phone = extracted;
+        break;
+      }
+    }
+  }
+  
+  return { name, phone };
 };
 
 export function DIYAnalysisView({
@@ -84,9 +136,21 @@ export function DIYAnalysisView({
 }: DIYAnalysisViewProps) {
   const { t } = useTranslation();
   const estimatedTotal = extractEstimatedTotal(analysisResult);
+  const extractedSupplier = extractSupplierInfo(analysisResult);
   
-  const [supplierName, setSupplierName] = useState(initialSupplier?.name || "");
-  const [supplierPhone, setSupplierPhone] = useState(initialSupplier?.phone || "");
+  const [supplierName, setSupplierName] = useState("");
+  const [supplierPhone, setSupplierPhone] = useState("");
+
+  // Auto-fill supplier info when analysis result changes
+  useEffect(() => {
+    if (open) {
+      // Priority: initial supplier > extracted from analysis
+      const nameToUse = initialSupplier?.name || extractedSupplier.name || "";
+      const phoneToUse = initialSupplier?.phone || extractedSupplier.phone || "";
+      setSupplierName(nameToUse);
+      setSupplierPhone(phoneToUse);
+    }
+  }, [open, analysisResult, initialSupplier?.name, initialSupplier?.phone, extractedSupplier.name, extractedSupplier.phone]);
 
   const handleApply = () => {
     if (estimatedTotal && onApplyEstimate) {

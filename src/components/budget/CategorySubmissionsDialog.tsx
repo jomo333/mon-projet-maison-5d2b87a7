@@ -1071,8 +1071,8 @@ export function CategorySubmissionsDialog({
     setAnalyzingDIYItemId(itemId);
     
     try {
-      // Get signed URLs for the documents
-      const documentUrls: string[] = [];
+      // Build documents array with file_name and signed file_url (format expected by edge function)
+      const documents: { file_name: string; file_url: string }[] = [];
       for (const doc of item.documents) {
         // Extract path from file_url for signed URL
         const bucketMarker = "/task-attachments/";
@@ -1081,14 +1081,14 @@ export function CategorySubmissionsDialog({
           const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
           const signedUrl = await getSignedUrl("task-attachments", path);
           if (signedUrl) {
-            documentUrls.push(signedUrl);
+            documents.push({ file_name: doc.file_name, file_url: signedUrl });
           }
         } else {
-          documentUrls.push(doc.file_url);
+          documents.push({ file_name: doc.file_name, file_url: doc.file_url });
         }
       }
       
-      if (documentUrls.length === 0) {
+      if (documents.length === 0) {
         toast.error(t("diyItems.noDocumentsToAnalyze", "Téléchargez d'abord des soumissions à analyser"));
         return;
       }
@@ -1096,9 +1096,9 @@ export function CategorySubmissionsDialog({
       // Call the analyze-soumissions edge function
       const response = await supabase.functions.invoke("analyze-soumissions", {
         body: {
-          documentUrls,
-          categoryName,
-          subCategoryName: item.name,
+          tradeName: categoryName,
+          tradeDescription: item.name,
+          documents,
           lang: t("common.langCode") || "fr",
         },
       });

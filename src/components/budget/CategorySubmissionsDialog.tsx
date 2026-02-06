@@ -1004,6 +1004,7 @@ export function CategorySubmissionsDialog({
         return item;
       }));
       
+      queryClient.invalidateQueries({ queryKey: ['sub-category-docs', projectId, tradeId] });
       toast.success(t("attachments.uploadSuccess"));
     } catch (error) {
       console.error("Upload error:", error);

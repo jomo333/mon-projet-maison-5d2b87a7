@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -16,11 +19,17 @@ import {
   ArrowLeft,
   DollarSign,
   ShoppingCart,
-  Lightbulb,
-  AlertTriangle,
+  Store,
+  Phone,
+  Check,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+interface SupplierInfo {
+  name: string;
+  phone: string;
+}
 
 interface DIYAnalysisViewProps {
   open: boolean;
@@ -28,7 +37,8 @@ interface DIYAnalysisViewProps {
   categoryName: string;
   subCategoryName: string;
   analysisResult: string;
-  onApplyEstimate?: (amount: number) => void;
+  onApplyEstimate?: (amount: number, supplier?: SupplierInfo) => void;
+  initialSupplier?: SupplierInfo;
 }
 
 // Parse amount from analysis result - handles French formatting (1 234,56 $)
@@ -70,9 +80,20 @@ export function DIYAnalysisView({
   subCategoryName,
   analysisResult,
   onApplyEstimate,
+  initialSupplier,
 }: DIYAnalysisViewProps) {
   const { t } = useTranslation();
   const estimatedTotal = extractEstimatedTotal(analysisResult);
+  
+  const [supplierName, setSupplierName] = useState(initialSupplier?.name || "");
+  const [supplierPhone, setSupplierPhone] = useState(initialSupplier?.phone || "");
+
+  const handleApply = () => {
+    if (estimatedTotal && onApplyEstimate) {
+      const supplier = supplierName.trim() ? { name: supplierName.trim(), phone: supplierPhone.trim() } : undefined;
+      onApplyEstimate(estimatedTotal, supplier);
+    }
+  };
 
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
@@ -167,40 +188,40 @@ export function DIYAnalysisView({
                   </div>
                 )}
 
-                {/* Info Cards */}
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-3">
-                    <div className="flex items-start gap-3">
-                      <Lightbulb className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-sm text-amber-700 dark:text-amber-400">Conseils d'achat</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Comparez les prix entre Canac, Rona, Home Depot et BMR. Les ventes saisonnières peuvent réduire les coûts de 15-25%.
-                        </p>
-                      </div>
-                    </div>
+                {/* Supplier Selection Form */}
+                <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-4 space-y-4">
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <Store className="h-5 w-5" />
+                    <span className="font-medium">Informations du fournisseur</span>
                   </div>
-
-                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-3">
-                    <div className="flex items-start gap-3">
-                      <ShoppingCart className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-sm text-amber-700 dark:text-amber-400">Liste d'achat</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          La liste inclut un surplus de 10-15% pour les coupes et pertes normales.
-                        </p>
-                      </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="supplier-name" className="text-sm">
+                        Nom du magasin / fournisseur
+                      </Label>
+                      <Input
+                        id="supplier-name"
+                        placeholder="Ex: Canac, Rona, Home Depot..."
+                        value={supplierName}
+                        onChange={(e) => setSupplierName(e.target.value)}
+                        className="border-amber-200 dark:border-amber-800 focus:border-amber-400"
+                      />
                     </div>
-                  </div>
-
-                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-3">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-sm text-amber-700 dark:text-amber-400">Économie main-d'œuvre</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          En faisant vous-même, vous économisez 35-50% du coût total (main-d'œuvre CCQ).
-                        </p>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="supplier-phone" className="text-sm">
+                        Téléphone (optionnel)
+                      </Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="supplier-phone"
+                          placeholder="(XXX) XXX-XXXX"
+                          value={supplierPhone}
+                          onChange={(e) => setSupplierPhone(e.target.value)}
+                          className="pl-10 border-amber-200 dark:border-amber-800 focus:border-amber-400"
+                        />
                       </div>
                     </div>
                   </div>
@@ -222,10 +243,13 @@ export function DIYAnalysisView({
                 <Button 
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
                   size="lg"
-                  onClick={() => onApplyEstimate(estimatedTotal)}
+                  onClick={handleApply}
                 >
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  Appliquer: {formatCurrency(estimatedTotal)}
+                  <Check className="h-5 w-5 mr-2" />
+                  {supplierName.trim() 
+                    ? `Retenir ${supplierName.trim()} - ${formatCurrency(estimatedTotal)}`
+                    : `Appliquer: ${formatCurrency(estimatedTotal)}`
+                  }
                 </Button>
               </div>
             )}

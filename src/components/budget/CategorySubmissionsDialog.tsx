@@ -181,6 +181,7 @@ export function CategorySubmissionsDialog({
   // DIY Items state (new simplified table view)
   const [diyItems, setDiyItems] = useState<DIYItem[]>([]);
   const [analyzingDIYItemId, setAnalyzingDIYItemId] = useState<string | null>(null);
+  const [uploadingDIYItemId, setUploadingDIYItemId] = useState<string | null>(null);
   
   // DIY independent supplier (separate from single/task mode suppliers)
   const [diySupplier, setDiySupplier] = useState<DIYSelectedSupplier>({ name: "", phone: "", orderLeadDays: undefined });
@@ -389,13 +390,13 @@ export function CategorySubmissionsDialog({
     }
   }, [savedSubCategories]);
   
-  // Check documents count for sub-categories
+  // Check documents for sub-categories (DIY items)
   const { data: subCategoryDocs = [] } = useQuery({
-    queryKey: ['sub-category-docs-count', projectId, tradeId],
+    queryKey: ['sub-category-docs', projectId, tradeId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('task_attachments')
-        .select('task_id')
+        .select('id, task_id, file_name, file_url')
         .eq('project_id', projectId)
         .eq('step_id', 'soumissions')
         .like('task_id', `soumission-${tradeId}-sub-%`)
@@ -404,21 +405,28 @@ export function CategorySubmissionsDialog({
       if (error) throw error;
       return data || [];
     },
-    enabled: !!projectId && open && subCategories.length > 0,
+    enabled: !!projectId && open,
   });
   
-  // Update sub-categories with document info
+  // Update DIY items with document info
   useEffect(() => {
-    if (subCategoryDocs.length > 0 && subCategories.length > 0) {
-      const docsMap = subCategoryDocs.reduce((acc, doc) => {
+    if (subCategoryDocs.length > 0 && diyItems.length > 0) {
+      const docsMap: Record<string, Array<{ id: string; file_name: string; file_url: string }>> = {};
+      subCategoryDocs.forEach((doc) => {
         const subId = doc.task_id.replace(`soumission-${tradeId}-sub-`, '');
-        acc[subId] = (acc[subId] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+        if (!docsMap[subId]) docsMap[subId] = [];
+        docsMap[subId].push({ id: doc.id, file_name: doc.file_name, file_url: doc.file_url });
+      });
       
+      setDiyItems(prev => prev.map(item => ({
+        ...item,
+        documents: docsMap[item.id] || item.documents || [],
+      })));
+      
+      // Also update subCategories for document count
       setSubCategories(prev => prev.map(sc => ({
         ...sc,
-        hasDocuments: (docsMap[sc.id] || 0) > 0,
+        hasDocuments: (docsMap[sc.id] || []).length > 0,
       })));
     }
   }, [subCategoryDocs, tradeId]);
@@ -945,24 +953,194 @@ export function CategorySubmissionsDialog({
       return item;
     }));
   };
+
+  // Handler for uploading documents to a DIY item
+  const handleUploadDIYDocument = async (itemId: string, file: File) => {
+    if (!user) return;
+    setUploadingDIYItemId(itemId);
+    
+    try {
+      const fileExt = file.name.split(".").pop();
+      const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const fileName = `${user.id}/diy-items/${tradeId}/${itemId}/${uniqueId}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("task-attachments")
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get signed URL
+      const signedUrl = await getSignedUrl("task-attachments", fileName);
+      if (!signedUrl) throw new Error("Failed to generate signed URL");
+      
+      // Insert into task_attachments table
+      const { data: insertedDoc, error: dbError } = await supabase
+        .from("task_attachments")
+        .insert({
+          project_id: projectId,
+          step_id: "soumissions",
+          task_id: `soumission-${tradeId}-sub-${itemId}`,
+          file_name: file.name,
+          file_url: signedUrl,
+          file_type: file.type,
+          file_size: file.size,
+          category: "soumission",
+        })
+        .select()
+        .single();
+      
+      if (dbError) throw dbError;
+      
+      // Update local state with the new document
+      setDiyItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const currentDocs = item.documents || [];
+          return {
+            ...item,
+            documents: [...currentDocs, { id: insertedDoc.id, file_name: file.name, file_url: signedUrl }],
+          };
+        }
+        return item;
+      }));
+      
+      queryClient.invalidateQueries({ queryKey: ['sub-category-docs', projectId, tradeId] });
+      toast.success(t("attachments.uploadSuccess"));
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(t("attachments.uploadError"));
+    } finally {
+      setUploadingDIYItemId(null);
+    }
+  };
+
+  // Handler for deleting documents from a DIY item
+  const handleDeleteDIYDocument = async (itemId: string, docId: string) => {
+    try {
+      // First get the document to find the file path
+      const { data: doc } = await supabase
+        .from("task_attachments")
+        .select("file_url")
+        .eq("id", docId)
+        .single();
+      
+      if (doc) {
+        // Extract path from file_url
+        const bucketMarker = "/task-attachments/";
+        const markerIndex = doc.file_url.indexOf(bucketMarker);
+        if (markerIndex >= 0) {
+          const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+          await supabase.storage.from("task-attachments").remove([path]);
+        }
+      }
+      
+      // Delete from database
+      await supabase
+        .from("task_attachments")
+        .delete()
+        .eq("id", docId);
+      
+      // Update local state
+      setDiyItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            documents: (item.documents || []).filter(d => d.id !== docId),
+          };
+        }
+        return item;
+      }));
+      
+      queryClient.invalidateQueries({ queryKey: ['sub-category-docs', projectId, tradeId] });
+      toast.success(t("attachments.deleteSuccess"));
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(t("attachments.deleteError"));
+    }
+  };
   
   const handleAnalyzeDIYItem = async (itemId: string) => {
     const item = diyItems.find(i => i.id === itemId);
-    if (!item) return;
+    if (!item || !item.documents || item.documents.length === 0) {
+      toast.error(t("diyItems.noDocumentsToAnalyze", "Téléchargez d'abord des soumissions à analyser"));
+      return;
+    }
     
-    // Set active sub-category for analysis
-    setActiveSubCategoryId(itemId);
     setAnalyzingDIYItemId(itemId);
     
-    // Trigger the existing DIY analysis
-    await analyzeDIYMaterials();
-    
-    // Mark as analyzed
-    setDiyItems(prev => prev.map(i => 
-      i.id === itemId ? { ...i, hasAnalysis: true } : i
-    ));
-    
-    setAnalyzingDIYItemId(null);
+    try {
+      // Get signed URLs for the documents
+      const documentUrls: string[] = [];
+      for (const doc of item.documents) {
+        // Extract path from file_url for signed URL
+        const bucketMarker = "/task-attachments/";
+        const markerIndex = doc.file_url.indexOf(bucketMarker);
+        if (markerIndex >= 0) {
+          const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+          const signedUrl = await getSignedUrl("task-attachments", path);
+          if (signedUrl) {
+            documentUrls.push(signedUrl);
+          }
+        } else {
+          documentUrls.push(doc.file_url);
+        }
+      }
+      
+      if (documentUrls.length === 0) {
+        toast.error(t("diyItems.noDocumentsToAnalyze", "Téléchargez d'abord des soumissions à analyser"));
+        return;
+      }
+      
+      // Call the analyze-soumissions edge function
+      const response = await supabase.functions.invoke("analyze-soumissions", {
+        body: {
+          documentUrls,
+          categoryName,
+          subCategoryName: item.name,
+          lang: t("common.langCode") || "fr",
+        },
+      });
+      
+      if (response.error) throw new Error(response.error.message);
+      
+      const analysisData = response.data;
+      
+      // If analysis extracted supplier contacts, create a quote from the first one
+      if (analysisData?.contacts && analysisData.contacts.length > 0) {
+        const firstContact = analysisData.contacts[0];
+        const amount = parseFloat(String(firstContact.amount || "0").replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+        
+        // Add as a quote to the item
+        const quoteId = Date.now().toString();
+        setDiyItems(prev => prev.map(i => {
+          if (i.id === itemId) {
+            const newQuote: DIYSupplierQuote = {
+              id: quoteId,
+              storeName: firstContact.supplierName || "Fournisseur",
+              description: analysisData.comparaison_json?.description_projet || "",
+              amount: amount,
+            };
+            const updatedQuotes = [...i.quotes, newQuote];
+            const newTotal = updatedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
+            return { ...i, quotes: updatedQuotes, totalAmount: newTotal, hasAnalysis: true };
+          }
+          return i;
+        }));
+        
+        toast.success(t("toasts.analysisComplete", "Analyse terminée - Devis ajouté"));
+      } else {
+        // Just mark as analyzed
+        setDiyItems(prev => prev.map(i => 
+          i.id === itemId ? { ...i, hasAnalysis: true } : i
+        ));
+        toast.success(t("toasts.analysisComplete", "Analyse terminée"));
+      }
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast.error(t("toasts.analysisError", "Erreur lors de l'analyse"));
+    } finally {
+      setAnalyzingDIYItemId(null);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2179,11 +2357,14 @@ export function CategorySubmissionsDialog({
                       onUpdateItem={handleUpdateDIYItem}
                       onAddQuote={handleAddQuote}
                       onRemoveQuote={handleRemoveQuote}
-                      onAnalyzeItem={projectPlans.length > 0 ? handleAnalyzeDIYItem : undefined}
+                      onAnalyzeItem={handleAnalyzeDIYItem}
                       analyzingItemId={analyzingDIYItemId}
                       categoryName={categoryName}
                       selectedSupplier={diySupplier}
                       onUpdateSupplier={handleUpdateDIYSupplier}
+                      onUploadDocument={handleUploadDIYDocument}
+                      onDeleteDocument={handleDeleteDIYDocument}
+                      uploadingItemId={uploadingDIYItemId}
                     />
                   </TabsContent>
                 </Tabs>

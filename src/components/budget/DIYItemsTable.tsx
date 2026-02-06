@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { formatCurrency } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,8 @@ import {
   Loader2,
   Phone,
   Building2,
+  Upload,
+  Download,
 } from "lucide-react";
 
 export interface DIYSupplierQuote {
@@ -52,6 +54,12 @@ export interface DIYSupplierQuote {
   notes?: string;
 }
 
+export interface DIYItemDocument {
+  id: string;
+  file_name: string;
+  file_url: string;
+}
+
 export interface DIYItem {
   id: string;
   name: string;
@@ -60,6 +68,7 @@ export interface DIYItem {
   orderLeadDays?: number;
   hasAnalysis?: boolean;
   notes?: string;
+  documents?: DIYItemDocument[];
 }
 
 export interface DIYSelectedSupplier {
@@ -80,6 +89,10 @@ interface DIYItemsTableProps {
   categoryName: string;
   selectedSupplier?: DIYSelectedSupplier;
   onUpdateSupplier?: (supplier: DIYSelectedSupplier) => void;
+  // New props for document handling
+  onUploadDocument?: (itemId: string, file: File) => Promise<void>;
+  onDeleteDocument?: (itemId: string, docId: string) => Promise<void>;
+  uploadingItemId?: string | null;
 }
 
 // Default suggestions based on category
@@ -109,6 +122,9 @@ export function DIYItemsTable({
   categoryName,
   selectedSupplier,
   onUpdateSupplier,
+  onUploadDocument,
+  onDeleteDocument,
+  uploadingItemId,
 }: DIYItemsTableProps) {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -120,6 +136,7 @@ export function DIYItemsTable({
     description: "",
     amount: 0,
   });
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const suggestions = defaultItemSuggestions[categoryName] || [];
   const totalAmount = items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
@@ -316,6 +333,111 @@ export function DIYItemsTable({
                                   className="min-h-[60px]"
                                 />
                               </div>
+
+                              {/* Documents Section */}
+                              {onUploadDocument && (
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                      <FileText className="h-3 w-3" />
+                                      {t("diyItems.documents", "Soumissions")}
+                                      {item.documents && item.documents.length > 0 && (
+                                        <Badge variant="secondary" className="ml-1 text-xs">
+                                          {item.documents.length}
+                                        </Badge>
+                                      )}
+                                    </label>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="file"
+                                        ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                                        className="hidden"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            await onUploadDocument(item.id, file);
+                                            e.target.value = "";
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => fileInputRefs.current[item.id]?.click()}
+                                        disabled={uploadingItemId === item.id}
+                                        className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
+                                      >
+                                        {uploadingItemId === item.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Upload className="h-3 w-3" />
+                                        )}
+                                        {t("diyItems.uploadDoc", "Télécharger")}
+                                      </Button>
+                                      {onAnalyzeItem && item.documents && item.documents.length > 0 && (
+                                        <Button
+                                          variant="default"
+                                          size="sm"
+                                          onClick={() => onAnalyzeItem(item.id)}
+                                          disabled={analyzingItemId === item.id}
+                                          className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+                                        >
+                                          {analyzingItemId === item.id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Sparkles className="h-3 w-3" />
+                                          )}
+                                          {t("diyItems.analyzeAI", "Analyser IA")}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {(!item.documents || item.documents.length === 0) ? (
+                                    <div className="text-xs text-muted-foreground border rounded-lg border-dashed p-3 text-center">
+                                      {t("diyItems.noDocuments", "Aucune soumission téléchargée")}
+                                      <p className="text-xs opacity-75 mt-1">
+                                        {t("diyItems.uploadHint", "Téléchargez vos soumissions pour lancer l'analyse IA")}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      {item.documents.map((doc) => (
+                                        <div
+                                          key={doc.id}
+                                          className="flex items-center justify-between p-2 rounded-lg border bg-background"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                                            <span className="text-sm truncate">{doc.file_name}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() => window.open(doc.file_url, '_blank')}
+                                            >
+                                              <Download className="h-4 w-4" />
+                                            </Button>
+                                            {onDeleteDocument && (
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                                onClick={() => onDeleteDocument(item.id, doc.id)}
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Quotes */}
                               <div className="space-y-3">

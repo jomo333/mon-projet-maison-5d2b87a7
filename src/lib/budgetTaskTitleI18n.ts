@@ -43,6 +43,7 @@ const TASK_TITLE_TO_I18N_KEY: Record<string, string> = {
   // FENÊTRES ET PORTES EXTÉRIEURES
   "installation des fenetres": "budgetTasks.windowInstallation",
   "portes exterieures": "budgetTasks.exteriorDoors",
+  "porte de garage": "budgetTasks.garageDoor",
   
   // ISOLATION ET PARE-VAPEUR
   "isolation des murs": "budgetTasks.wallInsulation",

@@ -20,11 +20,11 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// Helper function to parse currency strings like "25 652 $", "25,652$", "25652", "30 833,00 $"
+// Helper function to parse currency strings like "25 652 $", "25,652$", "25652"
 const parseAmount = (amount: string | undefined): number => {
   if (!amount) return 0;
-  // Remove spaces (including non-breaking spaces), then convert comma to dot for decimal, then remove non-numeric
-  const cleaned = amount.replace(/[\s\u00A0]/g, '').replace(',', '.').replace(/[^\d.]/g, '');
+  // Remove spaces, commas, dollar signs, and other non-numeric characters except decimal point
+  const cleaned = amount.replace(/[\s,$]/g, '').replace(/[^\d.]/g, '');
   return Math.round(parseFloat(cleaned) || 0);
 };
 

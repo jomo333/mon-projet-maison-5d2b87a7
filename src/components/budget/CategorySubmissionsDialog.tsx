@@ -2481,7 +2481,7 @@ export function CategorySubmissionsDialog({
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-lg text-primary">
-                            {formatCurrency(parseFloat(supplier.amount.replace(/[\s\u00A0]/g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0)}
+                            {formatCurrency(parseFloat(supplier.amount.replace(/[\s,]/g, '')) || 0)}
                           </div>
                           <div className="text-xs text-muted-foreground">avant taxes</div>
                         </div>
@@ -2508,7 +2508,7 @@ export function CategorySubmissionsDialog({
                                 <div className="flex justify-between items-center">
                                   <span className="font-medium">{option.name}</span>
                                   <span className="font-bold text-primary">
-                                    {formatCurrency(parseFloat(option.amount.replace(/[\s\u00A0]/g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0)}
+                                    {formatCurrency(parseFloat(option.amount.replace(/[\s,]/g, '')) || 0)}
                                   </span>
                                 </div>
                                 {option.description && (

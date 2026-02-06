@@ -945,6 +945,112 @@ export function CategorySubmissionsDialog({
       return item;
     }));
   };
+
+  // State for DIY document upload
+  const [uploadingDIYItemId, setUploadingDIYItemId] = useState<string | null>(null);
+
+  // Handler for uploading documents to a DIY item
+  const handleUploadDIYDocument = async (itemId: string, file: File) => {
+    if (!user) return;
+    setUploadingDIYItemId(itemId);
+    
+    try {
+      const fileExt = file.name.split(".").pop();
+      const uniqueId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const fileName = `${user.id}/diy-items/${tradeId}/${itemId}/${uniqueId}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("task-attachments")
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get signed URL
+      const signedUrl = await getSignedUrl("task-attachments", fileName);
+      if (!signedUrl) throw new Error("Failed to generate signed URL");
+      
+      // Insert into task_attachments table
+      const { data: insertedDoc, error: dbError } = await supabase
+        .from("task_attachments")
+        .insert({
+          project_id: projectId,
+          step_id: "soumissions",
+          task_id: `soumission-${tradeId}-sub-${itemId}`,
+          file_name: file.name,
+          file_url: signedUrl,
+          file_type: file.type,
+          file_size: file.size,
+          category: "soumission",
+        })
+        .select()
+        .single();
+      
+      if (dbError) throw dbError;
+      
+      // Update local state with the new document
+      setDiyItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const currentDocs = item.documents || [];
+          return {
+            ...item,
+            documents: [...currentDocs, { id: insertedDoc.id, file_name: file.name, file_url: signedUrl }],
+          };
+        }
+        return item;
+      }));
+      
+      toast.success(t("attachments.uploadSuccess"));
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(t("attachments.uploadError"));
+    } finally {
+      setUploadingDIYItemId(null);
+    }
+  };
+
+  // Handler for deleting documents from a DIY item
+  const handleDeleteDIYDocument = async (itemId: string, docId: string) => {
+    try {
+      // First get the document to find the file path
+      const { data: doc } = await supabase
+        .from("task_attachments")
+        .select("file_url")
+        .eq("id", docId)
+        .single();
+      
+      if (doc) {
+        // Extract path from file_url
+        const bucketMarker = "/task-attachments/";
+        const markerIndex = doc.file_url.indexOf(bucketMarker);
+        if (markerIndex >= 0) {
+          const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+          await supabase.storage.from("task-attachments").remove([path]);
+        }
+      }
+      
+      // Delete from database
+      await supabase
+        .from("task_attachments")
+        .delete()
+        .eq("id", docId);
+      
+      // Update local state
+      setDiyItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            documents: (item.documents || []).filter(d => d.id !== docId),
+          };
+        }
+        return item;
+      }));
+      
+      toast.success(t("attachments.deleteSuccess"));
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(t("attachments.deleteError"));
+    }
+  };
   
   const handleAnalyzeDIYItem = async (itemId: string) => {
     const item = diyItems.find(i => i.id === itemId);

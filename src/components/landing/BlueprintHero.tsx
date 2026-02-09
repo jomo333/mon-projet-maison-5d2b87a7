@@ -22,8 +22,8 @@ export function BlueprintHero() {
         className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `url(${blueprintBg})`,
-          backgroundSize: '130%',
-          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
           opacity: 0.25,
         }}

@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import logoSlim from "@/assets/logo-slim.png";
-import blueprintBg from "@/assets/blueprint-background.jpg";
+import blueprintBgFr from "@/assets/blueprint-background-fr.jpg";
+import blueprintBgEn from "@/assets/blueprint-background-en.jpg";
 
 export function BlueprintHero() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const blueprintBg = i18n.language?.startsWith("en") ? blueprintBgEn : blueprintBgFr;
 
   const features = [
     { icon: Shield, textKey: "hero.feature1" },

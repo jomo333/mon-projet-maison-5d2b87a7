@@ -8,7 +8,8 @@ import blueprintBgEn from "@/assets/blueprint-background-en.jpg";
 
 export function BlueprintHero() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const blueprintBg = i18n.language?.startsWith("en") ? blueprintBgEn : blueprintBgFr;
 
   const features = [
     { icon: Shield, textKey: "hero.feature1" },

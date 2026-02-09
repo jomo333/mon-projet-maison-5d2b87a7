@@ -29,6 +29,8 @@ import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 const Project = () => {
   const { t, i18n } = useTranslation();
+  const constructionSteps = useConstructionSteps();
+  const phases = usePhases();
   const { id: projectId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

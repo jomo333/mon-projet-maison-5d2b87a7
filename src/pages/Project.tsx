@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
-import { constructionSteps, phases } from "@/data/constructionSteps";
+import { useConstructionSteps, usePhases } from "@/hooks/useConstructionSteps";
 import { StepCard } from "@/components/guide/StepCard";
 import { StepDetail } from "@/components/guide/StepDetail";
 import { ProjectOverviewTab } from "@/components/project/ProjectOverviewTab";
@@ -29,6 +29,8 @@ import { translateAlertMessage } from "@/lib/alertMessagesI18n";
 
 const Project = () => {
   const { t, i18n } = useTranslation();
+  const constructionSteps = useConstructionSteps();
+  const phases = usePhases();
   const { id: projectId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

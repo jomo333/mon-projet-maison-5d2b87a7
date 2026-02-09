@@ -24,7 +24,7 @@ interface ProjectOverviewTabProps {
 
 export const ProjectOverviewTab = ({ schedules, onNavigateToStep }: ProjectOverviewTabProps) => {
   const { t } = useTranslation();
-  
+  const constructionSteps = useConstructionSteps();
   // Calculate progress statistics
   const stats = useMemo(() => {
     const totalSteps = constructionSteps.length;

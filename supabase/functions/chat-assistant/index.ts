@@ -128,10 +128,68 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const useNativeGemini = !!GEMINI_API_KEY;
+
+    if (!useNativeGemini && !LOVABLE_API_KEY) {
+      throw new Error("GEMINI_API_KEY ou LOVABLE_API_KEY doit être configuré (Secrets)");
+    }
+
+    if (useNativeGemini) {
+      const contents: { role: string; parts: { text: string }[] }[] = [];
+      for (const m of messages) {
+        const role = m.role === "assistant" ? "model" : "user";
+        const text = typeof m.content === "string" ? m.content : (m.content?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") || "");
+        if (text) contents.push({ role, parts: [{ text }] });
+      }
+      const geminiBody = {
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
+      };
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
+      if (!geminiRes.ok) {
+        const t = await geminiRes.text();
+        return new Response(JSON.stringify({ error: "Erreur Gemini: " + (t || geminiRes.statusText) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      await incrementAiUsage(authHeader);
+      await trackAiAnalysisUsage(authHeader, "chat-assistant");
+      const reader = geminiRes.body?.getReader();
+      if (!reader) return new Response(JSON.stringify({ error: "Pas de flux" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const decoder = new TextDecoder();
+          let buffer = "";
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() ?? "";
+              for (const line of lines) {
+                if (line.startsWith("data: ") && line !== "data: [DONE]") {
+                  try {
+                    const j = JSON.parse(line.slice(6));
+                    const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (t) controller.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: t } }] }) + "\n\n"));
+                  } catch (_) {}
+                }
+              }
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -171,7 +229,6 @@ serve(async (req) => {
       });
     }
 
-    // Increment AI usage for authenticated users
     await incrementAiUsage(authHeader);
     await trackAiAnalysisUsage(authHeader, 'chat-assistant');
 

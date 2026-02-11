@@ -2873,10 +2873,15 @@ Retourne le JSON structuré COMPLET.`;
       }
 
       if (pageExtractions.length === 0) {
-        // If everything was skipped, it's likely image fetch/size. Otherwise, it's usually a Claude call failure.
+        // If everything was skipped, it's likely image fetch/size or invalid URLs. Otherwise Claude returned empty/invalid.
+        const isEnglish = String(lang || "fr").startsWith("en");
         const error = skipped === imagesToProcess.length
-          ? "Impossible d'analyser les plans. Images trop lourdes/illisibles ou non accessibles."
-          : "Impossible d'analyser les plans. Erreur IA (réponse vide / rate limit / surcharge). Réessaie dans 30-60s.";
+          ? isEnglish
+            ? "Could not load plan image(s): too large (>8 MB), invalid link, or inaccessible. Re-upload smaller images and try again."
+            : "Impossible de charger le(s) plan(s) : image trop lourde (>8 Mo), lien invalide ou inaccessible. Retéléchargez des images plus légères et réessayez."
+          : isEnglish
+            ? "The AI returned no usable result (empty response, rate limit, or invalid format). Try again in 30–60 s or use a smaller image."
+            : "L'IA n'a pas retourné de résultat utilisable (réponse vide, limite de requêtes ou format invalide). Réessayez dans 30–60 s ou utilisez une image plus petite.";
 
         return new Response(
           JSON.stringify({ success: false, error }),

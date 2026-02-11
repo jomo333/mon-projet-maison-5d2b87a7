@@ -924,7 +924,8 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       }
     } catch (error) {
       console.error("Analysis error:", error);
-      toast.error(t("toasts.analysisError"));
+      const message = error instanceof Error ? error.message : t("toasts.analysisError");
+      toast.error(message);
     } finally {
       setIsAnalyzing(false);
       setBatchProgress(null);

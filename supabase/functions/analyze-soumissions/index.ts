@@ -523,12 +523,15 @@ serve(async (req) => {
       );
     }
 
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const useNativeGemini = !!GEMINI_API_KEY;
+
+    if (!useNativeGemini && !LOVABLE_API_KEY) {
+      throw new Error("GEMINI_API_KEY ou LOVABLE_API_KEY doit être configuré (Supabase → Edge Functions → Secrets)");
     }
 
-    console.log(`Analyzing ${documents.length} documents for ${tradeName} with Gemini 2.5 Flash`);
+    console.log(`Analyzing ${documents.length} documents for ${tradeName} with ${useNativeGemini ? "Gemini API" : "Lovable gateway"}`);
 
     // Build message parts with documents
     const messageParts: any[] = [];
@@ -608,6 +611,80 @@ Calcule l'écart en % et signale si le budget est dépassé.
 
     console.log("Sending request to", soumissionsModel, "with", messageParts.length, "parts");
 
+    if (useNativeGemini) {
+      // Appel direct à l'API Google Gemini (Generative Language)
+      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-2.0-flash";
+      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+      for (const part of messageParts) {
+        if (part.type === "text" && part.text) {
+          geminiParts.push({ text: part.text });
+        } else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
+          const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            geminiParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+          }
+        }
+      }
+      const geminiBody = {
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: geminiParts }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
+      };
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+      const geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.error("Gemini API error:", geminiRes.status, errText);
+        return new Response(
+          JSON.stringify({ error: "Erreur Gemini: " + (errText || geminiRes.statusText) }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      await incrementAiUsage(authHeader);
+      await trackAiAnalysisUsage(authHeader, "analyze-soumissions", null);
+      // Convertir le stream Gemini (SSE) en format attendu par le front (OpenAI-style SSE)
+      const reader = geminiRes.body?.getReader();
+      if (!reader) {
+        return new Response(JSON.stringify({ error: "Pas de flux de réponse" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const decoder = new TextDecoder();
+          let buffer = "";
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() ?? "";
+              for (const line of lines) {
+                if (line.startsWith("data: ") && line !== "data: [DONE]") {
+                  try {
+                    const json = JSON.parse(line.slice(6));
+                    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                      const openAiChunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
+                      controller.enqueue(encoder.encode("data: " + openAiChunk + "\n\n"));
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -645,7 +722,6 @@ Calcule l'écart en % et signale si le budget est dépassé.
       );
     }
 
-    // Increment AI usage for the user
     await incrementAiUsage(authHeader);
     await trackAiAnalysisUsage(authHeader, 'analyze-soumissions', null);
 

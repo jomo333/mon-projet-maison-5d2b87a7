@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { CookieConsent, CookieConsentProvider } from "@/components/cookies/CookieConsent";
@@ -40,6 +41,20 @@ import BootstrapAdmin from "./pages/BootstrapAdmin";
 
 const queryClient = new QueryClient();
 
+// Redirige vers la page "nouveau mot de passe" quand le lien Supabase contient type=recovery (token dans le hash)
+function RecoveryRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (location.pathname === "/reset-password") return;
+    const hash = window.location.hash || "";
+    if (hash.includes("type=recovery") || (hash.includes("access_token=") && hash.includes("type="))) {
+      navigate("/reset-password", { replace: true });
+    }
+  }, [location.pathname, location.hash, navigate]);
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -47,7 +62,8 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <HashRouter>
+            <RecoveryRedirect />
             <CookieConsentProvider>
               <AuthGuard>
                 <LegalConsentGuard>
@@ -86,7 +102,7 @@ const App = () => (
                 </LegalConsentGuard>
               </AuthGuard>
             </CookieConsentProvider>
-          </BrowserRouter>
+          </HashRouter>
         </TooltipProvider>
       </SessionTrackerProvider>
     </AuthProvider>

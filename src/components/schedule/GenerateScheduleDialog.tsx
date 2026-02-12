@@ -156,14 +156,31 @@ export function GenerateScheduleDialog({
       return;
     }
 
+    if (!projectId) {
+      console.error("[GenerateScheduleDialog] No projectId provided");
+      toast.error("Aucun projet sélectionné");
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
       const targetDateStr = format(targetDate, "yyyy-MM-dd");
+      console.log("[GenerateScheduleDialog] Generating schedule:", {
+        projectId,
+        targetDateStr,
+        startingStepId
+      });
+
       const result = await generateProjectSchedule(projectId, targetDateStr, startingStepId);
 
+      console.log("[GenerateScheduleDialog] Schedule generation result:", result);
+
       if (!result.success) {
-        toast.error(result.error || t("errors.generic"));
+        const errorMsg = result.error || t("errors.generic");
+        console.error("[GenerateScheduleDialog] Schedule generation failed:", errorMsg);
+        toast.error(errorMsg);
+        setIsGenerating(false);
         return;
       }
 
@@ -174,15 +191,18 @@ export function GenerateScheduleDialog({
       }
 
       // Appeler onSuccess avant de fermer pour invalider les queries
+      console.log("[GenerateScheduleDialog] Calling onSuccess callback");
       onSuccess?.();
       
       // Attendre un peu avant de fermer pour que les queries soient invalidées
       setTimeout(() => {
+        console.log("[GenerateScheduleDialog] Closing dialog");
         onOpenChange(false);
-      }, 300);
+      }, 500);
     } catch (error) {
-      console.error("Error generating schedule:", error);
-      toast.error(t("errors.generic"));
+      console.error("[GenerateScheduleDialog] Error generating schedule:", error);
+      const errorMessage = error instanceof Error ? error.message : t("errors.generic");
+      toast.error(`Erreur lors de la création de l'échéancier: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -282,7 +302,7 @@ export function GenerateScheduleDialog({
           </Button>
           <Button
             onClick={handleGenerate}
-            disabled={!targetDate || isGenerating}
+            disabled={!targetDate || isGenerating || !projectId}
           >
             {isGenerating ? (
               <>

@@ -432,7 +432,9 @@ export async function generateProjectSchedule(
     }
 
     // Utiliser upsert pour éviter les doublons
-    const { error } = await supabase
+    console.log(`[generateProjectSchedule] Inserting ${schedulesToInsert.length} schedule entries for project ${projectId}`);
+    
+    const { data, error } = await supabase
       .from("project_schedules")
       .upsert(schedulesToInsert, { 
         onConflict: "project_id,step_id",
@@ -440,17 +442,26 @@ export async function generateProjectSchedule(
       });
 
     if (error) {
-      console.error("Error inserting schedules:", error);
+      console.error("[generateProjectSchedule] Error inserting schedules:", error);
       return { success: false, error: error.message };
     }
 
-    // Générer les alertes pour chaque étape
-    await generateScheduleAlerts(projectId, schedulesToInsert);
+    console.log(`[generateProjectSchedule] Successfully inserted schedules. Data:`, data);
 
+    // Générer les alertes pour chaque étape
+    try {
+      await generateScheduleAlerts(projectId, schedulesToInsert);
+      console.log("[generateProjectSchedule] Schedule alerts generated successfully");
+    } catch (alertError) {
+      console.warn("[generateProjectSchedule] Error generating alerts (non-critical):", alertError);
+      // Ne pas faire échouer la création de l'échéancier si les alertes échouent
+    }
+
+    console.log("[generateProjectSchedule] Schedule generation completed successfully");
     return { success: true, warning };
   } catch (error: any) {
-    console.error("Error generating schedule:", error);
-    return { success: false, error: error.message };
+    console.error("[generateProjectSchedule] Exception during schedule generation:", error);
+    return { success: false, error: error?.message || "Erreur inconnue lors de la génération de l'échéancier" };
   }
 }
 

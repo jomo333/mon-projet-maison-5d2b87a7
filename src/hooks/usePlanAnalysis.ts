@@ -5,6 +5,71 @@ import { useTranslation } from "react-i18next";
 import { compressImageFileToJpeg } from "@/lib/imageCompression";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
+// Helper function to invoke analyze-plan with better error handling
+async function invokeAnalyzePlan(body: any): Promise<{ data: any; error: any }> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-plan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        ...(session?.access_token && { 'x-supabase-auth': session.access_token }),
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Analyze-plan error:', response.status, errorText);
+      return { 
+        data: null, 
+        error: { message: `Erreur serveur ${response.status}: ${errorText.slice(0, 200)}` } 
+      };
+    }
+
+    const responseText = await response.text();
+    console.log('Response length:', responseText.length, 'bytes');
+    
+    if (!responseText || responseText.trim() === '') {
+      return { 
+        data: null, 
+        error: { message: "Réponse vide du serveur (status 2xx mais body vide)" } 
+      };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Response preview:', responseText.slice(0, 500));
+      return { 
+        data: null, 
+        error: { message: `Réponse JSON invalide: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` } 
+      };
+    }
+
+    if (!data) {
+      return { 
+        data: null, 
+        error: { message: "Réponse vide du serveur (status 2xx mais pas de données)" } 
+      };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('invokeAnalyzePlan exception:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : 'Erreur inconnue' } 
+    };
+  }
+}
+
 // ============ Types ============
 
 export interface BudgetItem {
@@ -377,11 +442,11 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
           },
         };
 
-        const { data, error } = await supabase.functions.invoke("analyze-plan", { body });
+        const { data, error } = await invokeAnalyzePlan(body);
 
         if (error) {
           console.error(`Batch ${batchIndex + 1} error:`, error);
-          toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message }));
+          toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message || "Erreur inconnue" }));
           failedBatches++;
           continue;
         }
@@ -449,18 +514,16 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
         // Multiple batches - server merge required
         toast.info(t("toasts.mergingResults"));
 
-        const { data: mergedData, error: mergeError } = await supabase.functions.invoke("analyze-plan", {
-          body: {
-            mode: "merge",
-            batchResults,
-            finishQuality: manualData.finishQuality,
-            manualContext: manualData,
-            totalImages,
-            materialChoices: manualData.materialChoices,
-          },
+        const { data: mergedData, error: mergeError } = await invokeAnalyzePlan({
+          mode: "merge",
+          batchResults,
+          finishQuality: manualData.finishQuality,
+          manualContext: manualData,
+          totalImages,
+          materialChoices: manualData.materialChoices,
         });
 
-        if (mergeError) throw mergeError;
+        if (mergeError) throw new Error(mergeError.message || "Erreur lors de la fusion");
 
         if (!mergedData) {
           throw new Error("Réponse vide du serveur lors de la fusion (status 2xx mais pas de données)");

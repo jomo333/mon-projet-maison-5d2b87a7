@@ -28,6 +28,71 @@ import {
   FileImage
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+
+// Helper function to invoke analyze-plan with better error handling
+async function invokeAnalyzePlan(body: any): Promise<{ data: any; error: any }> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-plan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        ...(session?.access_token && { 'x-supabase-auth': session.access_token }),
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Analyze-plan error:', response.status, errorText);
+      return { 
+        data: null, 
+        error: { message: `Erreur serveur ${response.status}: ${errorText.slice(0, 200)}` } 
+      };
+    }
+
+    const responseText = await response.text();
+    console.log('Response length:', responseText.length, 'bytes');
+    
+    if (!responseText || responseText.trim() === '') {
+      return { 
+        data: null, 
+        error: { message: "Réponse vide du serveur (status 2xx mais body vide)" } 
+      };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Response preview:', responseText.slice(0, 500));
+      return { 
+        data: null, 
+        error: { message: `Réponse JSON invalide: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` } 
+      };
+    }
+
+    if (!data) {
+      return { 
+        data: null, 
+        error: { message: "Réponse vide du serveur (status 2xx mais pas de données)" } 
+      };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('invokeAnalyzePlan exception:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : 'Erreur inconnue' } 
+    };
+  }
+}
 import { toast } from "sonner";
 import {
   Select,
@@ -659,8 +724,8 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           referenceImageUrls: manualReferenceImages.length > 0 ? manualReferenceImages : undefined,
         };
 
-        const { data, error } = await supabase.functions.invoke('analyze-plan', { body });
-        if (error) throw error;
+        const { data, error } = await invokeAnalyzePlan(body);
+        if (error) throw new Error(error.message || "Erreur lors de l'appel à analyze-plan");
         if (!data) {
           throw new Error("Réponse vide du serveur (status 2xx mais pas de données)");
         }
@@ -804,11 +869,11 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
             },
           };
 
-          const { data, error } = await supabase.functions.invoke('analyze-plan', { body });
+          const { data, error } = await invokeAnalyzePlan(body);
           
           if (error) {
             console.error(`Batch ${batchIndex + 1} error:`, error);
-            toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message }));
+            toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message || "Erreur inconnue" }));
             failedBatches++;
             continue;
           }
@@ -852,28 +917,29 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           const singleResult = batchResults[0];
           // Appeler le serveur pour obtenir le format final
           const currentLang = i18n.language?.startsWith("en") ? "en" : "fr";
-          const { data: finalData } = await supabase.functions.invoke('analyze-plan', {
-            body: {
-              mode: "merge",
-              lang: currentLang,
-              batchResults,
-              finishQuality,
-              manualContext: manualData,
-              totalImages,
-              materialChoices: {
-                roofingType,
-                exteriorSiding,
-                flooringType,
-                cabinetType,
-                countertopType,
-                heatingType,
-                windowType,
-                insulationType,
-              },
+          const { data: finalData, error: finalError } = await invokeAnalyzePlan({
+            mode: "merge",
+            lang: currentLang,
+            batchResults,
+            finishQuality,
+            manualContext: manualData,
+            totalImages,
+            materialChoices: {
+              roofingType,
+              exteriorSiding,
+              flooringType,
+              cabinetType,
+              countertopType,
+              heatingType,
+              windowType,
+              insulationType,
             },
           });
           
-          if (finalData?.success && finalData?.data) {
+          if (finalError) {
+            console.error("Merge error:", finalError);
+            toast.error(`Erreur lors de la fusion: ${finalError.message || "Erreur inconnue"}`);
+          } else if (finalData?.success && finalData?.data) {
             setAnalysis(finalData.data);
           } else {
             // Utiliser le résultat brut transformé localement
@@ -901,28 +967,26 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           toast.info(t("toasts.mergingResults"));
           
           const currentLang = i18n.language?.startsWith("en") ? "en" : "fr";
-          const { data: mergedData, error: mergeError } = await supabase.functions.invoke('analyze-plan', {
-            body: {
-              mode: "merge",
-              lang: currentLang,
-              batchResults,
-              finishQuality,
-              manualContext: manualData,
-              totalImages,
-              materialChoices: {
-                roofingType,
-                exteriorSiding,
-                flooringType,
-                cabinetType,
-                countertopType,
-                heatingType,
-                windowType,
-                insulationType,
-              },
+          const { data: mergedData, error: mergeError } = await invokeAnalyzePlan({
+            mode: "merge",
+            lang: currentLang,
+            batchResults,
+            finishQuality,
+            manualContext: manualData,
+            totalImages,
+            materialChoices: {
+              roofingType,
+              exteriorSiding,
+              flooringType,
+              cabinetType,
+              countertopType,
+              heatingType,
+              windowType,
+              insulationType,
             },
           });
           
-          if (mergeError) throw mergeError;
+          if (mergeError) throw new Error(mergeError.message || "Erreur lors de la fusion");
           
           if (!mergedData) {
             throw new Error("Réponse vide du serveur lors de la fusion (status 2xx mais pas de données)");

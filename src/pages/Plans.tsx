@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { formatCurrency } from "@/lib/i18n";
 import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
 
@@ -34,6 +35,7 @@ export default function Plans() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { refetch: refetchSubscription } = useSubscription();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -90,6 +92,14 @@ export default function Plans() {
     fetchPlans();
   }, []);
 
+  // Après retour de Stripe (success=1), recharger l'abonnement pour débloquer les fonctionnalités
+  useEffect(() => {
+    const hash = window.location.hash || "";
+    if (hash.includes("success=1")) {
+      refetchSubscription();
+    }
+  }, [refetchSubscription]);
+
   const handleChoosePlan = async (planId: string, billingCycle: "monthly" | "yearly" = "monthly") => {
     if (!user) {
       navigate("/auth");
@@ -122,8 +132,8 @@ export default function Plans() {
         body: JSON.stringify({
         plan_id: planId,
         billing_cycle: billingCycle,
-        success_url: `${window.location.origin}#/forfaits?success=1`,
-        cancel_url: `${window.location.origin}#/forfaits?cancel=1`,
+        success_url: `${window.location.origin}/#/forfaits?success=1`,
+        cancel_url: `${window.location.origin}/#/forfaits?cancel=1`,
       }),
       });
       const data = await res.json().catch(() => ({}));
@@ -358,7 +368,7 @@ export default function Plans() {
                           </>
                         ) : (
                           <>
-                            {plan.price_monthly === 0 ? t("pricing.discovery.cta") : t("plans.choosePlan")}
+                            {getTranslatedPlanCta(t, plan.name, plan.price_monthly === 0)}
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </>
                         )}

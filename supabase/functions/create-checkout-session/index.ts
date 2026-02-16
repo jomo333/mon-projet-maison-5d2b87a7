@@ -143,8 +143,8 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: success_url || defaultSuccess,
-      cancel_url: cancel_url || defaultCancel,
+      success_url: finalSuccessUrl,
+      cancel_url: finalCancelUrl,
       metadata: {
         plan_id: plan.id,
         user_id: user.id,

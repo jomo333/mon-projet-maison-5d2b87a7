@@ -1587,6 +1587,7 @@
       "decouverte": {
         "name": "Discovery",
         "description": "To understand and structure the basics of your project",
+        "cta": "Start for free",
         "features": [
           "1 project",
           "Construction guide (read-only)",
@@ -1615,6 +1616,7 @@
       "gestionComplete": {
         "name": "Complete Management",
         "description": "For complete control of your build from A to Z",
+        "cta": "Choose Complete Management",
         "features": [
           "1 active project",
           "25 AI analyses per month",

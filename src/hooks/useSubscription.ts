@@ -72,16 +72,18 @@ export function useSubscription(): SubscriptionData {
       setLoading(true);
       setError(null);
 
-      // Fetch subscription
-      const { data: subData, error: subError } = await supabase
+      // Fetch subscription (most recent active one if several exist)
+      const { data: subList, error: subError } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
         .in("status", ["active", "trial"])
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
       if (subError) throw subError;
-      setSubscription(subData);
+      const subData = subList?.[0] ?? null;
+      setSubscription(subData ?? null);
 
       // Fetch plan (either from subscription or default Gratuit plan)
       let planData: Plan | null = null;
@@ -167,6 +169,15 @@ export function useSubscription(): SubscriptionData {
 
   useEffect(() => {
     fetchData();
+  }, [user?.id]);
+
+  // Recharger l'abonnement quand l'utilisateur revient sur l'onglet (ex. après paiement Stripe)
+  useEffect(() => {
+    const onFocus = () => {
+      if (user?.id) fetchData();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [user?.id]);
 
   const limits = plan?.limits || DEFAULT_LIMITS;

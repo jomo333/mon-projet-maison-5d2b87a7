@@ -57,3 +57,17 @@ export function getTranslatedPlanFeatures(t: TFunction, planName: string, fallba
   }
   return fallbackFeatures;
 }
+
+/**
+ * Get translated CTA for plan button (e.g. "Commencer gratuitement", "Choisir Essentiel")
+ */
+export function getTranslatedPlanCta(t: TFunction, planName: string, isFree: boolean): string {
+  const tierKey = getPlanTierKey(planName);
+  if (tierKey) {
+    const translated = t(`plans.tiers.${tierKey}.cta`);
+    if (translated !== `plans.tiers.${tierKey}.cta`) {
+      return translated;
+    }
+  }
+  return isFree ? t("pricing.discovery.cta") : t("plans.choosePlan");
+}

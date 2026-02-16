@@ -1587,6 +1587,7 @@
       "decouverte": {
         "name": "Découverte",
         "description": "Pour comprendre et structurer les bases du projet",
+        "cta": "Commencer gratuitement",
         "features": [
           "1 projet",
           "Guide de construction (consultation seulement)",
@@ -1595,7 +1596,7 @@
           "Téléversement de 2 documents",
           "Accès au code du bâtiment (1 recherche)",
           "1 analyse IA par mois",
-          "Stockage : 1Go"
+          "Stockage : 1 Go"
         ]
       },
       "essentiel": {
@@ -1615,6 +1616,7 @@
       "gestionComplete": {
         "name": "Gestion complète",
         "description": "Pour une autoconstruction maîtrisée de A à Z",
+        "cta": "Choisir Gestion complète",
         "features": [
           "1 projet actif",
           "25 analyses IA par mois",

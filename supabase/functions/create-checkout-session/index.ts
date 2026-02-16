@@ -119,8 +119,7 @@ serve(async (req) => {
     apiVersion: "2024-06-20",
   });
 
-  const origin = req.headers.get("origin") || "https://monprojetmaison.ca";
-  const base = origin.replace(/\/$/, "");
+  const base = "https://monprojetmaison.ca";
   const defaultSuccess = `${base}/#/forfaits?success=1`;
   const defaultCancel = `${base}/#/forfaits?cancel=1`;
 

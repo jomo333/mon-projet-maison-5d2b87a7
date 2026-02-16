@@ -119,7 +119,12 @@ export default function Plans() {
           Authorization: `Bearer ${accessToken}`,
           apikey: anonKey ?? "",
         },
-        body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
+        body: JSON.stringify({
+        plan_id: planId,
+        billing_cycle: billingCycle,
+        success_url: `${window.location.origin}#/forfaits?success=1`,
+        cancel_url: `${window.location.origin}#/forfaits?cancel=1`,
+      }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

@@ -2746,7 +2746,7 @@
         "title": "Services tiers et intégrations",
         "intro": "Notre plateforme peut intégrer ou faire appel à des services tiers pour améliorer votre expérience :",
         "items": [
-          "Processeurs de paiement : Pour traiter les transactions de manière sécurisée (ex: Stripe, PayPal)",
+          "Processeurs de paiement : Pour traiter les transactions de manière sécurisée (ex: Stripe)",
           "Outils d'analyse : Pour comprendre l'utilisation de notre plateforme (ex: Google Analytics)",
           "Services de cartographie : Pour localiser les projets et entrepreneurs",
           "Réseaux sociaux : Boutons de partage qui peuvent transmettre des informations aux plateformes sociales"

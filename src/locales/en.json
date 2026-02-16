@@ -2745,7 +2745,7 @@
         "title": "Third-party services and integrations",
         "intro": "Our platform may integrate or use third-party services to enhance your experience:",
         "items": [
-          "Payment processors: To securely process transactions (e.g., Stripe, PayPal)",
+          "Payment processors: To securely process transactions (e.g., Stripe)",
           "Analytics tools: To understand platform usage (e.g., Google Analytics)",
           "Mapping services: To locate projects and contractors",
           "Social networks: Share buttons that may transmit information to social platforms"

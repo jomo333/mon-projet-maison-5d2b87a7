@@ -62,6 +62,14 @@ serve(async (req) => {
     );
   }
 
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: "Token manquant" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -71,10 +79,11 @@ serve(async (req) => {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
   if (userError || !user) {
+    console.error("getUser error:", userError?.message ?? "no user");
     return new Response(
-      JSON.stringify({ error: "Session invalide" }),
+      JSON.stringify({ error: "Session invalide ou token expiré. Reconnectez-vous." }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

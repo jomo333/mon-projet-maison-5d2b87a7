@@ -1578,6 +1578,9 @@
     "benefit5Desc": "Prenez des décisions plus réfléchies, sans pression.",
     "choosePlan": "Choisir ce forfait",
     "redirectingToCheckout": "Redirection vers le paiement…",
+    "manageSubscription": "Gérer mon abonnement",
+    "manageSubscriptionDesc": "Modifier le moyen de paiement, consulter les factures ou annuler l'abonnement.",
+    "manageSubscriptionButton": "Ouvrir le portail de facturation",
     "billingMonthly": "Mensuel",
     "billingYearly": "Annuel",
     "billingYearlyOnePayment": "Paiement unique pour l'année",
@@ -1602,6 +1605,7 @@
       "essentiel": {
         "name": "Essentiel",
         "description": "Pour gérer activement son autoconstruction",
+        "cta": "Choisir Essentiel",
         "features": [
           "1 projet",
           "10 analyses IA par mois",

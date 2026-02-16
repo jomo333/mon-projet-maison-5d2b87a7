@@ -27,6 +27,7 @@ export interface Subscription {
   billing_cycle: string;
   start_date: string;
   current_period_end: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 export interface Usage {

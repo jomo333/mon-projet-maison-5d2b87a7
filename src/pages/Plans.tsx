@@ -35,10 +35,11 @@ export default function Plans() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { refetch: refetchSubscription } = useSubscription();
+  const { subscription, refetch: refetchSubscription } = useSubscription();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const benefits = [
@@ -155,7 +156,52 @@ export default function Plans() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    if (!user) return;
+    setPortalLoading(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
+      if (sessionError || !sessionData?.session) {
+        alert("Session expirée. Veuillez vous reconnecter.");
+        navigate("/auth");
+        return;
+      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-billing-portal-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+          },
+          body: JSON.stringify({
+            return_url: `${window.location.origin}/#/forfaits`,
+          }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert((data as { error?: string })?.error ?? "Impossible d'ouvrir le portail.");
+        return;
+      }
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      alert("Aucune URL reçue.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erreur inattendue");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const formatPrice = (price: number) => formatCurrency(price);
+  const canManageSubscription =
+    user &&
+    (subscription?.status === "active" || subscription?.status === "trial") &&
+    subscription?.stripe_subscription_id;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -372,9 +418,9 @@ export default function Plans() {
                             {plan?.price_monthly === 0
                               ? t("pricing.discovery.cta")
                               : plan?.name === "Essentiel"
-                                ? t("plans.tiers.essentiel.cta")
-                                : plan?.name === "Gestion complète"
-                                  ? t("plans.tiers.gestionComplete.cta")
+                                ? t("plans.tiers.essentiel.cta", "Choisir Essentiel")
+                                : (plan?.name === "Gestion complète" || plan?.name === "Pro")
+                                  ? t("plans.tiers.gestionComplete.cta", "Choisir Gestion complète")
                                   : t("plans.choosePlan")}
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </>
@@ -395,6 +441,37 @@ export default function Plans() {
                 {t("plans.noWrongPlanDesc")}
               </p>
             </div>
+
+            {/* Gérer mon abonnement (abonné récurrent Stripe) */}
+            {canManageSubscription && (
+              <div className="mt-10 max-w-2xl mx-auto">
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      {t("plans.manageSubscription")}
+                    </CardTitle>
+                    <CardDescription>{t("plans.manageSubscriptionDesc")}</CardDescription>
+                  </CardHeader>
+                  <CardFooter className="pt-0">
+                    <Button
+                      variant="outline"
+                      onClick={handleManageSubscription}
+                      disabled={portalLoading}
+                    >
+                      {portalLoading ? (
+                        <>
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent inline-block mr-2" />
+                          {t("plans.redirectingToCheckout")}
+                        </>
+                      ) : (
+                        t("plans.manageSubscriptionButton")
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
           </div>
         </section>
 

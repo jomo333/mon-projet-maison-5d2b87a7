@@ -5,8 +5,10 @@ import { TFunction } from "i18next";
  */
 const PLAN_NAME_TO_TIER_KEY: Record<string, string> = {
   "Découverte": "decouverte",
+  "Gratuit": "decouverte",
   "Essentiel": "essentiel",
   "Gestion complète": "gestionComplete",
+  "Pro": "gestionComplete",
 };
 
 /**

@@ -8,6 +8,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, stripe-signature, x-supabase-client-platform, x-supabase-client-runtime",
 };
 
+function ok() {
+  return new Response(JSON.stringify({ received: true }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -77,74 +84,174 @@ serve(async (req) => {
     });
   }
 
-  if (event.type !== "checkout.session.completed") {
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const session = event.data.object as Stripe.Checkout.Session;
-  const userId = (session.metadata?.user_id ?? session.client_reference_id) as string | null;
-  const planId = session.metadata?.plan_id as string | null;
-  const billingCycle = session.metadata?.billing_cycle as string | null;
-
-  const amountTotal = session.amount_total ?? 0;
-  const currency = (session.currency ?? "cad").toLowerCase();
-  const paymentStatus = session.payment_status === "paid" ? "completed" : session.payment_status ?? "unknown";
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!serviceRoleKey) {
-    console.error("SUPABASE_SERVICE_ROLE_KEY manquant pour enregistrer le paiement");
+    console.error("SUPABASE_SERVICE_ROLE_KEY manquant");
     return new Response(JSON.stringify({ error: "Configuration serveur manquante" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  const { error: insertError } = await supabase.from("payments").insert({
-    provider_id: session.id,
-    payment_method: "stripe",
-    amount: amountTotal / 100,
-    currency,
-    status: paymentStatus,
-    user_id: userId ?? null,
-    subscription_id: null,
-    invoice_url: null,
-  });
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = (session.metadata?.user_id ?? session.client_reference_id) as string | null;
+      const planId = session.metadata?.plan_id as string | null;
+      const billingCycle = session.metadata?.billing_cycle as string | null;
 
-  if (insertError) {
-    console.error("Insert payment error:", insertError);
-    return new Response(
-      JSON.stringify({ error: "Erreur lors de l'enregistrement du paiement" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+      const amountTotal = session.amount_total ?? 0;
+      const currency = (session.currency ?? "cad").toLowerCase();
+      const paymentStatus = session.payment_status === "paid" ? "succeeded" : "pending";
 
-  if (userId && planId && billingCycle) {
-    const startDate = new Date().toISOString().slice(0, 10);
-    const { error: subError } = await supabase.from("subscriptions").insert({
-      user_id: userId,
-      plan_id: planId,
-      billing_cycle: billingCycle,
-      status: "active",
-      start_date: startDate,
-      current_period_start: startDate,
-      current_period_end:
-        billingCycle === "yearly"
-          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    });
-    if (subError) {
-      console.error("Insert subscription error (non bloquant):", subError);
+      await supabase.from("payments").insert({
+        provider_id: session.id,
+        payment_method: "stripe",
+        amount: amountTotal / 100,
+        currency,
+        status: paymentStatus,
+        user_id: userId ?? null,
+        subscription_id: null,
+        invoice_url: null,
+      });
+
+      if (userId && planId && billingCycle) {
+        let periodStart: string;
+        let periodEnd: string;
+        let stripeSubscriptionId: string | null = null;
+
+        if (session.subscription && typeof session.subscription === "string") {
+          stripeSubscriptionId = session.subscription;
+          try {
+            const sub = await stripe.subscriptions.retrieve(session.subscription);
+            periodStart = new Date((sub.current_period_start ?? 0) * 1000).toISOString().slice(0, 10);
+            periodEnd = new Date((sub.current_period_end ?? 0) * 1000).toISOString().slice(0, 10);
+          } catch {
+            const start = new Date();
+            periodStart = start.toISOString().slice(0, 10);
+            periodEnd =
+              billingCycle === "yearly"
+                ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          }
+        } else {
+          const start = new Date();
+          periodStart = start.toISOString().slice(0, 10);
+          periodEnd =
+            billingCycle === "yearly"
+              ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        }
+
+        const row: Record<string, unknown> = {
+          user_id: userId,
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          status: "active",
+          start_date: periodStart,
+          current_period_start: periodStart,
+          current_period_end: periodEnd,
+        };
+        if (stripeSubscriptionId) {
+          row.stripe_subscription_id = stripeSubscriptionId;
+        }
+        const { error: subError } = await supabase.from("subscriptions").insert(row);
+        if (subError) console.error("Insert subscription error (non bloquant):", subError);
+      }
+      return ok();
     }
-  }
 
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+    case "invoice.paid": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (!subId) return ok();
+
+      const amountTotal = invoice.amount_paid ?? invoice.amount_due ?? 0;
+      const currency = (invoice.currency ?? "cad").toLowerCase();
+
+      let userId: string | null = null;
+      let subscriptionRowId: string | null = null;
+      const { data: subRows } = await supabase
+        .from("subscriptions")
+        .select("id, user_id")
+        .eq("stripe_subscription_id", subId)
+        .limit(1);
+      if (subRows?.[0]) {
+        subscriptionRowId = subRows[0].id;
+        userId = subRows[0].user_id;
+      }
+
+      await supabase.from("payments").insert({
+        provider_id: invoice.id,
+        payment_method: "stripe",
+        amount: amountTotal / 100,
+        currency,
+        status: "succeeded",
+        user_id: userId,
+        subscription_id: subscriptionRowId,
+        invoice_url: invoice.hosted_invoice_url ?? null,
+      });
+
+      if (subscriptionRowId && invoice.lines?.data?.[0]) {
+        const periodEnd = invoice.lines.data[0].period?.end;
+        if (periodEnd) {
+          const endDate = new Date(periodEnd * 1000).toISOString().slice(0, 10);
+          await supabase
+            .from("subscriptions")
+            .update({
+              current_period_end: endDate,
+              current_period_start: new Date((invoice.lines.data[0].period?.start ?? 0) * 1000).toISOString().slice(0, 10),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", subscriptionRowId);
+        }
+      }
+      return ok();
+    }
+
+    case "customer.subscription.updated": {
+      const sub = event.data.object as Stripe.Subscription;
+      const periodStart = sub.current_period_start
+        ? new Date(sub.current_period_start * 1000).toISOString().slice(0, 10)
+        : null;
+      const periodEnd = sub.current_period_end
+        ? new Date(sub.current_period_end * 1000).toISOString().slice(0, 10)
+        : null;
+      const status =
+        sub.status === "active" || sub.status === "trialing"
+          ? "active"
+          : sub.status === "canceled" || sub.status === "unpaid"
+            ? "cancelled"
+            : "past_due";
+
+      await supabase
+        .from("subscriptions")
+        .update({
+          current_period_start: periodStart,
+          current_period_end: periodEnd,
+          status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("stripe_subscription_id", sub.id);
+      return ok();
+    }
+
+    case "customer.subscription.deleted": {
+      const sub = event.data.object as Stripe.Subscription;
+      await supabase
+        .from("subscriptions")
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("stripe_subscription_id", sub.id);
+      return ok();
+    }
+
+    default:
+      return ok();
+  }
 });

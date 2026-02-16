@@ -90,7 +90,7 @@ serve(async (req) => {
 
   const { data: plan, error: planError } = await supabase
     .from("plans")
-    .select("id, name, price_monthly, price_yearly")
+    .select("id, name, price_monthly, price_yearly, stripe_price_lookup_monthly, stripe_price_lookup_yearly")
     .eq("id", plan_id)
     .eq("is_active", true)
     .single();
@@ -102,19 +102,6 @@ serve(async (req) => {
     );
   }
 
-  const amountCad =
-    billing_cycle === "yearly" && plan.price_yearly != null
-      ? plan.price_yearly
-      : plan.price_monthly;
-  const amountCents = Math.round(amountCad * 100);
-
-  if (amountCents <= 0) {
-    return new Response(
-      JSON.stringify({ error: "Ce forfait est gratuit, pas de paiement Stripe" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
   const stripe = new Stripe(stripeSecretKey, {
     apiVersion: "2024-06-20",
   });
@@ -122,10 +109,66 @@ serve(async (req) => {
   const base = "https://monprojetmaison.ca";
   const defaultSuccess = `${base}/#/forfaits?success=1`;
   const defaultCancel = `${base}/#/forfaits?cancel=1`;
+  const finalSuccessUrl = success_url ?? defaultSuccess;
+  const finalCancelUrl = cancel_url ?? defaultCancel;
+
+  const lookupKey =
+    billing_cycle === "yearly"
+      ? (plan as { stripe_price_lookup_yearly?: string }).stripe_price_lookup_yearly
+      : (plan as { stripe_price_lookup_monthly?: string }).stripe_price_lookup_monthly;
 
   try {
+    if (lookupKey && typeof lookupKey === "string" && lookupKey.trim()) {
+      const prices = await stripe.prices.list({
+        lookup_keys: [lookupKey.trim()],
+        active: true,
+      });
+      const price = prices.data[0];
+      if (!price) {
+        return new Response(
+          JSON.stringify({
+            error: `Price Stripe introuvable pour la clé « ${lookupKey } ». Vérifiez le lookup key dans le Dashboard Stripe et dans la table plans.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "subscription",
+        line_items: [{ price: price.id, quantity: 1 }],
+        success_url: finalSuccessUrl,
+        cancel_url: finalCancelUrl,
+        metadata: {
+          plan_id: plan.id,
+          user_id: user.id,
+          billing_cycle,
+        },
+        client_reference_id: user.id,
+        subscription_data: {
+          metadata: { plan_id: plan.id, user_id: user.id, billing_cycle },
+        },
+      });
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const amountCad =
+      billing_cycle === "yearly" && plan.price_yearly != null
+        ? plan.price_yearly
+        : plan.price_monthly;
+    const amountCents = Math.round(amountCad * 100);
+
+    if (amountCents <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Ce forfait est gratuit, pas de paiement Stripe" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "paypal"],
       mode: "payment",
       line_items: [
         {
@@ -135,8 +178,8 @@ serve(async (req) => {
               name: plan.name,
               description:
                 billing_cycle === "yearly"
-                  ? "Abonnement annuel"
-                  : "Abonnement mensuel",
+                  ? "Abonnement annuel (paiement unique)"
+                  : "Abonnement mensuel (paiement unique)",
             },
             unit_amount: amountCents,
           },

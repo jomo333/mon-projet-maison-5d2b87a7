@@ -55,7 +55,7 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2024-11-20",
+    apiVersion: "2024-06-20",
   });
   const cryptoProvider = Stripe.createSubtleCryptoProvider();
 

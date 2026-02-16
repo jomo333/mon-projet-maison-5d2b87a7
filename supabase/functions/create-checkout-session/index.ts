@@ -116,7 +116,7 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2024-11-20",
+    apiVersion: "2024-06-20",
   });
 
   const origin = req.headers.get("origin") || "https://monprojetmaison.ca";

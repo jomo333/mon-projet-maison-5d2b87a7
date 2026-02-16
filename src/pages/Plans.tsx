@@ -110,12 +110,20 @@ export default function Plans() {
         return;
       }
       const accessToken = sessionData.session.access_token;
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { plan_id: planId, billing_cycle: billingCycle },
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: anonKey ?? "",
+        },
+        body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
       });
-      if (error) {
-        const msg = (data as { error?: string })?.error || error.message || "Erreur lors de la création de la session";
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (data as { error?: string })?.error || res.statusText || `Erreur ${res.status}`;
         throw new Error(msg);
       }
       if (data?.url) {

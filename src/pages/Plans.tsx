@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { formatCurrency } from "@/lib/i18n";
-import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
+import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures, getTranslatedPlanCta } from "@/lib/planTiersI18n";
 
 interface Plan {
   id: string;

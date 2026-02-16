@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { formatCurrency } from "@/lib/i18n";
-import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures, getTranslatedPlanCta } from "@/lib/planTiersI18n";
+import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
 
 interface Plan {
   id: string;
@@ -92,13 +92,14 @@ export default function Plans() {
     fetchPlans();
   }, []);
 
-  // Après retour de Stripe (success=1), recharger l'abonnement pour débloquer les fonctionnalités
+  // Après retour de Stripe (success=1), recharger l'abonnement une fois au montage
   useEffect(() => {
     const hash = window.location.hash || "";
     if (hash.includes("success=1")) {
       refetchSubscription();
     }
-  }, [refetchSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChoosePlan = async (planId: string, billingCycle: "monthly" | "yearly" = "monthly") => {
     if (!user) {
@@ -368,7 +369,13 @@ export default function Plans() {
                           </>
                         ) : (
                           <>
-                            {getTranslatedPlanCta(t, plan.name, plan.price_monthly === 0)}
+                            {plan?.price_monthly === 0
+                              ? t("pricing.discovery.cta")
+                              : plan?.name === "Essentiel"
+                                ? t("plans.tiers.essentiel.cta")
+                                : plan?.name === "Gestion complète"
+                                  ? t("plans.tiers.gestionComplete.cta")
+                                  : t("plans.choosePlan")}
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </>
                         )}

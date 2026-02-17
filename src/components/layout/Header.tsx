@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
 import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-slim.png";
 
 const getNavItems = (t: (key: string) => string) => [
   { href: "/mes-projets", label: t("nav.myProjects"), icon: FolderOpen },

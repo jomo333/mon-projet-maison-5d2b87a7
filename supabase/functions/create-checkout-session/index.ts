@@ -132,7 +132,7 @@ serve(async (req) => {
         );
       }
       const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card", "google_pay"],
+        automatic_payment_methods: { enabled: true },
         mode: "subscription",
         line_items: [{ price: price.id, quantity: 1 }],
         success_url: finalSuccessUrl,
@@ -167,7 +167,7 @@ serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card", "google_pay"],
+      automatic_payment_methods: { enabled: true },
       mode: "payment",
       line_items: [
         {

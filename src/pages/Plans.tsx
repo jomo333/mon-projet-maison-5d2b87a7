@@ -97,7 +97,14 @@ export default function Plans() {
   useEffect(() => {
     const hash = window.location.hash || "";
     if (hash.includes("success=1")) {
-      refetchSubscription();
+      const timer = setTimeout(() => {
+        refetchSubscription().catch((err: unknown) => {
+          // Ignorer AbortError (fetch annulée lors de la navigation / redirect)
+          if (err instanceof Error && err.name === "AbortError") return;
+          console.error("Refetch subscription:", err);
+        });
+      }, 200);
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -144,7 +151,7 @@ export default function Plans() {
         throw new Error(msg);
       }
       if (data?.url) {
-        window.location.href = data.url;
+        window.location.replace(data.url);
         return;
       }
       throw new Error((data as { error?: string })?.error || "Aucune URL de paiement reçue");
@@ -186,7 +193,7 @@ export default function Plans() {
         return;
       }
       if (data?.url) {
-        window.location.href = data.url;
+        window.location.replace(data.url);
         return;
       }
       alert("Aucune URL reçue.");

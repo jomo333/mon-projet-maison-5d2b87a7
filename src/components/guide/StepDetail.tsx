@@ -23,6 +23,7 @@ import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useTaskDates } from "@/hooks/useTaskDates";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, LucideIcon> = {
   ClipboardList,
@@ -91,7 +92,10 @@ export function StepDetail({
   
   // Utiliser directement useProjectSchedule pour synchroniser avec l'échéancier
   const { schedules, alerts, updateScheduleAndRecalculate, updateScheduleAsync, dismissAlert, isUpdating } = useProjectSchedule(projectId || null);
-  
+
+  // Verrouillage et modification des dates : Essentiel et Gestion complète uniquement
+  const { canUseBudgetAndSchedule } = usePlanLimits();
+
   // Hook pour les notes des tâches
   const { taskDates, getTaskDate, upsertTaskDateAsync } = useTaskDates(projectId || null);
   
@@ -342,11 +346,11 @@ export function StepDetail({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card>
+      {/* Header - fond explicite pour éviter carte blanche / transparente */}
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader>
           <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-xl ${phase?.color} text-white`}>
+            <div className={cn("p-3 rounded-xl text-white", phase?.color || "bg-primary")}>
               <IconComponent className="h-8 w-8" />
             </div>
             <div className="flex-1">

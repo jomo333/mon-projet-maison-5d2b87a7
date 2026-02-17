@@ -74,6 +74,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_analysis_samples: {
+        Row: {
+          id: string
+          user_id: string
+          analysis_type: string
+          project_id: string | null
+          result_metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          analysis_type: string
+          project_id?: string | null
+          result_metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          analysis_type?: string
+          project_id?: string | null
+          result_metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           count: number

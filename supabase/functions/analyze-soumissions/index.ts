@@ -107,6 +107,36 @@ async function trackAiAnalysisUsage(
   }
 }
 
+// Enregistrer un résumé de l'analyse pour améliorer la précision IA (métadonnées uniquement)
+async function saveAnalysisSample(
+  authHeader: string | null,
+  analysisType: string,
+  projectId: string | null | undefined,
+  resultMetadata: Record<string, unknown>
+): Promise<void> {
+  if (!authHeader) return;
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    if (userError || !user) return;
+    const { error } = await serviceSupabase.from("ai_analysis_samples").insert({
+      user_id: user.id,
+      analysis_type: analysisType,
+      project_id: projectId || null,
+      result_metadata: resultMetadata,
+    });
+    if (error) console.error("Failed to save analysis sample:", error);
+  } catch (err) {
+    console.error("Error saving analysis sample:", err);
+  }
+}
+
 interface SoumissionDoc {
   file_name: string;
   file_url: string;
@@ -532,6 +562,16 @@ serve(async (req) => {
     }
 
     console.log(`Analyzing ${documents.length} documents for ${tradeName} with ${useNativeGemini ? "Gemini API" : "Lovable gateway"}`);
+
+    await saveAnalysisSample(authHeader, "analyze-soumissions", bodyProjectId, {
+      nb_documents: documents.length,
+      trade_name: tradeName,
+      has_budget_prevu: typeof budgetPrevu === "number" && budgetPrevu > 0,
+      detailed,
+    });
+
+    // Modèle pour la passerelle Lovable (vision + texte) — utilisé seulement si !useNativeGemini
+    const soumissionsModel = detailed ? "google/gemini-1.5-pro" : "google/gemini-3-flash-preview";
 
     // Build message parts with documents
     const messageParts: any[] = [];

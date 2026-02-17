@@ -442,6 +442,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
             totalImages,
             isPartialBatch: totalBatches > 1,
           },
+          projectId: projectId ?? undefined,
         };
 
         const { data, error } = await invokeAnalyzePlan(body);
@@ -523,6 +524,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
           manualContext: manualData,
           totalImages,
           materialChoices: manualData.materialChoices,
+          projectId: projectId ?? undefined,
         });
 
         if (mergeError) throw new Error(mergeError.message || "Erreur lors de la fusion");

@@ -108,6 +108,37 @@ async function trackAiAnalysisUsage(
     console.error('Error tracking AI analysis usage:', err);
   }
 }
+
+// Enregistrer un résumé de l'analyse pour améliorer la précision IA (métadonnées uniquement)
+async function saveAnalysisSample(
+  authHeader: string | null,
+  analysisType: string,
+  projectId: string | null | undefined,
+  resultMetadata: Record<string, unknown>
+): Promise<void> {
+  if (!authHeader) return;
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    if (userError || !user) return;
+    const { error } = await serviceSupabase.from('ai_analysis_samples').insert({
+      user_id: user.id,
+      analysis_type: analysisType,
+      project_id: projectId || null,
+      result_metadata: resultMetadata,
+    });
+    if (error) console.error('Failed to save analysis sample:', error);
+  } catch (err) {
+    console.error('Error saving analysis sample:', err);
+  }
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Base de données des prix Québec 2025
@@ -2415,7 +2446,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl, lang = "fr", detailed: bodyDetailed = false } = body;
+    const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl, lang = "fr", detailed: bodyDetailed = false, projectId: bodyProjectId } = body;
     
     // Handle MERGE mode first (no API key needed - just data processing)
     if (mode === "merge") {
@@ -3106,13 +3137,24 @@ Retourne le JSON structuré COMPLET.`;
     const transformedData = transformToLegacyFormat(budgetData, finishQuality, lang);
 
     console.log('Analysis complete - categories:', transformedData.categories?.length || 0);
+    const categories = transformedData.categories || [];
+    const totalBudget = categories.reduce((sum: number, c: any) => sum + (Number(c.budget ?? c.sous_total_categorie) || 0), 0);
+    const nbItems = categories.reduce((sum: number, c: any) => sum + (Array.isArray(c.items) ? c.items.length : 0), 0);
+    await saveAnalysisSample(authHeader, 'analyze-plan', bodyProjectId, {
+      nb_categories: categories.length,
+      category_names: categories.map((c: any) => c.name ?? c.nom),
+      total_budget: Math.round(totalBudget),
+      nb_items: nbItems,
+      nb_plans: imageUrls?.length ?? 0,
+    });
+
     const responsePayload = { success: true, data: transformedData, rawAnalysis: budgetData };
     const responseJson = JSON.stringify(responsePayload);
     console.log('Response size:', Math.round(responseJson.length / 1024), 'KB');
 
     // Increment AI usage for the user
     await incrementAiUsage(authHeader);
-    await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
+    await trackAiAnalysisUsage(authHeader, 'analyze-plan', bodyProjectId ?? null);
 
     return new Response(
       responseJson,

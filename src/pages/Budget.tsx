@@ -318,9 +318,13 @@ const Budget = () => {
       // These will be ignored (not displayed) - only current step categories are shown
       setBudgetCategories(rerouteFoundationItems(ordered));
     } else if (selectedProjectId) {
-      // Reset to default only when loaded and no budget saved for this project
-      setBudgetCategories(defaultCategories);
+      // Ne pas écraser un budget venant d'être appliqué (race: invalidation → refetch pas encore terminé)
+      const hasBudgetInState = budgetCategories.some((c) => (c.budget ?? 0) > 0);
+      if (!hasBudgetInState) {
+        setBudgetCategories(defaultCategories);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- on purpose: we read budgetCategories only to avoid overwriting after apply, not to react to it
   }, [savedBudget, selectedProjectId, savedBudgetLoading]);
 
   // Auto-select first project if available (and sync URL)

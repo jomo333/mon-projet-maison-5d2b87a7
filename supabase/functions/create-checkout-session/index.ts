@@ -106,11 +106,10 @@ serve(async (req) => {
     apiVersion: "2024-06-20",
   });
 
+  // Toujours rediriger vers le site en prod après paiement (évite téléchargement / mauvais domaine)
   const base = "https://monprojetmaison.ca";
-  const defaultSuccess = `${base}/#/forfaits?success=1`;
-  const defaultCancel = `${base}/#/forfaits?cancel=1`;
-  const finalSuccessUrl = success_url ?? defaultSuccess;
-  const finalCancelUrl = cancel_url ?? defaultCancel;
+  const finalSuccessUrl = `${base}/#/forfaits?success=1`;
+  const finalCancelUrl = `${base}/#/forfaits?cancel=1`;
 
   const lookupKey =
     billing_cycle === "yearly"
@@ -133,7 +132,7 @@ serve(async (req) => {
         );
       }
       const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
+        payment_method_types: ["card", "google_pay"],
         mode: "subscription",
         line_items: [{ price: price.id, quantity: 1 }],
         success_url: finalSuccessUrl,
@@ -168,7 +167,7 @@ serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "google_pay"],
       mode: "payment",
       line_items: [
         {

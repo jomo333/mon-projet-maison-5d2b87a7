@@ -29,7 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Star, Package, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, Star, Package, GripVertical, RefreshCw } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -42,6 +42,9 @@ interface Plan {
   is_active: boolean;
   is_featured: boolean;
   display_order: number;
+  stripe_product_id?: string | null;
+  stripe_price_lookup_monthly?: string | null;
+  stripe_price_lookup_yearly?: string | null;
 }
 
 const defaultPlan: Omit<Plan, "id"> = {
@@ -66,8 +69,54 @@ export default function AdminPlans() {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
+  const [syncingPlanId, setSyncingPlanId] = useState<string | null>(null);
   const { logAdminAction } = useAdmin();
   const { toast } = useToast();
+
+  async function handleSyncToStripe(planId: string) {
+    setSyncingPlanId(planId);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast({ variant: "destructive", title: "Erreur", description: "Session expirée. Reconnectez-vous." });
+        return;
+      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-plan-to-stripe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+          },
+          body: JSON.stringify({ plan_id: planId }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          variant: "destructive",
+          title: "Erreur Stripe",
+          description: (data as { error?: string })?.error ?? "Impossible de synchroniser.",
+        });
+        return;
+      }
+      toast({
+        title: "Stripe à jour",
+        description: "Produit et prix créés dans Stripe. Lookup keys enregistrés.",
+      });
+      fetchPlans();
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: e instanceof Error ? e.message : "Erreur inattendue",
+      });
+    } finally {
+      setSyncingPlanId(null);
+    }
+  }
 
   useEffect(() => {
     fetchPlans();
@@ -275,6 +324,7 @@ export default function AdminPlans() {
                         <TableHead>Prix mensuel</TableHead>
                         <TableHead>Prix annuel</TableHead>
                         <TableHead>Statut</TableHead>
+                        <TableHead>Stripe</TableHead>
                         <TableHead>Fonctionnalités</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -308,6 +358,15 @@ export default function AdminPlans() {
                             </Badge>
                           </TableCell>
                           <TableCell>
+                            {plan.stripe_price_lookup_monthly || plan.stripe_price_lookup_yearly ? (
+                              <span className="text-xs text-muted-foreground">
+                                {plan.stripe_price_lookup_monthly ?? "—"} / {plan.stripe_price_lookup_yearly ?? "—"}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-amber-600">Non synchronisé</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <span className="text-sm text-muted-foreground">
                               {plan.features.length} fonctionnalité
                               {plan.features.length > 1 ? "s" : ""}
@@ -315,6 +374,19 @@ export default function AdminPlans() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleSyncToStripe(plan.id)}
+                                disabled={syncingPlanId !== null}
+                                title="Synchroniser ce forfait avec Stripe (créer produit et prix)"
+                              >
+                                {syncingPlanId === plan.id ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"

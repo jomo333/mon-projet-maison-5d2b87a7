@@ -272,6 +272,7 @@ export type Database = {
           price_yearly?: number | null
           stripe_price_lookup_monthly?: string | null
           stripe_price_lookup_yearly?: string | null
+          stripe_product_id?: string | null
           updated_at?: string
         }
         Relationships: []

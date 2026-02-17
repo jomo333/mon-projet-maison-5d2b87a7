@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -292,6 +292,9 @@ export default function Plans() {
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
+            ) : plans.length === 0 ? (
+              /* Aucun forfait en base : afficher la même section que l'accueil */
+              <PricingSection />
             ) : (
               <>
                 {/* Billing cycle selector */}

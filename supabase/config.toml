@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.create-billing-portal-session]
 verify_jwt = false
+
+[functions.sync-plan-to-stripe]
+verify_jwt = false

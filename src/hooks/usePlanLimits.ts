@@ -21,7 +21,9 @@ export interface PlanLimitsHook {
   canCreateProject: () => LimitCheckResult;
   canUseAI: () => LimitCheckResult;
   canUpload: (fileSizeBytes: number) => LimitCheckResult;
-  hasFullManagement: boolean; // Premium features (alerts, quote analysis, RBQ verification)
+  hasFullManagement: boolean;
+  /** true si l'utilisateur peut modifier le budget et l'échéancier (forfaits Essentiel et plus). */
+  canUseBudgetAndSchedule: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -120,11 +122,20 @@ export function usePlanLimits(): PlanLimitsHook {
     [limits, usage]
   );
 
-  // Check if user has "Gestion complète" plan (premium features)
+  // Forfaits gratuits : budget et échéancier en lecture seule
+  const FREE_PLAN_NAMES = ["Gratuit", "Découverte"];
+
   const hasFullManagement = useMemo(() => {
-    if (isAdmin) return true; // Admins always have full access
+    if (isAdmin) return true;
     const currentPlan = plan?.name || "";
     return currentPlan === "Gestion complète";
+  }, [plan?.name, isAdmin]);
+
+  // Budget et échéancier (dont verrouillage des dates) : Essentiel et Gestion complète
+  const canUseBudgetAndSchedule = useMemo(() => {
+    if (isAdmin) return true;
+    const name = plan?.name || "Découverte";
+    return !FREE_PLAN_NAMES.includes(name);
   }, [plan?.name, isAdmin]);
 
   return {
@@ -137,6 +148,7 @@ export function usePlanLimits(): PlanLimitsHook {
     canUseAI,
     canUpload,
     hasFullManagement,
+    canUseBudgetAndSchedule,
     refetch,
   };
 }

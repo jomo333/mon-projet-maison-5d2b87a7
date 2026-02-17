@@ -21,6 +21,7 @@ import { TaskDatePicker } from "./TaskDatePicker";
 import { StepAlerts, SupplierInfo } from "./StepAlerts";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { useTaskDates } from "@/hooks/useTaskDates";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { toast } from "@/hooks/use-toast";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -246,8 +247,8 @@ export function StepDetail({
   // Mettre à jour directement l'échéancier quand les dates changent (verrouille automatiquement)
   const handleStepDateChange = async (field: 'start_date' | 'end_date', value: string | null) => {
     if (!currentSchedule) return;
-    
-    // Effacer les warnings précédents
+    if (!canUseBudgetAndSchedule) return;
+
     setScheduleWarnings([]);
     
     try {
@@ -315,7 +316,8 @@ export function StepDetail({
   // Réinitialiser les dates selon l'échéancier initial (recalcul automatique)
   const handleResetToCalculated = async () => {
     if (!currentSchedule) return;
-    
+    if (!canUseBudgetAndSchedule) return;
+
     try {
       // Déverrouiller et effacer les dates pour forcer un recalcul
       await updateScheduleAndRecalculate(currentSchedule.id, {
@@ -381,45 +383,49 @@ export function StepDetail({
               </div>
               {currentSchedule ? (
                 <div className="space-y-3">
+                  {!canUseBudgetAndSchedule && (
+                    <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                      {t("plans.budgetScheduleLockedMessage")}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-end gap-4">
                     <TaskDatePicker
                       label={t("stepDetail.startDate")}
                       value={currentSchedule.start_date || null}
                       onChange={(date) => handleStepDateChange('start_date', date)}
-                      disabled={isUpdating}
+                      disabled={isUpdating || !canUseBudgetAndSchedule}
                     />
                     <TaskDatePicker
                       label={t("stepDetail.endDate")}
                       value={currentSchedule.end_date || null}
                       onChange={(date) => handleStepDateChange('end_date', date)}
-                      disabled={isUpdating}
+                      disabled={isUpdating || !canUseBudgetAndSchedule}
                     />
                     
-                    {/* Boutons de gestion des dates */}
                     <div className="flex items-center gap-2">
-                      {/* Bouton de réinitialisation */}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleResetToCalculated}
-                        disabled={isUpdating || !currentSchedule.start_date}
+                        disabled={isUpdating || !currentSchedule.start_date || !canUseBudgetAndSchedule}
                         className="flex items-center gap-2"
-                        title="Réinitialiser les dates selon l'échéancier calculé"
+                        title={canUseBudgetAndSchedule ? "Réinitialiser les dates selon l'échéancier calculé" : t("plans.budgetScheduleLockedMessage")}
                       >
                         <RotateCcw className="h-4 w-4" />
                         <span className="hidden sm:inline">Réinitialiser</span>
                       </Button>
                       
-                      {/* Bouton de verrouillage de date */}
                       <Button
                         variant={currentSchedule.is_manual_date ? "default" : "outline"}
                         size="sm"
                         onClick={handleToggleManualDate}
-                        disabled={isUpdating || !currentSchedule.start_date}
+                        disabled={isUpdating || !currentSchedule.start_date || !canUseBudgetAndSchedule}
                         className="flex items-center gap-2"
-                        title={currentSchedule.is_manual_date 
-                          ? "Date verrouillée (engagement sous-traitant)" 
-                          : "Cliquez pour verrouiller cette date"
+                        title={!canUseBudgetAndSchedule
+                          ? t("plans.budgetScheduleLockedMessage")
+                          : currentSchedule.is_manual_date
+                            ? "Date verrouillée (engagement sous-traitant)"
+                            : "Cliquez pour verrouiller cette date"
                         }
                       >
                         {currentSchedule.is_manual_date ? (

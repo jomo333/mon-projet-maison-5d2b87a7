@@ -64,6 +64,19 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
+## Déployer les Edge Functions Supabase (analyse-soumissions, etc.)
+
+Si tu as installé le [Supabase CLI](https://supabase.com/docs/guides/cli), tu peux déployer les fonctions depuis le dossier du projet :
+
+```bash
+cd "c:\Users\Utilisateur\Desktop\mon-projet-maison-main (2)\mon-projet-maison-5d2b87a7"
+supabase login
+supabase link --project-ref lqxbwqndxjdxqzftihic
+supabase functions deploy analyze-soumissions
+```
+
+Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’URL du dashboard Supabase).
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!

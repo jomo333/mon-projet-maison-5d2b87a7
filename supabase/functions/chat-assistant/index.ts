@@ -6,40 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Helper to increment AI usage for a user (only if authenticated)
-async function incrementAiUsage(authHeader: string | null): Promise<void> {
-  if (!authHeader) return;
-  
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims?.sub) {
-      // User not authenticated - this is OK for chat (anonymous allowed)
-      return;
-    }
-    
-    const userId = claimsData.claims.sub;
-    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
-    
-    if (error) {
-      console.error('Failed to increment AI usage:', error);
-    } else {
-      console.log('AI usage incremented for user:', userId);
-    }
-  } catch (err) {
-    console.error('Error tracking AI usage:', err);
-  }
-}
+// Chat illimité : on n'appelle pas increment_ai_usage pour le chat (ne compte pas dans le forfait).
 
-// Helper to track AI analysis usage
+// Helper to track AI analysis usage (analytics uniquement)
 async function trackAiAnalysisUsage(
   authHeader: string | null,
   analysisType: string
@@ -167,7 +136,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      await incrementAiUsage(authHeader);
+      // Chat illimité : ne pas incrémenter ai_usage (ne compte pas dans le forfait)
       await trackAiAnalysisUsage(authHeader, "chat-assistant");
       const reader = geminiRes.body?.getReader();
       if (!reader) return new Response(JSON.stringify({ error: "Pas de flux" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -239,7 +208,7 @@ serve(async (req) => {
       });
     }
 
-    await incrementAiUsage(authHeader);
+    // Chat illimité : ne pas incrémenter ai_usage (ne compte pas dans le forfait)
     await trackAiAnalysisUsage(authHeader, 'chat-assistant');
 
     return new Response(response.body, {

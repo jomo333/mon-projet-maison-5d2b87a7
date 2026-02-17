@@ -1586,6 +1586,9 @@
     "billingYearlyOnePayment": "One-time payment for the year",
     "billingMonthsFree": "months free",
     "startFree": "Start for free",
+    "budgetScheduleLockedTitle": "Feature available with paid plans",
+    "budgetScheduleLockedMessage": "Budget and schedule are available with the Essential plan and above. Upgrade to modify your budget and schedule.",
+    "viewPlans": "View plans",
     "tiers": {
       "decouverte": {
         "name": "Discovery",

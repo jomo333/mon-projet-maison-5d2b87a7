@@ -1586,6 +1586,9 @@
     "billingYearlyOnePayment": "Paiement unique pour l'année",
     "billingMonthsFree": "mois gratuits",
     "startFree": "Commencer gratuitement",
+    "budgetScheduleLockedTitle": "Fonctionnalité réservée aux forfaits payants",
+    "budgetScheduleLockedMessage": "Le budget et l'échéancier sont disponibles avec les forfaits Essentiel et plus. Passez à un forfait supérieur pour modifier le budget et l'échéancier.",
+    "viewPlans": "Voir les forfaits",
     "tiers": {
       "decouverte": {
         "name": "Découverte",

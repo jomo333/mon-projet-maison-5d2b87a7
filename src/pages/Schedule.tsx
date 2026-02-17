@@ -6,7 +6,7 @@ import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,8 +26,10 @@ import {
   Loader2,
   Calendar,
   Flag,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { ScheduleTable } from "@/components/schedule/ScheduleTable";
@@ -41,6 +43,7 @@ import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 const Schedule = () => {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
+  const { canUseBudgetAndSchedule, loading: planLimitsLoading } = usePlanLimits();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
@@ -145,6 +148,33 @@ const Schedule = () => {
   if (!user) {
     navigate("/auth");
     return null;
+  }
+
+  // Forfait gratuit : budget et échéancier verrouillés
+  if (!planLimitsLoading && !canUseBudgetAndSchedule) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 py-8 flex items-center justify-center">
+          <div className="container max-w-lg">
+            <Card className="border-muted">
+              <CardHeader>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="h-6 w-6" />
+                  <CardTitle>{t("plans.budgetScheduleLockedTitle")}</CardTitle>
+                </div>
+                <CardDescription>{t("plans.budgetScheduleLockedMessage")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <a href="/forfaits">{t("plans.viewPlans")}</a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (

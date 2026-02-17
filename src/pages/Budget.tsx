@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, Lock } from "lucide-react";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
@@ -139,6 +139,7 @@ const Budget = () => {
     return type;
   };
   const { user } = useAuth();
+  const { canUseBudgetAndSchedule, loading: planLimitsLoading } = usePlanLimits();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const projectFromUrl = searchParams.get("project");
@@ -647,6 +648,33 @@ const Budget = () => {
       setEditingCategory((prev) => (prev ? { ...prev, budget, spent } : prev));
     }
   };
+
+  // Forfait gratuit : budget et échéancier verrouillés
+  if (user && !planLimitsLoading && !canUseBudgetAndSchedule) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 py-8 flex items-center justify-center">
+          <div className="container max-w-lg">
+            <Card className="border-muted">
+              <CardHeader>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Lock className="h-6 w-6" />
+                  <CardTitle>{t("plans.budgetScheduleLockedTitle")}</CardTitle>
+                </div>
+                <CardDescription>{t("plans.budgetScheduleLockedMessage")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <a href="/forfaits">{t("plans.viewPlans")}</a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -20,15 +20,3 @@ verify_jwt = false
 
 [functions.get-user-emails]
 verify_jwt = false
-
-[functions.create-checkout-session]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.create-billing-portal-session]
-verify_jwt = false
-
-[functions.sync-plan-to-stripe]
-verify_jwt = false

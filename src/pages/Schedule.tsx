@@ -6,7 +6,7 @@ import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +26,8 @@ import {
   Loader2,
   Calendar,
   Flag,
-  Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { ScheduleTable } from "@/components/schedule/ScheduleTable";
@@ -43,7 +41,6 @@ import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 const Schedule = () => {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
-  const { canUseBudgetAndSchedule, loading: planLimitsLoading } = usePlanLimits();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
@@ -153,22 +150,7 @@ const Schedule = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
-      {/* Bannière forfait gratuit : voir la page mais pas modifier */}
-      {!planLimitsLoading && !canUseBudgetAndSchedule && (
-        <div className="border-b border-amber-500/30 bg-amber-500/10">
-          <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-amber-600 shrink-0" />
-              <p className="text-sm text-foreground">{t("plans.budgetScheduleLockedMessage")}</p>
-            </div>
-            <Button asChild size="sm" variant="default">
-              <a href="/forfaits">{t("plans.viewPlans")}</a>
-            </Button>
-          </div>
-        </div>
-      )}
-
+      
       {/* Barre d'onglets rapide sticky */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4">
@@ -248,7 +230,7 @@ const Schedule = () => {
                 </SelectContent>
               </Select>
 
-              {selectedProjectId && canUseBudgetAndSchedule && (
+              {selectedProjectId && (
                 <AddScheduleDialog
                   projectId={selectedProjectId}
                   onAdd={(schedule) => {
@@ -348,7 +330,7 @@ const Schedule = () => {
                   <ScheduleTable
                     schedules={schedules}
                     onUpdate={async (schedule) => {
-                      if (!canUseBudgetAndSchedule) return;
+                      // Utiliser updateScheduleAndRecalculate pour propager les changements
                       await updateScheduleAndRecalculate(schedule.id, schedule);
                       const fullSchedule = schedules.find(
                         (s) => s.id === schedule.id
@@ -357,12 +339,11 @@ const Schedule = () => {
                         generateAlerts({ ...fullSchedule, ...schedule });
                       }
                     }}
-                    onDelete={canUseBudgetAndSchedule ? deleteSchedule : () => {}}
-                    onComplete={canUseBudgetAndSchedule ? completeStep : undefined}
-                    onUncomplete={canUseBudgetAndSchedule ? uncompleteStep : undefined}
+                    onDelete={deleteSchedule}
+                    onComplete={completeStep}
+                    onUncomplete={uncompleteStep}
                     conflicts={conflicts}
                     calculateEndDate={calculateEndDate}
-                    readOnly={!canUseBudgetAndSchedule}
                   />
                 )}
                 {activeTab === "calendar" && (
@@ -375,14 +356,14 @@ const Schedule = () => {
                   <ScheduleGantt 
                     schedules={schedules} 
                     conflicts={conflicts}
-                    onRegenerateSchedule={canUseBudgetAndSchedule ? async () => {
+                    onRegenerateSchedule={async () => {
                       setIsRegenerating(true);
                       try {
                         await regenerateSchedule();
                       } finally {
                         setIsRegenerating(false);
                       }
-                    } : undefined}
+                    }}
                     isUpdating={isRegenerating}
                   />
                 )}

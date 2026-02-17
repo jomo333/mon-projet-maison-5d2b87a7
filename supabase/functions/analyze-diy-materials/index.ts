@@ -302,12 +302,10 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const useNativeGemini = !!GEMINI_API_KEY;
-    if (!useNativeGemini && !LOVABLE_API_KEY) {
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "GEMINI_API_KEY ou LOVABLE_API_KEY doit être configurée (Secrets)" }),
+        JSON.stringify({ error: "LOVABLE_API_KEY non configurée" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -371,74 +369,7 @@ serve(async (req) => {
       text: userPrompt,
     });
 
-    if (useNativeGemini) {
-      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
-      for (const part of messageContent) {
-        if (part.type === "text" && part.text) geminiParts.push({ text: part.text });
-        else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
-          const m = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
-          if (m) geminiParts.push({ inlineData: { mimeType: m[1], data: m[2] } });
-        }
-      }
-      const geminiBody = {
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT_DIY }] },
-        contents: [{ role: "user", parts: geminiParts }],
-        generationConfig: { maxOutputTokens: 4000, temperature: 0.2 },
-      };
-      const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
-        },
-        body: JSON.stringify(geminiBody),
-      });
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
-        const message = isQuota
-          ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
-          : "Erreur temporaire du service IA. Réessayez dans un moment.";
-        return new Response(JSON.stringify({ error: message }), {
-          status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      await incrementAiUsage(authHeader);
-      await trackAiAnalysisUsage(authHeader, "analyze-diy-materials", null);
-      const reader = geminiRes.body?.getReader();
-      if (!reader) return new Response(JSON.stringify({ error: "Pas de flux" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          const decoder = new TextDecoder();
-          let buffer = "";
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() ?? "";
-              for (const line of lines) {
-                if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                  try {
-                    const j = JSON.parse(line.slice(6));
-                    const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (t) controller.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: t } }] }) + "\n\n"));
-                  } catch (_) {}
-                }
-              }
-            }
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          } finally {
-            controller.close();
-          }
-        },
-      });
-      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
-    }
-
+    // Call Lovable AI Gateway with streaming
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -477,9 +408,11 @@ serve(async (req) => {
       );
     }
 
+    // Increment AI usage for the user
     await incrementAiUsage(authHeader);
     await trackAiAnalysisUsage(authHeader, 'analyze-diy-materials', null);
 
+    // Return streaming response
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });

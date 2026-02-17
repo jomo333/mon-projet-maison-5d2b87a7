@@ -10,14 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, Lock } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User } from "lucide-react";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlanLimits } from "../hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -140,7 +139,6 @@ const Budget = () => {
     return type;
   };
   const { user } = useAuth();
-  const { canUseBudgetAndSchedule, loading: planLimitsLoading } = usePlanLimits();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const projectFromUrl = searchParams.get("project");
@@ -192,7 +190,7 @@ const Budget = () => {
   });
 
   // Fetch budget categories for selected project
-  const { data: savedBudget = [], isLoading: savedBudgetLoading } = useQuery({
+  const { data: savedBudget = [] } = useQuery({
     queryKey: ["project-budget", selectedProjectId],
     queryFn: async () => {
       if (!selectedProjectId) return [];
@@ -280,9 +278,8 @@ const Budget = () => {
     return categoryName.toLowerCase().replace(/\s+/g, "-");
   };
 
-  // Load saved budget when project changes (ne pas écraser pendant le chargement)
+  // Load saved budget when project changes
   useEffect(() => {
-    if (savedBudgetLoading) return; // Ne pas toucher aux catégories pendant le chargement
     if (savedBudget && savedBudget.length > 0) {
       // IMPORTANT: Always display categories in the construction-step order.
       // For legacy projects, this also allows new steps (e.g. "Excavation")
@@ -318,14 +315,10 @@ const Budget = () => {
       // These will be ignored (not displayed) - only current step categories are shown
       setBudgetCategories(rerouteFoundationItems(ordered));
     } else if (selectedProjectId) {
-      // Ne pas écraser un budget venant d'être appliqué (race: invalidation → refetch pas encore terminé)
-      const hasBudgetInState = budgetCategories.some((c) => (c.budget ?? 0) > 0);
-      if (!hasBudgetInState) {
-        setBudgetCategories(defaultCategories);
-      }
+      // Reset to default if no budget saved
+      setBudgetCategories(defaultCategories);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- on purpose: we read budgetCategories only to avoid overwriting after apply, not to react to it
-  }, [savedBudget, selectedProjectId, savedBudgetLoading]);
+  }, [savedBudget, selectedProjectId]);
 
   // Auto-select first project if available (and sync URL)
   useEffect(() => {
@@ -395,13 +388,8 @@ const Budget = () => {
       if (updateError) throw updateError;
     },
     onSuccess: () => {
-      // Invalider seulement les queries spécifiques au projet, pas toutes les queries
       queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
-      // Invalider user-projects seulement pour mettre à jour total_budget, pas pour supprimer
-      queryClient.invalidateQueries({ 
-        queryKey: ["user-projects", user?.id],
-        exact: true // Exact match pour éviter d'invalider d'autres queries
-      });
+      queryClient.invalidateQueries({ queryKey: ["user-projects"] });
       toast.success(t("toasts.budgetSaved"));
     },
     onError: (error) => {
@@ -512,8 +500,7 @@ const Budget = () => {
   };
 
   // Check if budget has been analyzed (not just default categories)
-  // Check both savedBudget and budgetCategories to handle immediate updates
-  const hasAnalyzedBudget = (savedBudget && savedBudget.length > 0) || budgetCategories.some(cat => cat.budget > 0);
+  const hasAnalyzedBudget = savedBudget && savedBudget.length > 0;
   
   const totalBudget = budgetCategories.reduce((acc, cat) => acc + cat.budget, 0);
   const totalSpent = budgetCategories.reduce((acc, cat) => acc + cat.spent, 0);
@@ -538,26 +525,9 @@ const Budget = () => {
     }));
     setBudgetCategories(mapped);
 
-    // Auto-save if a project is selected - attendre la sauvegarde avant de continuer
+    // Auto-save if a project is selected
     if (selectedProjectId) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          saveBudgetMutation.mutate(mapped, {
-            onSuccess: () => {
-              // Invalidate queries to refresh savedBudget
-              queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
-              resolve();
-            },
-            onError: (error) => {
-              console.error("Error saving budget:", error);
-              reject(error);
-            }
-          });
-        });
-      } catch (error) {
-        console.error("Failed to save budget:", error);
-        // Ne pas bloquer le processus même si la sauvegarde échoue
-      }
+      saveBudgetMutation.mutate(mapped);
     }
   };
 
@@ -659,22 +629,6 @@ const Budget = () => {
       <Header />
       <main className="flex-1 py-8">
         <div className="container space-y-8">
-          {/* Bannière forfait gratuit : voir la page mais pas modifier */}
-          {user && !planLimitsLoading && !canUseBudgetAndSchedule && (
-            <Card className="border-amber-500/50 bg-amber-500/10">
-              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-5 w-5 text-amber-600 shrink-0" />
-                  <p className="text-sm text-foreground">
-                    {t("plans.budgetScheduleLockedMessage")}
-                  </p>
-                </div>
-                <Button asChild size="sm" variant="default">
-                  <a href="/forfaits">{t("plans.viewPlans")}</a>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
@@ -689,7 +643,7 @@ const Budget = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleResetBudget}
-                  disabled={resetBudgetMutation.isPending || !canUseBudgetAndSchedule}
+                  disabled={resetBudgetMutation.isPending}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
@@ -706,11 +660,7 @@ const Budget = () => {
                   {saveBudgetMutation.isPending ? t("budget.saving") : t("budget.saveBudget")}
                 </Button>
               )}
-              <Button
-                variant="accent"
-                onClick={() => setShowAddExpense(!showAddExpense)}
-                disabled={!canUseBudgetAndSchedule}
-              >
+              <Button variant="accent" onClick={() => setShowAddExpense(!showAddExpense)}>
                 <Plus className="h-4 w-4" />
                 {t("budget.addExpense")}
               </Button>
@@ -785,21 +735,7 @@ const Budget = () => {
               projectId={selectedProjectId}
               autoSelectPlanTab={autoAnalyze && !autoManual}
               autoSelectManualTab={autoManual}
-              onGenerateSchedule={async () => {
-                if (!selectedProjectId) {
-                  toast.error(t("toasts.noProjectSelected"));
-                  return;
-                }
-                // Enregistrer le budget avant d'ouvrir le dialogue pour qu'il persiste au changement de page
-                try {
-                  await saveBudgetMutation.mutateAsync(budgetCategories);
-                } catch (e) {
-                  console.error("Save budget before schedule:", e);
-                  toast.error(t("toasts.budgetSaveError"));
-                  return;
-                }
-                setShowScheduleDialog(true);
-              }}
+              onGenerateSchedule={() => setShowScheduleDialog(true)}
               besoinsNote={besoinsNoteFromUrl}
               prefillProjectType={prefillProjectType}
               prefillFloors={prefillFloors}
@@ -816,67 +752,6 @@ const Budget = () => {
               createSchedule={(data) => createScheduleAsync(data as any)}
               calculateEndDate={calculateEndDate}
               generateAlerts={generateAlerts}
-              onSuccess={async () => {
-                // Invalider les queries après création de l'échéancier
-                console.log("[Budget] Schedule created successfully, invalidating queries");
-                
-                // Invalider avec refetch pour forcer le rechargement
-                await queryClient.invalidateQueries({ 
-                  queryKey: ["project-schedules", selectedProjectId],
-                  refetchType: 'active'
-                });
-                await queryClient.invalidateQueries({ 
-                  queryKey: ["project-alerts", selectedProjectId],
-                  refetchType: 'active'
-                });
-                
-                console.log("[Budget] Queries invalidated, schedules should be visible now");
-                
-                // Vérifier que les schedules sont bien dans la base de données
-                const { data: verifySchedules, error: verifyError } = await supabase
-                  .from("project_schedules")
-                  .select("id, step_id, step_name, start_date, end_date")
-                  .eq("project_id", selectedProjectId)
-                  .order("start_date", { ascending: true })
-                  .limit(10);
-                
-                if (verifyError) {
-                  console.error("[Budget] Error verifying schedules:", verifyError);
-                } else {
-                  console.log(`[Budget] Verification: Found ${verifySchedules?.length || 0} schedules in database`);
-                  if (verifySchedules && verifySchedules.length > 0) {
-                    console.log("[Budget] First few schedules:", verifySchedules.slice(0, 3));
-                  } else {
-                    console.warn("[Budget] No schedules found in database after creation!");
-                  }
-                }
-                
-                // Afficher un toast avec navigation automatique après 2 secondes si pas d'action de l'utilisateur
-                const scheduleCount = verifySchedules?.length || 0;
-                
-                if (scheduleCount > 0) {
-                  toast.success(
-                    `Échéancier créé avec succès ! ${scheduleCount} étape(s) planifiée(s).`,
-                    {
-                      action: {
-                        label: "Voir l'échéancier",
-                        onClick: () => {
-                          window.location.href = `/#/echeancier?project=${selectedProjectId}`;
-                        }
-                      },
-                      duration: 8000
-                    }
-                  );
-                  
-                  // Navigation automatique après 3 secondes si l'utilisateur ne clique pas
-                  setTimeout(() => {
-                    console.log("[Budget] Auto-navigating to schedule page");
-                    window.location.href = `/#/echeancier?project=${selectedProjectId}`;
-                  }, 3000);
-                } else {
-                  toast.error("Erreur : L'échéancier n'a pas pu être créé. Vérifiez les logs de la console.");
-                }
-              }}
             />
           )}
 

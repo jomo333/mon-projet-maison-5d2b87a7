@@ -4,7 +4,6 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { SubscriberStatusBadge } from "@/components/admin/SubscriberStatusBadge";
 import { useAdmin } from "@/hooks/useAdmin";
-import { formatCurrency } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -477,6 +476,13 @@ export default function AdminSubscribers() {
     a.href = url;
     a.download = `utilisateurs-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-CA", {
+      style: "currency",
+      currency: "CAD",
+    }).format(value);
   };
 
   const formatDuration = (seconds: number) => {

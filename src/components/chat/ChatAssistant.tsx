@@ -43,23 +43,7 @@ export function ChatAssistant() {
       body: JSON.stringify({ messages: userMessages }),
     });
 
-    if (!resp.ok) {
-      let serverMessage = "";
-      try {
-        const ct = resp.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const json = await resp.json();
-          serverMessage = json?.error || "";
-        } else {
-          serverMessage = await resp.text();
-        }
-      } catch {
-        // ignore
-      }
-      const msg = serverMessage.trim() || resp.statusText || t("chatAssistant.connectionError");
-      throw new Error(msg);
-    }
-    if (!resp.body) {
+    if (!resp.ok || !resp.body) {
       throw new Error(t("chatAssistant.connectionError"));
     }
 
@@ -120,11 +104,10 @@ export function ChatAssistant() {
     try {
       await streamChat(newMessages);
     } catch (error) {
-      console.error("[ChatAssistant]", error);
-      const message = error instanceof Error ? error.message : t("chatAssistant.errorMessage");
+      console.error(error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: message },
+        { role: "assistant", content: t("chatAssistant.errorMessage") },
       ]);
     } finally {
       setIsLoading(false);

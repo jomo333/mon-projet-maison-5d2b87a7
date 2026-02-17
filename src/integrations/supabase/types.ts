@@ -74,33 +74,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_analysis_samples: {
-        Row: {
-          id: string
-          user_id: string
-          analysis_type: string
-          project_id: string | null
-          result_metadata: Json
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          analysis_type: string
-          project_id?: string | null
-          result_metadata?: Json
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          analysis_type?: string
-          project_id?: string | null
-          result_metadata?: Json
-          created_at?: string
-        }
-        Relationships: []
-      }
       ai_usage: {
         Row: {
           count: number
@@ -265,8 +238,6 @@ export type Database = {
           name: string
           price_monthly: number
           price_yearly: number | null
-          stripe_price_lookup_monthly: string | null
-          stripe_price_lookup_yearly: string | null
           updated_at: string
         }
         Insert: {
@@ -281,8 +252,6 @@ export type Database = {
           name: string
           price_monthly?: number
           price_yearly?: number | null
-          stripe_price_lookup_monthly?: string | null
-          stripe_price_lookup_yearly?: string | null
           updated_at?: string
         }
         Update: {
@@ -297,9 +266,6 @@ export type Database = {
           name?: string
           price_monthly?: number
           price_yearly?: number | null
-          stripe_price_lookup_monthly?: string | null
-          stripe_price_lookup_yearly?: string | null
-          stripe_product_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -655,7 +621,6 @@ export type Database = {
           plan_id: string | null
           start_date: string
           status: string
-          stripe_subscription_id: string | null
           trial_end_date: string | null
           updated_at: string
           user_id: string
@@ -671,7 +636,6 @@ export type Database = {
           plan_id?: string | null
           start_date?: string
           status?: string
-          stripe_subscription_id?: string | null
           trial_end_date?: string | null
           updated_at?: string
           user_id: string
@@ -687,7 +651,6 @@ export type Database = {
           plan_id?: string | null
           start_date?: string
           status?: string
-          stripe_subscription_id?: string | null
           trial_end_date?: string | null
           updated_at?: string
           user_id?: string

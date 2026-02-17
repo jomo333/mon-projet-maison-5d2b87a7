@@ -30,44 +30,6 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
   const [accepted, setAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const saveConsent = async (): Promise<{ error: Error | null }> => {
-    const userAgent = navigator.userAgent;
-    const payload = {
-      terms_version: CURRENT_TERMS_VERSION,
-      privacy_version: CURRENT_PRIVACY_VERSION,
-      terms_accepted_at: new Date().toISOString(),
-      privacy_accepted_at: new Date().toISOString(),
-      user_agent: userAgent,
-    };
-
-    // Update si une ligne existe déjà (évite l'upsert + on_conflict qui peut renvoyer 400)
-    const { data: existing, error: selectError } = await supabase
-      .from("user_consents")
-      .select("user_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (selectError) {
-      return { error: selectError as Error };
-    }
-
-    if (existing) {
-      const { error } = await supabase
-        .from("user_consents")
-        .update(payload)
-        .eq("user_id", userId);
-      return { error: error as Error | null };
-    }
-
-    const { error } = await supabase
-      .from("user_consents")
-      .insert({
-        user_id: userId,
-        ...payload,
-      });
-    return { error: error as Error | null };
-  };
-
   const handleAccept = async () => {
     if (!accepted) {
       toast.error(t("legalAcceptance.pleaseAccept"));
@@ -77,24 +39,25 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
     setIsLoading(true);
 
     try {
-      let result = await saveConsent();
+      // Get user's IP and user agent for compliance tracking
+      const userAgent = navigator.userAgent;
+      
+      const { error } = await supabase
+        .from("user_consents")
+        .upsert({
+          user_id: userId,
+          terms_version: CURRENT_TERMS_VERSION,
+          privacy_version: CURRENT_PRIVACY_VERSION,
+          terms_accepted_at: new Date().toISOString(),
+          privacy_accepted_at: new Date().toISOString(),
+          user_agent: userAgent,
+        }, {
+          onConflict: "user_id"
+        });
 
-      // Après un changement de mot de passe, la session peut ne pas être encore propagée côté Supabase → retry après refresh
-      if (result.error) {
-        console.warn("Consent save failed, refreshing session and retrying:", result.error);
-        await supabase.auth.getSession();
-        result = await saveConsent();
-      }
-
-      if (result.error) {
-        console.error("Error saving consent:", result.error);
-        const msg = result.error.message || "";
-        const isAuthRelated = /session|auth|jwt|row.level|policy|permission/i.test(msg);
-        toast.error(
-          isAuthRelated
-            ? t("legalAcceptance.sessionError") || t("legalAcceptance.saveError")
-            : t("legalAcceptance.saveError")
-        );
+      if (error) {
+        console.error("Error saving consent:", error);
+        toast.error(t("legalAcceptance.saveError"));
         return;
       }
 
@@ -102,7 +65,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
       onAccepted();
     } catch (error) {
       console.error("Error:", error);
-      toast.error(t("legalAcceptance.saveError"));
+      toast.error(t("errors.generic"));
     } finally {
       setIsLoading(false);
     }

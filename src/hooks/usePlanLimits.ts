@@ -12,9 +12,6 @@ export interface LimitCheckResult {
   message: string;
 }
 
-/** Noms des forfaits gratuits : budget et échéancier sont verrouillés. */
-const FREE_PLAN_NAMES = ["Gratuit", "Découverte"];
-
 export interface PlanLimitsHook {
   limits: PlanLimits;
   usage: Usage;
@@ -25,8 +22,6 @@ export interface PlanLimitsHook {
   canUseAI: () => LimitCheckResult;
   canUpload: (fileSizeBytes: number) => LimitCheckResult;
   hasFullManagement: boolean; // Premium features (alerts, quote analysis, RBQ verification)
-  /** true si l'utilisateur peut modifier le budget et l'échéancier (forfaits Essentiel et plus). */
-  canUseBudgetAndSchedule: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -132,13 +127,6 @@ export function usePlanLimits(): PlanLimitsHook {
     return currentPlan === "Gestion complète";
   }, [plan?.name, isAdmin]);
 
-  // Budget et échéancier : réservés aux forfaits payants (Essentiel, Pro, etc.)
-  const canUseBudgetAndSchedule = useMemo(() => {
-    if (isAdmin) return true;
-    const name = plan?.name || "Découverte";
-    return !FREE_PLAN_NAMES.includes(name);
-  }, [plan?.name, isAdmin]);
-
   return {
     limits,
     usage,
@@ -149,7 +137,6 @@ export function usePlanLimits(): PlanLimitsHook {
     canUseAI,
     canUpload,
     hasFullManagement,
-    canUseBudgetAndSchedule,
     refetch,
   };
 }

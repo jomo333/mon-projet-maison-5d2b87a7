@@ -20,7 +20,6 @@ import {
   Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency } from "@/lib/i18n";
 
 interface ProjectSummaryProps {
   projectId: string;
@@ -150,6 +149,14 @@ export const ProjectSummary = ({
 
     fetchSummaries();
   }, [projectId]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-CA", {
+      style: "currency",
+      currency: "CAD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const getStageLabel = (stage: string) => {
     const labels: Record<string, string> = {

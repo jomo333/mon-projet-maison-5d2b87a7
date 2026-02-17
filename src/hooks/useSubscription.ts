@@ -27,7 +27,6 @@ export interface Subscription {
   billing_cycle: string;
   start_date: string;
   current_period_end: string | null;
-  stripe_subscription_id?: string | null;
 }
 
 export interface Usage {
@@ -55,28 +54,6 @@ const DEFAULT_LIMITS: PlanLimits = {
   code_searches: 1,
 };
 
-/** Normalise le JSON limits de la table plans vers PlanLimits (clés possibles: projects, ai_analyses ou ai_analyses_per_month, uploads_gb, etc.) */
-function normalizeLimits(raw: unknown): PlanLimits {
-  const o = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : null;
-  if (!o) return DEFAULT_LIMITS;
-  const num = (key: string, fallback: number): number => {
-    const v = o[key];
-    if (typeof v === "number" && !Number.isNaN(v)) return v;
-    if (typeof v === "string") {
-      const n = parseInt(v, 10);
-      if (!Number.isNaN(n)) return n;
-    }
-    return fallback;
-  };
-  return {
-    projects: num("projects", DEFAULT_LIMITS.projects),
-    ai_analyses: num("ai_analyses", num("ai_analyses_per_month", DEFAULT_LIMITS.ai_analyses)),
-    uploads_gb: num("uploads_gb", DEFAULT_LIMITS.uploads_gb),
-    documents: num("documents", DEFAULT_LIMITS.documents),
-    code_searches: num("code_searches", DEFAULT_LIMITS.code_searches),
-  };
-}
-
 export function useSubscription(): SubscriptionData {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -95,18 +72,16 @@ export function useSubscription(): SubscriptionData {
       setLoading(true);
       setError(null);
 
-      // Fetch subscription (most recent active one if several exist)
-      const { data: subList, error: subError } = await supabase
+      // Fetch subscription
+      const { data: subData, error: subError } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
         .in("status", ["active", "trial"])
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .maybeSingle();
 
       if (subError) throw subError;
-      const subData = subList?.[0] ?? null;
-      setSubscription(subData ?? null);
+      setSubscription(subData);
 
       // Fetch plan (either from subscription or default Gratuit plan)
       let planData: Plan | null = null;
@@ -122,26 +97,24 @@ export function useSubscription(): SubscriptionData {
         if (pData) {
           planData = {
             ...pData,
-            limits: normalizeLimits(pData.limits),
+            limits: (pData.limits as unknown as PlanLimits) || DEFAULT_LIMITS,
             features: Array.isArray(pData.features) ? pData.features as string[] : [],
           };
         }
       }
 
-      // If no plan found, fetch plan gratuit par défaut (Découverte ou Gratuit selon la config)
+      // If no plan found, fetch Gratuit plan
       if (!planData) {
-        const { data: gratuitList } = await supabase
+        const { data: gratuitPlan, error: gratuitError } = await supabase
           .from("plans")
           .select("*")
-          .or("name.eq.Découverte,name.eq.Gratuit")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true })
-          .limit(1);
-        const gratuitPlan = gratuitList?.[0];
-        if (gratuitPlan) {
+          .eq("name", "Découverte")
+          .maybeSingle();
+
+        if (!gratuitError && gratuitPlan) {
           planData = {
             ...gratuitPlan,
-            limits: normalizeLimits(gratuitPlan.limits),
+            limits: (gratuitPlan.limits as unknown as PlanLimits) || DEFAULT_LIMITS,
             features: Array.isArray(gratuitPlan.features) ? gratuitPlan.features as string[] : [],
           };
         }
@@ -185,7 +158,6 @@ export function useSubscription(): SubscriptionData {
       });
 
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
       console.error("Error fetching subscription data:", err);
       setError(err instanceof Error ? err.message : "Erreur lors du chargement");
     } finally {
@@ -195,19 +167,6 @@ export function useSubscription(): SubscriptionData {
 
   useEffect(() => {
     fetchData();
-    // Refetch une fois après 2s pour récupérer un abonnement venant d'être créé par le webhook Stripe (ex: paiement sans redirect)
-    if (!user?.id) return;
-    const t = setTimeout(() => fetchData().catch(() => {}), 2000);
-    return () => clearTimeout(t);
-  }, [user?.id]);
-
-  // Recharger l'abonnement quand l'utilisateur revient sur l'onglet (ex. après paiement Stripe)
-  useEffect(() => {
-    const onFocus = () => {
-      if (user?.id) fetchData();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
   }, [user?.id]);
 
   const limits = plan?.limits || DEFAULT_LIMITS;

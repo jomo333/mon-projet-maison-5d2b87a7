@@ -1,4 +1,4 @@
-import { Home, Mail, Settings } from "lucide-react";
+import { Home, Mail, Phone, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCookieConsent } from "@/components/cookies/CookieConsent";
@@ -89,10 +89,12 @@ export function Footer() {
             <h4 className="font-display font-semibold mb-4">{t("footer.contact")}</h4>
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0" />
-                <a href="mailto:info@monprojetmaison.ca" className="hover:text-foreground underline-offset-2 hover:underline">
-                  info@monprojetmaison.ca
-                </a>
+                <Mail className="h-4 w-4" />
+                info@monprojetmaison.ca
+              </li>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                1-800-MAISON
               </li>
             </ul>
           </div>

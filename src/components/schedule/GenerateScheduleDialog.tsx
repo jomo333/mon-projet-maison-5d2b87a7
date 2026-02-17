@@ -34,7 +34,7 @@ interface GenerateScheduleDialogProps {
   createSchedule: (data: any) => Promise<any>;
   calculateEndDate: (startDate: string, days: number) => string;
   generateAlerts: (schedule: any) => Promise<void>;
-  onSuccess?: () => Promise<void> | void;
+  onSuccess?: () => void;
 }
 
 // Durées par défaut
@@ -156,61 +156,28 @@ export function GenerateScheduleDialog({
       return;
     }
 
-    if (!projectId) {
-      console.error("[GenerateScheduleDialog] No projectId provided");
-      toast.error("Aucun projet sélectionné");
-      return;
-    }
-
     setIsGenerating(true);
 
     try {
       const targetDateStr = format(targetDate, "yyyy-MM-dd");
-      console.log("[GenerateScheduleDialog] Generating schedule:", {
-        projectId,
-        targetDateStr,
-        startingStepId
-      });
-
       const result = await generateProjectSchedule(projectId, targetDateStr, startingStepId);
 
-      console.log("[GenerateScheduleDialog] Schedule generation result:", result);
-
       if (!result.success) {
-        const errorMsg = result.error || t("errors.generic");
-        console.error("[GenerateScheduleDialog] Schedule generation failed:", errorMsg);
-        toast.error(errorMsg);
-        setIsGenerating(false);
+        toast.error(result.error || t("errors.generic"));
         return;
       }
 
       if (result.warning) {
         toast.warning(result.warning, { duration: 8000 });
       } else {
-        toast.success(t("generateSchedule.success") || "Échéancier créé avec succès", { duration: 5000 });
+        toast.success(t("toasts.saved"));
       }
 
-      // Appeler onSuccess (sans attendre pour éviter les timeouts)
-      if (onSuccess) {
-        try {
-          onSuccess(); // ne pas await pour ne pas bloquer
-        } catch (e) {
-          console.error("[GenerateScheduleDialog] onSuccess error:", e);
-        }
-      }
-
+      onSuccess?.();
       onOpenChange(false);
-
-      // Redirection directe vers la page échéancier pour voir les données
-      const scheduleUrl = `/#/echeancier?project=${projectId}`;
-      console.log("[GenerateScheduleDialog] Redirecting to", scheduleUrl);
-      setTimeout(() => {
-        window.location.href = scheduleUrl;
-      }, 800);
     } catch (error) {
-      console.error("[GenerateScheduleDialog] Error generating schedule:", error);
-      const errorMessage = error instanceof Error ? error.message : t("errors.generic");
-      toast.error(`Erreur lors de la création de l'échéancier: ${errorMessage}`);
+      console.error("Error generating schedule:", error);
+      toast.error(t("errors.generic"));
     } finally {
       setIsGenerating(false);
     }
@@ -310,7 +277,7 @@ export function GenerateScheduleDialog({
           </Button>
           <Button
             onClick={handleGenerate}
-            disabled={!targetDate || isGenerating || !projectId}
+            disabled={!targetDate || isGenerating}
           >
             {isGenerating ? (
               <>

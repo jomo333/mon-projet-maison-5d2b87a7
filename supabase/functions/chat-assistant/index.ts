@@ -6,9 +6,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Chat illimité : on n'appelle pas increment_ai_usage pour le chat (ne compte pas dans le forfait).
+// Helper to increment AI usage for a user (only if authenticated)
+async function incrementAiUsage(authHeader: string | null): Promise<void> {
+  if (!authHeader) return;
+  
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      // User not authenticated - this is OK for chat (anonymous allowed)
+      return;
+    }
+    
+    const userId = claimsData.claims.sub;
+    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
+    
+    if (error) {
+      console.error('Failed to increment AI usage:', error);
+    } else {
+      console.log('AI usage incremented for user:', userId);
+    }
+  } catch (err) {
+    console.error('Error tracking AI usage:', err);
+  }
+}
 
-// Helper to track AI analysis usage (analytics uniquement)
+// Helper to track AI analysis usage
 async function trackAiAnalysisUsage(
   authHeader: string | null,
   analysisType: string
@@ -97,78 +128,10 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const useNativeGemini = !!GEMINI_API_KEY;
-
-    if (!useNativeGemini && !LOVABLE_API_KEY) {
-      throw new Error("GEMINI_API_KEY ou LOVABLE_API_KEY doit être configuré (Secrets)");
-    }
-
-    if (useNativeGemini) {
-      const contents: { role: string; parts: { text: string }[] }[] = [];
-      for (const m of messages) {
-        const role = m.role === "assistant" ? "model" : "user";
-        const text = typeof m.content === "string" ? m.content : (m.content?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") || "");
-        if (text) contents.push({ role, parts: [{ text }] });
-      }
-      const geminiBody = {
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
-      };
-      const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
-        },
-        body: JSON.stringify(geminiBody),
-      });
-      if (!geminiRes.ok) {
-        const t = await geminiRes.text();
-        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(t || "");
-        const message = isQuota
-          ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
-          : "Erreur temporaire du service IA. Réessayez dans un moment.";
-        return new Response(JSON.stringify({ error: message }), {
-          status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Chat illimité : ne pas incrémenter ai_usage (ne compte pas dans le forfait)
-      await trackAiAnalysisUsage(authHeader, "chat-assistant");
-      const reader = geminiRes.body?.getReader();
-      if (!reader) return new Response(JSON.stringify({ error: "Pas de flux" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          const decoder = new TextDecoder();
-          let buffer = "";
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() ?? "";
-              for (const line of lines) {
-                if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                  try {
-                    const j = JSON.parse(line.slice(6));
-                    const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (t) controller.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: t } }] }) + "\n\n"));
-                  } catch (_) {}
-                }
-              }
-            }
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          } finally {
-            controller.close();
-          }
-        },
-      });
-      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -208,7 +171,8 @@ serve(async (req) => {
       });
     }
 
-    // Chat illimité : ne pas incrémenter ai_usage (ne compte pas dans le forfait)
+    // Increment AI usage for authenticated users
+    await incrementAiUsage(authHeader);
     await trackAiAnalysisUsage(authHeader, 'chat-assistant');
 
     return new Response(response.body, {

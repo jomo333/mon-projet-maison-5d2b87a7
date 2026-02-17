@@ -66,8 +66,8 @@ export function useSessionTracker() {
         .from("user_sessions")
         .select("session_start")
         .eq("id", sessionId)
-        .maybeSingle();
-      return data?.session_start ?? null;
+        .single();
+      return data?.session_start || null;
     };
 
     const startHeartbeat = (sessionId: string) => {

@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
 import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
-import logo from "@/assets/logo-slim.png";
+import logo from "@/assets/logo.png";
 
 const getNavItems = (t: (key: string) => string) => [
   { href: "/mes-projets", label: t("nav.myProjects"), icon: FolderOpen },
@@ -50,9 +50,9 @@ export function Header() {
   // Get project ID from URL if available
   const projectId = searchParams.get("project") || location.pathname.match(/\/projet\/([^/]+)/)?.[1];
   
-  // Helper to get href with project param (conserver le projet actif entre les pages)
+  // Helper to get href with project param
   const getHref = (href: string) => {
-    if (projectId && (href === "/galerie" || href === "/dashboard" || href === "/budget" || href === "/echeancier")) {
+    if (projectId && (href === "/galerie" || href === "/dashboard" || href === "/budget")) {
       return `${href}?project=${projectId}`;
     }
     return href;

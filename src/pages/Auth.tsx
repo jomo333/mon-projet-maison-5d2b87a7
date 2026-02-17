@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
@@ -16,7 +16,6 @@ const Auth = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const { signIn, signUp, resetPassword, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -24,13 +23,6 @@ const Auth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
-
-  // Ouvrir directement le formulaire « Mot de passe oublié » si ?forgot=1 (lien expiré)
-  useEffect(() => {
-    if (searchParams.get("forgot") === "1") {
-      setShowForgotPassword(true);
-    }
-  }, [searchParams]);
 
   // Get the return URL from location state (set by AuthGuard)
   const returnUrl = (location.state as { from?: string })?.from || "/";

@@ -108,37 +108,6 @@ async function trackAiAnalysisUsage(
     console.error('Error tracking AI analysis usage:', err);
   }
 }
-
-// Enregistrer un résumé de l'analyse pour améliorer la précision IA (métadonnées uniquement)
-async function saveAnalysisSample(
-  authHeader: string | null,
-  analysisType: string,
-  projectId: string | null | undefined,
-  resultMetadata: Record<string, unknown>
-): Promise<void> {
-  if (!authHeader) return;
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
-    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
-    if (userError || !user) return;
-    const { error } = await serviceSupabase.from('ai_analysis_samples').insert({
-      user_id: user.id,
-      analysis_type: analysisType,
-      project_id: projectId || null,
-      result_metadata: resultMetadata,
-    });
-    if (error) console.error('Failed to save analysis sample:', error);
-  } catch (err) {
-    console.error('Error saving analysis sample:', err);
-  }
-}
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Base de données des prix Québec 2025
@@ -1693,6 +1662,7 @@ async function analyzeOnePageWithClaude({
   manualContext,
   lang,
   detailed = false,
+  marketReferenceSection = '',
 }: {
   apiKey: string;
   imageBase64: string;
@@ -1712,6 +1682,7 @@ async function analyzeOnePageWithClaude({
   };
   lang?: string;
   detailed?: boolean;
+  marketReferenceSection?: string;
 }): Promise<string | null> {
   // Routage intelligent du modèle selon la complexité du projet
   const squareFootage = manualContext?.squareFootage || 0;
@@ -1819,6 +1790,7 @@ Ne te fie PAS seulement à l'aspect visuel - LIS CHAQUE MOT inscrit sur le plan.
 QUALITÉ DE FINITION: ${finishQualityLabel}
 ${additionalNotes ? `NOTES CLIENT: ${additionalNotes}` : ''}
 ${contextSection}
+${marketReferenceSection}
 ${agrandissementInstruction}
 
 ## OBJECTIF
@@ -2446,7 +2418,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl, lang = "fr", detailed: bodyDetailed = false, projectId: bodyProjectId } = body;
+    const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl, lang = "fr", detailed: bodyDetailed = false } = body;
     
     // Handle MERGE mode first (no API key needed - just data processing)
     if (mode === "merge") {
@@ -2590,6 +2562,31 @@ serve(async (req) => {
     }
 
     console.log('Analyzing:', { mode, imageCount: imageUrls.length, quality: finishQuality });
+
+    // Référence marché : agrégats anonymes des budgets enregistrés (soumissions + plans) pour affiner l'estimation
+    let marketReferenceSection = '';
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (serviceKey) {
+        const serviceSupabase = createClient(supabaseUrl, serviceKey);
+        const { data: refRows } = await serviceSupabase.rpc('get_budget_market_reference');
+        if (refRows && Array.isArray(refRows) && refRows.length > 0) {
+          const lines = refRows.map((r: { category_name: string; avg_budget: number; sample_count: number }) =>
+            `- ${r.category_name}: ~${Math.round(Number(r.avg_budget)).toLocaleString('fr-CA')} $ (${r.sample_count} projets)`
+          );
+          marketReferenceSection = `
+
+## RÉFÉRENCE MARCHÉ (moyennes des budgets enregistrés par les utilisateurs – soumissions et plans)
+Utilise ces fourchettes pour calibrer tes estimations (données réelles de la plateforme):
+${lines.join('\n')}
+`;
+          console.log('Market reference loaded:', refRows.length, 'categories');
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load market reference:', err);
+    }
 
     // Build the prompt
     let extractionPrompt: string;
@@ -2772,6 +2769,7 @@ IMPORTANT: Utilise ces notes pour affiner ton estimation (équipements, finition
 QUALITÉ DE FINITION: ${qualityDescriptions[finishQuality] || qualityDescriptions["standard"]}
 ${agrandissementInstruction}
 ${contextSection}
+${marketReferenceSection}
 INSTRUCTIONS CRITIQUES:
 1. Examine TOUTES les pages/images fournies ensemble
 2. EXTRAIS les dimensions, superficies et quantités DIRECTEMENT des plans (source de vérité)
@@ -2867,6 +2865,7 @@ INSTRUCTION CRITIQUE - AGRANDISSEMENT:
 - Ce projet est un AGRANDISSEMENT. La superficie indiquée est celle de l'extension UNIQUEMENT.
 - NE PAS estimer de coûts pour le bâtiment existant.
 ` : ''}
+${marketReferenceSection}
 
 INSTRUCTIONS CRITIQUES:
 1. Tu DOIS retourner TOUTES les 12 catégories principales
@@ -2927,6 +2926,7 @@ Retourne le JSON structuré COMPLET.`;
           manualContext: manualContext,
           lang,
           detailed: bodyDetailed,
+          marketReferenceSection,
         });
 
         const parsed = pageText ? safeParseJsonFromModel(pageText) : null;
@@ -3137,24 +3137,13 @@ Retourne le JSON structuré COMPLET.`;
     const transformedData = transformToLegacyFormat(budgetData, finishQuality, lang);
 
     console.log('Analysis complete - categories:', transformedData.categories?.length || 0);
-    const categories = transformedData.categories || [];
-    const totalBudget = categories.reduce((sum: number, c: any) => sum + (Number(c.budget ?? c.sous_total_categorie) || 0), 0);
-    const nbItems = categories.reduce((sum: number, c: any) => sum + (Array.isArray(c.items) ? c.items.length : 0), 0);
-    await saveAnalysisSample(authHeader, 'analyze-plan', bodyProjectId, {
-      nb_categories: categories.length,
-      category_names: categories.map((c: any) => c.name ?? c.nom),
-      total_budget: Math.round(totalBudget),
-      nb_items: nbItems,
-      nb_plans: imageUrls?.length ?? 0,
-    });
-
     const responsePayload = { success: true, data: transformedData, rawAnalysis: budgetData };
     const responseJson = JSON.stringify(responsePayload);
     console.log('Response size:', Math.round(responseJson.length / 1024), 'KB');
 
     // Increment AI usage for the user
     await incrementAiUsage(authHeader);
-    await trackAiAnalysisUsage(authHeader, 'analyze-plan', bodyProjectId ?? null);
+    await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
 
     return new Response(
       responseJson,

@@ -5,73 +5,6 @@ import { useTranslation } from "react-i18next";
 import { compressImageFileToJpeg } from "@/lib/imageCompression";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
-// Helper function to invoke analyze-plan with better error handling
-async function invokeAnalyzePlan(body: any): Promise<{ data: any; error: any }> {
-  try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Use session token if available, otherwise use anon key
-    const authToken = session?.access_token || supabaseKey;
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-plan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Analyze-plan error:', response.status, errorText);
-      return { 
-        data: null, 
-        error: { message: `Erreur serveur ${response.status}: ${errorText.slice(0, 200)}` } 
-      };
-    }
-
-    const responseText = await response.text();
-    console.log('Response length:', responseText.length, 'bytes');
-    
-    if (!responseText || responseText.trim() === '') {
-      return { 
-        data: null, 
-        error: { message: "Réponse vide du serveur (status 2xx mais body vide)" } 
-      };
-    }
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Response preview:', responseText.slice(0, 500));
-      return { 
-        data: null, 
-        error: { message: `Réponse JSON invalide: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` } 
-      };
-    }
-
-    if (!data) {
-      return { 
-        data: null, 
-        error: { message: "Réponse vide du serveur (status 2xx mais pas de données)" } 
-      };
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    console.error('invokeAnalyzePlan exception:', err);
-    return { 
-      data: null, 
-      error: { message: err instanceof Error ? err.message : 'Erreur inconnue' } 
-    };
-  }
-}
-
 // ============ Types ============
 
 export interface BudgetItem {
@@ -353,13 +286,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
       
       if (error) throw error;
       
-      if (!data) {
-        throw new Error("Réponse vide du serveur (status 2xx mais pas de données)");
-      }
-      
       if (data.success && data.data) {
-        // Refresh limits after successful analysis
-        await refetchLimits();
         return {
           success: true,
           analysis: data.data as BudgetAnalysis,
@@ -367,7 +294,10 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
         };
       }
       
-      throw new Error(data?.error || "Échec de l'analyse - " + JSON.stringify(data).slice(0, 200));
+      // Refresh limits after successful analysis
+      await refetchLimits();
+      
+      throw new Error(data.error || "Échec de l'analyse");
     } catch (error) {
       console.error("Manual analysis error:", error);
       throw error;
@@ -442,21 +372,13 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
             totalImages,
             isPartialBatch: totalBatches > 1,
           },
-          projectId: projectId ?? undefined,
         };
 
-        const { data, error } = await invokeAnalyzePlan(body);
+        const { data, error } = await supabase.functions.invoke("analyze-plan", { body });
 
         if (error) {
           console.error(`Batch ${batchIndex + 1} error:`, error);
-          toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message || "Erreur inconnue" }));
-          failedBatches++;
-          continue;
-        }
-
-        if (!data) {
-          console.error(`Batch ${batchIndex + 1}: réponse vide`);
-          toast.error(`Lot ${batchIndex + 1}: réponse vide du serveur`);
+          toast.error(t("toasts.batchError", { batch: batchIndex + 1, message: error.message }));
           failedBatches++;
           continue;
         }
@@ -466,9 +388,6 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
         } else if (data.success && data.data) {
           batchResults.push({ categories: data.data.categories, extraction: data.data } as BatchResult);
         } else {
-          const errMsg = data?.error || "Format de réponse invalide";
-          console.error(`Batch ${batchIndex + 1}:`, errMsg, data);
-          toast.error(`Lot ${batchIndex + 1}: ${errMsg}`);
           failedBatches++;
         }
       }
@@ -494,7 +413,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
 
       if (batchResults.length === 1 && totalBatches === 1) {
         // Single batch - try server merge for proper formatting
-        const { data: finalData, error: finalError } = await supabase.functions.invoke("analyze-plan", {
+        const { data: finalData } = await supabase.functions.invoke("analyze-plan", {
           body: {
             mode: "merge",
             batchResults,
@@ -505,38 +424,32 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
           },
         });
 
-        if (finalError) {
-          console.error("Merge error:", finalError);
-        } else if (finalData?.success && finalData?.data) {
+        if (finalData?.success && finalData?.data) {
           finalAnalysis = finalData.data as BudgetAnalysis;
         } else {
-          console.warn("Merge failed or empty response, using local transform");
           finalAnalysis = transformRawToAnalysis(batchResults[0], totalImages);
         }
       } else {
         // Multiple batches - server merge required
         toast.info(t("toasts.mergingResults"));
 
-        const { data: mergedData, error: mergeError } = await invokeAnalyzePlan({
-          mode: "merge",
-          batchResults,
-          finishQuality: manualData.finishQuality,
-          manualContext: manualData,
-          totalImages,
-          materialChoices: manualData.materialChoices,
-          projectId: projectId ?? undefined,
+        const { data: mergedData, error: mergeError } = await supabase.functions.invoke("analyze-plan", {
+          body: {
+            mode: "merge",
+            batchResults,
+            finishQuality: manualData.finishQuality,
+            manualContext: manualData,
+            totalImages,
+            materialChoices: manualData.materialChoices,
+          },
         });
 
-        if (mergeError) throw new Error(mergeError.message || "Erreur lors de la fusion");
-
-        if (!mergedData) {
-          throw new Error("Réponse vide du serveur lors de la fusion (status 2xx mais pas de données)");
-        }
+        if (mergeError) throw mergeError;
 
         if (mergedData?.success && mergedData?.data) {
           finalAnalysis = mergedData.data as BudgetAnalysis;
         } else {
-          throw new Error(mergedData?.error || "Échec de la fusion des résultats - " + JSON.stringify(mergedData).slice(0, 200));
+          throw new Error(mergedData?.error || "Échec de la fusion des résultats");
         }
       }
 

@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles, CreditCard } from "lucide-react";
+import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
 import { formatCurrency } from "@/lib/i18n";
 import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
 
@@ -35,12 +34,8 @@ export default function Plans() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subscription, refetch: refetchSubscription } = useSubscription();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const benefits = [
     {
@@ -93,122 +88,15 @@ export default function Plans() {
     fetchPlans();
   }, []);
 
-  // Après retour de Stripe (success=1), recharger l'abonnement une fois au montage
-  useEffect(() => {
-    const hash = window.location.hash || "";
-    if (hash.includes("success=1")) {
-      const timer = setTimeout(() => {
-        refetchSubscription().catch((err: unknown) => {
-          // Ignorer AbortError (fetch annulée lors de la navigation / redirect)
-          if (err instanceof Error && err.name === "AbortError") return;
-          console.error("Refetch subscription:", err);
-        });
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleChoosePlan = async (planId: string, billingCycle: "monthly" | "yearly" = "monthly") => {
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    const plan = plans.find((p) => p.id === planId);
-    const amount = billingCycle === "yearly" && plan?.price_yearly != null ? plan.price_yearly : plan?.price_monthly ?? 0;
-    if (amount === 0) {
+  const handleChoosePlan = (planId: string) => {
+    if (user) {
       navigate("/mes-projets");
-      return;
-    }
-    setCheckoutLoading(planId);
-    try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
-      if (sessionError || !sessionData?.session) {
-        alert("Session expirée. Veuillez vous reconnecter.");
-        navigate("/auth");
-        return;
-      }
-      const accessToken = sessionData.session.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          apikey: anonKey ?? "",
-        },
-        body: JSON.stringify({
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        success_url: `${window.location.origin}/#/forfaits?success=1`,
-        cancel_url: `${window.location.origin}/#/forfaits?cancel=1`,
-      }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = (data as { error?: string })?.error || res.statusText || `Erreur ${res.status}`;
-        throw new Error(msg);
-      }
-      if (data?.url) {
-        window.location.replace(data.url);
-        return;
-      }
-      throw new Error((data as { error?: string })?.error || "Aucune URL de paiement reçue");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur inattendue";
-      alert(message);
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    if (!user) return;
-    setPortalLoading(true);
-    try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
-      if (sessionError || !sessionData?.session) {
-        alert("Session expirée. Veuillez vous reconnecter.");
-        navigate("/auth");
-        return;
-      }
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-billing-portal-session`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionData.session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
-          },
-          body: JSON.stringify({
-            return_url: `${window.location.origin}/#/forfaits`,
-          }),
-        }
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert((data as { error?: string })?.error ?? "Impossible d'ouvrir le portail.");
-        return;
-      }
-      if (data?.url) {
-        window.location.replace(data.url);
-        return;
-      }
-      alert("Aucune URL reçue.");
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Erreur inattendue");
-    } finally {
-      setPortalLoading(false);
+    } else {
+      navigate("/auth");
     }
   };
 
   const formatPrice = (price: number) => formatCurrency(price);
-  const canManageSubscription =
-    user &&
-    (subscription?.status === "active" || subscription?.status === "trial") &&
-    subscription?.stripe_subscription_id;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -299,43 +187,8 @@ export default function Plans() {
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : plans.length === 0 ? (
-              /* Aucun forfait en base : afficher la même section que l'accueil */
-              <PricingSection />
             ) : (
-              <>
-                {/* Billing cycle selector */}
-                <div className="flex justify-center mb-10">
-                  <div className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setBillingCycle("monthly")}
-                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                        billingCycle === "monthly"
-                          ? "bg-background text-foreground shadow"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {t("plans.billingMonthly")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBillingCycle("yearly")}
-                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                        billingCycle === "yearly"
-                          ? "bg-background text-foreground shadow"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {t("plans.billingYearly")}
-                      <span className="ml-1.5 text-primary text-xs font-normal">
-                        (−2 {t("plans.billingMonthsFree")})
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
                 {plans.map((plan) => (
                   <Card
                     key={plan.id}
@@ -363,35 +216,21 @@ export default function Plans() {
                     <CardContent className="flex-1 space-y-6">
                       {/* Pricing */}
                       <div className="text-center">
-                        {billingCycle === "monthly" ? (
-                          <>
-                            <div className="flex items-baseline justify-center gap-1">
-                              <span className="text-4xl font-bold text-foreground">
-                                {formatPrice(plan.price_monthly)}
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-4xl font-bold text-foreground">
+                            {formatPrice(plan.price_monthly)}
+                          </span>
+                          <span className="text-muted-foreground">{t("common.perMonth")}</span>
+                        </div>
+                        {plan.price_yearly && plan.price_yearly > 0 && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {t("common.or")} {formatPrice(plan.price_yearly)}{t("common.perYear")}
+                            {plan.price_monthly > 0 && (
+                              <span className="text-primary ml-1">
+                                {t("common.freeMonths")}
                               </span>
-                              <span className="text-muted-foreground">{t("common.perMonth")}</span>
-                            </div>
-                            {plan.price_yearly != null && plan.price_yearly > 0 && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {t("common.or")} {formatPrice(plan.price_yearly)}{t("common.perYear")}
-                                <span className="text-primary ml-1">{t("common.freeMonths")}</span>
-                              </p>
                             )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-baseline justify-center gap-1">
-                              <span className="text-4xl font-bold text-foreground">
-                                {formatPrice(plan.price_yearly ?? plan.price_monthly * 12)}
-                              </span>
-                              <span className="text-muted-foreground">{t("common.perYear")}</span>
-                            </div>
-                            {plan.price_yearly != null && plan.price_yearly > 0 && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {t("plans.billingYearlyOnePayment")}
-                              </p>
-                            )}
-                          </>
+                          </p>
                         )}
                       </div>
 
@@ -416,31 +255,14 @@ export default function Plans() {
                         variant={plan.is_featured ? "accent" : "outline"}
                         className="w-full"
                         size="lg"
-                        disabled={checkoutLoading !== null}
                       >
-                        {checkoutLoading === plan.id ? (
-                          <>
-                            <span className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent inline-block mr-2" />
-                            {t("plans.redirectingToCheckout")}
-                          </>
-                        ) : (
-                          <>
-                            {plan?.price_monthly === 0
-                              ? t("pricing.discovery.cta")
-                              : plan?.name === "Essentiel"
-                                ? t("plans.tiers.essentiel.cta", "Choisir Essentiel")
-                                : (plan?.name === "Gestion complète" || plan?.name === "Pro")
-                                  ? t("plans.tiers.gestionComplete.cta", "Choisir Gestion complète")
-                                  : t("plans.choosePlan")}
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                          </>
-                        )}
+                        {plan.price_monthly === 0 ? t("pricing.discovery.cta") : t("plans.choosePlan")}
+                        <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     </CardFooter>
                   </Card>
                 ))}
-                </div>
-              </>
+              </div>
             )}
 
             {/* Reassuring text */}
@@ -451,37 +273,6 @@ export default function Plans() {
                 {t("plans.noWrongPlanDesc")}
               </p>
             </div>
-
-            {/* Gérer mon abonnement (abonné récurrent Stripe) */}
-            {canManageSubscription && (
-              <div className="mt-10 max-w-2xl mx-auto">
-                <Card className="border-primary/30 bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      {t("plans.manageSubscription")}
-                    </CardTitle>
-                    <CardDescription>{t("plans.manageSubscriptionDesc")}</CardDescription>
-                  </CardHeader>
-                  <CardFooter className="pt-0">
-                    <Button
-                      variant="outline"
-                      onClick={handleManageSubscription}
-                      disabled={portalLoading}
-                    >
-                      {portalLoading ? (
-                        <>
-                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent inline-block mr-2" />
-                          {t("plans.redirectingToCheckout")}
-                        </>
-                      ) : (
-                        t("plans.manageSubscriptionButton")
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            )}
           </div>
         </section>
 

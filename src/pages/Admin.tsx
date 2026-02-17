@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, DollarSign, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/i18n";
 
 interface DashboardStats {
   totalSubscribers: number;
@@ -123,6 +122,13 @@ export default function Admin() {
 
     fetchDashboardData();
   }, []);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-CA", {
+      style: "currency",
+      currency: "CAD",
+    }).format(value);
+  };
 
   return (
     <AdminGuard>

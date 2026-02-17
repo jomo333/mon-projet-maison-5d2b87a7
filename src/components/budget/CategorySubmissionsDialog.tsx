@@ -137,8 +137,8 @@ export function CategorySubmissionsDialog({
   // Get syncAlertsFromSoumissions from useProjectSchedule
   const { syncAlertsFromSoumissions } = useProjectSchedule(projectId);
   
-  // Check if user has premium plan for quote analysis
-  const { hasFullManagement } = usePlanLimits();
+  // Analyse des soumissions : disponible à partir du forfait Essentiel
+  const { canUseBudgetAndSchedule } = usePlanLimits();
   
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
@@ -2717,7 +2717,7 @@ export function CategorySubmissionsDialog({
                     onChange={handleFileUpload}
                   />
                   {documents.length > 0 && (
-                    hasFullManagement ? (
+                    canUseBudgetAndSchedule ? (
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox

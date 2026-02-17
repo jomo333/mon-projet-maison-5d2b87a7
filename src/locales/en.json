@@ -523,9 +523,9 @@
     "gb": "GB"
   },
   "premiumFeatures": {
-    "quoteAnalysisRestricted": "AI quote analysis with RBQ/tax verification is reserved for the Complete Management plan",
+    "quoteAnalysisRestricted": "AI quote analysis is available from the Essential plan",
     "quoteAnalysisTooltip": "Automatic analysis of your quotes by construction step, verification of RBQ licenses and contractor tax numbers.",
-    "quoteAnalysisPlan": "Available with Complete Management plan",
+    "quoteAnalysisPlan": "Available with Essential plan or above",
     "alertsRestricted": "Conflict alerts and subcontractor contact reminders are reserved for the Complete Management plan",
     "alertsTooltip": "Receive automatic alerts for schedule conflicts and reminders to contact your subcontractors at the right time.",
     "alertsPlan": "Available with Complete Management plan",

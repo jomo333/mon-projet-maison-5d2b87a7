@@ -2864,8 +2864,9 @@ Retourne le JSON structuré COMPLET.`;
       
       console.log(`Processing ${imagesToProcess.length} image...`);
 
-      // Keep a strict-ish limit: large images dramatically increase CPU (base64 + IA payload) and can trigger WORKER_LIMIT.
-      const maxBytesPerImage = 16_000_000; // 16 MB par image (plans HD)
+      // Limite par image (plans HD) – trop lourd = timeout / WORKER_LIMIT
+      const MAX_IMAGE_MB = 20;
+      const maxBytesPerImage = MAX_IMAGE_MB * 1024 * 1024;
       const pageExtractions: PageExtraction[] = [];
       let skipped = 0;
 
@@ -2912,19 +2913,20 @@ Retourne le JSON structuré COMPLET.`;
       }
 
       if (pageExtractions.length === 0) {
-        // If everything was skipped, it's likely image fetch/size or invalid URLs. Otherwise Claude returned empty/invalid.
         const isEnglish = String(lang || "fr").startsWith("en");
         const error = skipped === imagesToProcess.length
           ? isEnglish
-            ? "Could not load plan image(s): too large (>16 MB), invalid link, or inaccessible. Re-upload smaller images and try again."
-            : "Impossible de charger le(s) plan(s) : image trop lourde (>16 Mo), lien invalide ou inaccessible. Retéléchargez des images plus légères et réessayez."
+            ? `Could not load plan image(s): too large (>${MAX_IMAGE_MB} MB), invalid link, or inaccessible. Re-upload smaller images and try again.`
+            : `Impossible de charger le(s) plan(s) : image trop lourde (>${MAX_IMAGE_MB} Mo), lien invalide ou inaccessible. Retéléchargez des images plus légères et réessayez.`
           : isEnglish
             ? "The AI returned no usable result (empty response, rate limit, or invalid format). Try again in 30–60 s or use a smaller image."
             : "L'IA n'a pas retourné de résultat utilisable (réponse vide, limite de requêtes ou format invalide). Réessayez dans 30–60 s ou utilisez une image plus petite.";
 
+        // Image trop lourde / lien invalide = erreur client (400), pas serveur (500)
+        const status = skipped === imagesToProcess.length ? 400 : 500;
         return new Response(
           JSON.stringify({ success: false, error }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 

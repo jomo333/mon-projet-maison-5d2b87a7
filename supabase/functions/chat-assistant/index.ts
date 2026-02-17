@@ -148,14 +148,24 @@ serve(async (req) => {
         contents,
         generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
       };
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`, {
+      const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
         body: JSON.stringify(geminiBody),
       });
       if (!geminiRes.ok) {
         const t = await geminiRes.text();
-        return new Response(JSON.stringify({ error: "Erreur Gemini: " + (t || geminiRes.statusText) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(t || "");
+        const message = isQuota
+          ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
+          : "Erreur temporaire du service IA. Réessayez dans un moment.";
+        return new Response(JSON.stringify({ error: message }), {
+          status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       await incrementAiUsage(authHeader);
       await trackAiAnalysisUsage(authHeader, "chat-assistant");

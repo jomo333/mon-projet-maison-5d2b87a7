@@ -613,7 +613,7 @@ Calcule l'écart en % et signale si le budget est dépassé.
 
     if (useNativeGemini) {
       // Appel direct à l'API Google Gemini (Generative Language)
-      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-2.0-flash";
+      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-3-flash-preview";
       const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
       for (const part of messageParts) {
         if (part.type === "text" && part.text) {
@@ -630,19 +630,26 @@ Calcule l'écart en % et signale si le budget est dépassé.
         contents: [{ role: "user", parts: geminiParts }],
         generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
       };
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
       const geminiRes = await fetch(geminiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
         body: JSON.stringify(geminiBody),
       });
       if (!geminiRes.ok) {
         const errText = await geminiRes.text();
         console.error("Gemini API error:", geminiRes.status, errText);
-        return new Response(
-          JSON.stringify({ error: "Erreur Gemini: " + (errText || geminiRes.statusText) }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
+        const message = isQuota
+          ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
+          : "Erreur temporaire du service IA. Réessayez dans un moment.";
+        return new Response(JSON.stringify({ error: message }), {
+          status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       await incrementAiUsage(authHeader);
       await trackAiAnalysisUsage(authHeader, "analyze-soumissions", null);

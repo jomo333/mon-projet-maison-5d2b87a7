@@ -30,7 +30,7 @@ export interface PlanLimitsHook {
   refetch: () => Promise<void>;
 }
 
-export function usePlanLimits(): PlanLimitsHook {
+function usePlanLimitsHook(): PlanLimitsHook {
   const { plan, limits, usage, loading, refetch } = useSubscription();
   const { isAdmin } = useAdmin();
 

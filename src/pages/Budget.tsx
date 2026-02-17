@@ -17,6 +17,7 @@ import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissio
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "../hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -649,38 +650,27 @@ const Budget = () => {
     }
   };
 
-  // Forfait gratuit : budget et échéancier verrouillés
-  if (user && !planLimitsLoading && !canUseBudgetAndSchedule) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 py-8 flex items-center justify-center">
-          <div className="container max-w-lg">
-            <Card className="border-muted">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Lock className="h-6 w-6" />
-                  <CardTitle>{t("plans.budgetScheduleLockedTitle")}</CardTitle>
-                </div>
-                <CardDescription>{t("plans.budgetScheduleLockedMessage")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button asChild>
-                  <a href="/forfaits">{t("plans.viewPlans")}</a>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 py-8">
         <div className="container space-y-8">
+          {/* Bannière forfait gratuit : voir la page mais pas modifier */}
+          {user && !planLimitsLoading && !canUseBudgetAndSchedule && (
+            <Card className="border-amber-500/50 bg-amber-500/10">
+              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+                  <p className="text-sm text-foreground">
+                    {t("plans.budgetScheduleLockedMessage")}
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="default">
+                  <a href="/forfaits">{t("plans.viewPlans")}</a>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
@@ -695,7 +685,7 @@ const Budget = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleResetBudget}
-                  disabled={resetBudgetMutation.isPending}
+                  disabled={resetBudgetMutation.isPending || !canUseBudgetAndSchedule}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
@@ -706,13 +696,17 @@ const Budget = () => {
                 <Button 
                   variant="default" 
                   onClick={() => saveBudgetMutation.mutate(budgetCategories)}
-                  disabled={saveBudgetMutation.isPending}
+                  disabled={saveBudgetMutation.isPending || !canUseBudgetAndSchedule}
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {saveBudgetMutation.isPending ? t("budget.saving") : t("budget.saveBudget")}
                 </Button>
               )}
-              <Button variant="accent" onClick={() => setShowAddExpense(!showAddExpense)}>
+              <Button
+                variant="accent"
+                onClick={() => setShowAddExpense(!showAddExpense)}
+                disabled={!canUseBudgetAndSchedule}
+              >
                 <Plus className="h-4 w-4" />
                 {t("budget.addExpense")}
               </Button>

@@ -1833,6 +1833,7 @@
     "continue": "Continue",
     "pleaseAccept": "Please accept the terms to continue",
     "saveError": "Error saving. Please try again.",
+    "sessionError": "Session not synced. Please try again or refresh the page.",
     "thankYou": "Thank you for accepting our terms"
   },
   "attachments": {

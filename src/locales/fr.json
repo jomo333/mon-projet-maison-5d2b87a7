@@ -1834,6 +1834,7 @@
     "continue": "Continuer",
     "pleaseAccept": "Veuillez accepter les conditions pour continuer",
     "saveError": "Erreur lors de l'enregistrement. Veuillez réessayer.",
+    "sessionError": "Session non synchronisée. Veuillez réessayer ou rafraîchir la page.",
     "thankYou": "Merci d'avoir accepté nos conditions"
   },
   "attachments": {

@@ -150,37 +150,25 @@ const Schedule = () => {
     return null;
   }
 
-  // Forfait gratuit : budget et échéancier verrouillés
-  if (!planLimitsLoading && !canUseBudgetAndSchedule) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 py-8 flex items-center justify-center">
-          <div className="container max-w-lg">
-            <Card className="border-muted">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Lock className="h-6 w-6" />
-                  <CardTitle>{t("plans.budgetScheduleLockedTitle")}</CardTitle>
-                </div>
-                <CardDescription>{t("plans.budgetScheduleLockedMessage")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button asChild>
-                  <a href="/forfaits">{t("plans.viewPlans")}</a>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
+      {/* Bannière forfait gratuit : voir la page mais pas modifier */}
+      {!planLimitsLoading && !canUseBudgetAndSchedule && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10">
+          <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+              <p className="text-sm text-foreground">{t("plans.budgetScheduleLockedMessage")}</p>
+            </div>
+            <Button asChild size="sm" variant="default">
+              <a href="/forfaits">{t("plans.viewPlans")}</a>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Barre d'onglets rapide sticky */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4">
@@ -260,7 +248,7 @@ const Schedule = () => {
                 </SelectContent>
               </Select>
 
-              {selectedProjectId && (
+              {selectedProjectId && canUseBudgetAndSchedule && (
                 <AddScheduleDialog
                   projectId={selectedProjectId}
                   onAdd={(schedule) => {
@@ -360,7 +348,7 @@ const Schedule = () => {
                   <ScheduleTable
                     schedules={schedules}
                     onUpdate={async (schedule) => {
-                      // Utiliser updateScheduleAndRecalculate pour propager les changements
+                      if (!canUseBudgetAndSchedule) return;
                       await updateScheduleAndRecalculate(schedule.id, schedule);
                       const fullSchedule = schedules.find(
                         (s) => s.id === schedule.id
@@ -369,11 +357,12 @@ const Schedule = () => {
                         generateAlerts({ ...fullSchedule, ...schedule });
                       }
                     }}
-                    onDelete={deleteSchedule}
-                    onComplete={completeStep}
-                    onUncomplete={uncompleteStep}
+                    onDelete={canUseBudgetAndSchedule ? deleteSchedule : () => {}}
+                    onComplete={canUseBudgetAndSchedule ? completeStep : undefined}
+                    onUncomplete={canUseBudgetAndSchedule ? uncompleteStep : undefined}
                     conflicts={conflicts}
                     calculateEndDate={calculateEndDate}
+                    readOnly={!canUseBudgetAndSchedule}
                   />
                 )}
                 {activeTab === "calendar" && (
@@ -386,14 +375,14 @@ const Schedule = () => {
                   <ScheduleGantt 
                     schedules={schedules} 
                     conflicts={conflicts}
-                    onRegenerateSchedule={async () => {
+                    onRegenerateSchedule={canUseBudgetAndSchedule ? async () => {
                       setIsRegenerating(true);
                       try {
                         await regenerateSchedule();
                       } finally {
                         setIsRegenerating(false);
                       }
-                    }}
+                    } : undefined}
                     isUpdating={isRegenerating}
                   />
                 )}

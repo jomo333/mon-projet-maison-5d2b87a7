@@ -69,6 +69,8 @@ interface ScheduleTableProps {
   onUncomplete?: (scheduleId: string) => void | Promise<void>;
   conflicts: { date: string; trades: string[] }[];
   calculateEndDate: (startDate: string, days: number) => string;
+  /** Forfait gratuit : afficher en lecture seule (pas d’édition / suppression / compléter). */
+  readOnly?: boolean;
 }
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -86,6 +88,7 @@ export const ScheduleTable = ({
   onUncomplete,
   conflicts,
   calculateEndDate,
+  readOnly = false,
 }: ScheduleTableProps) => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -275,7 +278,7 @@ export const ScheduleTable = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    {onComplete && schedule.status !== "completed" && (
+                    {!readOnly && onComplete && schedule.status !== "completed" && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -307,20 +310,24 @@ export const ScheduleTable = ({
                         <TooltipContent>Annuler “Terminé”</TooltipContent>
                       </Tooltip>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(schedule)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(schedule.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {!readOnly && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(schedule)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDelete(schedule.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

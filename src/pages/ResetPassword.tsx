@@ -137,9 +137,17 @@ const ResetPassword = () => {
                 {t("auth.invalidLinkDesc")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <Button 
                 className="w-full"
+                variant="default"
+                onClick={() => navigate("/auth?forgot=1")}
+              >
+                {t("auth.requestNewLinkButton")}
+              </Button>
+              <Button 
+                className="w-full"
+                variant="outline"
                 onClick={() => navigate("/auth")}
               >
                 {t("auth.backToLogin")}

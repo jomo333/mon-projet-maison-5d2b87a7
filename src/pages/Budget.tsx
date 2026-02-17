@@ -315,9 +315,13 @@ const Budget = () => {
       // These will be ignored (not displayed) - only current step categories are shown
       setBudgetCategories(rerouteFoundationItems(ordered));
     } else if (selectedProjectId) {
-      // Reset to default if no budget saved
-      setBudgetCategories(defaultCategories);
+      // Ne pas écraser un budget venant d'être appliqué (après redirection vers échéancier, cache peut être vide au retour)
+      const hasBudgetInState = budgetCategories.some((c) => (c.budget ?? 0) > 0);
+      if (!hasBudgetInState) {
+        setBudgetCategories(defaultCategories);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- on purpose: budgetCategories lu pour éviter écrasement après apply
   }, [savedBudget, selectedProjectId]);
 
   // Auto-select first project if available (and sync URL)
@@ -387,7 +391,19 @@ const Budget = () => {
 
       if (updateError) throw updateError;
     },
-    onSuccess: () => {
+    onSuccess: (_data, categoriesToSave) => {
+      // Mettre le cache à jour immédiatement pour que, après redirection vers l'échéancier,
+      // au retour sur Budget les données soient déjà là (évite écran vide / réinitialisation).
+      const cacheRows = categoriesToSave.map((cat) => ({
+        project_id: selectedProjectId,
+        category_name: cat.name,
+        budget: cat.budget,
+        spent: cat.spent ?? 0,
+        color: cat.color,
+        description: cat.description ?? null,
+        items: cat.items ?? [],
+      }));
+      queryClient.setQueryData(["project-budget", selectedProjectId], cacheRows);
       queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
       queryClient.invalidateQueries({ queryKey: ["user-projects"] });
       toast.success(t("toasts.budgetSaved"));
@@ -517,18 +533,19 @@ const Budget = () => {
   }));
 
   const handleBudgetGenerated = async (categories: IncomingAnalysisCategory[]) => {
-    // Convert analysis (12 categories) -> step categories (our table)
-    // Uses mapAnalysisToStepCategories which now keeps taxes/contingency separate (not distributed)
     const mapped = mapAnalysisToStepCategories(categories, libDefaultCategories).map(cat => ({
       ...cat,
       spent: cat.spent ?? 0,
     }));
     setBudgetCategories(mapped);
 
-    // Auto-save if a project is selected
-    if (selectedProjectId) {
-      saveBudgetMutation.mutate(mapped);
-    }
+    if (!selectedProjectId) return;
+    await new Promise<void>((resolve, reject) => {
+      saveBudgetMutation.mutate(mapped, {
+        onSuccess: () => resolve(),
+        onError: (err) => reject(err),
+      });
+    });
   };
 
   const toggleCategory = (categoryName: string) => {

@@ -51,18 +51,18 @@ const Project = () => {
     }
   }, [authLoading, user, navigate]);
 
-  // Fetch project data
+  // Fetch project data (RLS garantit que seuls nos projets sont retournés; on vérifie aussi côté client)
   const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ["project", projectId],
+    queryKey: ["project", projectId, user?.id],
     queryFn: async () => {
-      if (!projectId) return null;
+      if (!projectId || !user) return null;
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .eq("id", projectId)
         .single();
-      
       if (error) throw error;
+      if (data && data.user_id !== user.id) return null;
       return data;
     },
     enabled: !!projectId && !!user,

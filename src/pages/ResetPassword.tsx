@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Loader2, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+const RECOVERY_HASH_KEY = "supabase_recovery_hash";
+
 const ResetPassword = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,36 +28,40 @@ const ResetPassword = () => {
     let timeoutId: NodeJS.Timeout | null = null;
     let isSubscribed = true;
 
-    // Listen for auth state changes FIRST (before getSession)
+    // Avec HashRouter, le token est sauvegardé dans sessionStorage par RecoveryRedirect.
+    // On le restaure ici via setSession pour ne pas perdre le lien.
+    const restoreSessionFromStoredHash = async () => {
+      try {
+        const stored = sessionStorage.getItem(RECOVERY_HASH_KEY);
+        if (!stored) return;
+        const params = new URLSearchParams(stored.replace(/^#/, ""));
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error) sessionStorage.removeItem(RECOVERY_HASH_KEY);
+        }
+      } catch (_) {}
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isSubscribed) return;
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        // Clear timeout since we got a valid recovery event
-        if (timeoutId) clearTimeout(timeoutId);
-        setIsValidSession(true);
-      } else if (event === 'SIGNED_IN' && session) {
-        // User might already be signed in from the recovery link
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         if (timeoutId) clearTimeout(timeoutId);
         setIsValidSession(true);
       }
     });
 
-    // Check if we already have a session
     const checkSession = async () => {
+      await restoreSessionFromStoredHash();
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!isSubscribed) return;
-      
       if (session) {
         setIsValidSession(true);
       } else {
-        // Give it time to process the URL hash/token
         timeoutId = setTimeout(() => {
-          if (isSubscribed) {
-            setIsValidSession(prev => prev === null ? false : prev);
-          }
-        }, 3000);
+          if (isSubscribed) setIsValidSession((prev) => (prev === null ? false : prev));
+        }, 5000);
       }
     };
 

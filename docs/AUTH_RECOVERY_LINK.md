@@ -1,4 +1,22 @@
-# Durée du lien « Mot de passe oublié »
+# Lien « Mot de passe oublié »
+
+## Le lien dans l’email pointe vers vercel.app au lieu du domaine
+
+**Cause :** Supabase utilise la **Site URL** du projet, ou le code utilisait l’URL de la page (vercel.app) pour construire le lien.
+
+**À faire :**
+
+1. **Supabase** → **Authentication** → **URL Configuration**  
+   - **Site URL** : mets ton domaine, ex. `https://monprojetmaison.ca`  
+   - **Redirect URLs** : ajoute `https://monprojetmaison.ca/#/reset-password` (et `https://www.monprojetmaison.ca/#/reset-password` si tu utilises www).
+
+2. **Variable d’environnement (Vercel / build)**  
+   - Ajoute `VITE_APP_URL=https://monprojetmaison.ca` (sans slash final).  
+   - L’app l’utilise pour le lien « Mot de passe oublié » : le mail redirigera toujours vers ce domaine, même si l’utilisateur était sur `*.vercel.app`.
+
+---
+
+## Durée du lien (lien expiré trop vite)
 
 Si les utilisateurs voient « Lien invalide ou expiré » très rapidement (ex. après ~30 secondes), la durée du lien de réinitialisation est trop courte dans Supabase.
 

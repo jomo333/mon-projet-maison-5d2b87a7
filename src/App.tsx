@@ -41,7 +41,10 @@ import BootstrapAdmin from "./pages/BootstrapAdmin";
 
 const queryClient = new QueryClient();
 
-// Redirige vers la page "nouveau mot de passe" quand le lien Supabase contient type=recovery (token dans le hash)
+const RECOVERY_HASH_KEY = "supabase_recovery_hash";
+
+// Redirige vers la page "nouveau mot de passe" quand le lien Supabase contient type=recovery (token dans le hash).
+// Avec HashRouter, navigate("/reset-password") écrase le hash et on perd le token → on le sauvegarde avant.
 function RecoveryRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,6 +52,9 @@ function RecoveryRedirect() {
     if (location.pathname === "/reset-password") return;
     const hash = window.location.hash || "";
     if (hash.includes("type=recovery") || (hash.includes("access_token=") && hash.includes("type="))) {
+      try {
+        sessionStorage.setItem(RECOVERY_HASH_KEY, hash);
+      } catch (_) {}
       navigate("/reset-password", { replace: true });
     }
   }, [location.pathname, location.hash, navigate]);

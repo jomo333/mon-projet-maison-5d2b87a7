@@ -52,7 +52,7 @@ const Project = () => {
   }, [authLoading, user, navigate]);
 
   // Fetch project data (RLS garantit que seuls nos projets sont retournés; on vérifie aussi côté client)
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: project, isLoading: projectLoading, isError: projectError, refetch: refetchProject } = useQuery({
     queryKey: ["project", projectId, user?.id],
     queryFn: async () => {
       if (!projectId || !user) return null;
@@ -60,12 +60,13 @@ const Project = () => {
         .from("projects")
         .select("*")
         .eq("id", projectId)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       if (data && data.user_id !== user.id) return null;
       return data;
     },
     enabled: !!projectId && !!user,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch all project photos
@@ -209,7 +210,7 @@ const Project = () => {
     { id: "other", label: t("gallery.documentCategories.other"), icon: FolderOpen },
   ];
 
-  if (authLoading || projectLoading) {
+  if (authLoading || !user || (!!projectId && !!user && projectLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -222,11 +223,23 @@ const Project = () => {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <h1 className="text-2xl font-bold mb-4">{t("projects.notFound")}</h1>
-            <Button onClick={() => navigate("/mes-projets")}>
-              {t("projects.backToProjects")}
-            </Button>
+            <p className="text-muted-foreground text-sm max-w-md">
+              {projectError
+                ? "Une erreur est survenue au chargement. Vérifiez votre connexion et réessayez."
+                : "Ce projet n'existe pas, a été supprimé ou vous n'avez pas accès."}
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {projectError && (
+                <Button variant="outline" onClick={() => refetchProject()}>
+                  Réessayer
+                </Button>
+              )}
+              <Button onClick={() => navigate("/mes-projets")}>
+                {t("projects.backToProjects")}
+              </Button>
+            </div>
           </div>
         </main>
         <Footer />

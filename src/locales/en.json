@@ -1586,8 +1586,8 @@
     "billingYearlyOnePayment": "One-time payment for the year",
     "billingMonthsFree": "months free",
     "startFree": "Start for free",
-    "budgetScheduleLockedTitle": "Feature available with paid plans",
-    "budgetScheduleLockedMessage": "Budget and schedule are available with the Essential plan and above. Upgrade to modify your budget and schedule.",
+    "budgetScheduleLockedTitle": "Limited options on this plan",
+    "budgetScheduleLockedMessage": "You can view and save budget and schedule. To lock dates, move the calendar, or add costs and submissions, upgrade to the Essential plan or above.",
     "viewPlans": "View plans",
     "tiers": {
       "decouverte": {

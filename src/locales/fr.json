@@ -1586,8 +1586,8 @@
     "billingYearlyOnePayment": "Paiement unique pour l'année",
     "billingMonthsFree": "mois gratuits",
     "startFree": "Commencer gratuitement",
-    "budgetScheduleLockedTitle": "Fonctionnalité réservée aux forfaits payants",
-    "budgetScheduleLockedMessage": "Le budget et l'échéancier sont disponibles avec les forfaits Essentiel et plus. Passez à un forfait supérieur pour modifier le budget et l'échéancier.",
+    "budgetScheduleLockedTitle": "Options limitées sur ce forfait",
+    "budgetScheduleLockedMessage": "Vous pouvez consulter, enregistrer le budget et l'échéancier. Pour verrouiller les dates, déplacer le calendrier, ajouter des coûts ou des soumissions, passez à un forfait Essentiel ou plus.",
     "viewPlans": "Voir les forfaits",
     "tiers": {
       "decouverte": {

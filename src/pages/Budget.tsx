@@ -696,7 +696,7 @@ const Budget = () => {
                 <Button 
                   variant="default" 
                   onClick={() => saveBudgetMutation.mutate(budgetCategories)}
-                  disabled={saveBudgetMutation.isPending || !canUseBudgetAndSchedule}
+                  disabled={saveBudgetMutation.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {saveBudgetMutation.isPending ? t("budget.saving") : t("budget.saveBudget")}

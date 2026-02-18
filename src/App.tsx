@@ -11,6 +11,7 @@ import { LegalConsentGuard } from "@/components/auth/LegalConsentGuard";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { SessionTrackerProvider } from "@/components/providers/SessionTrackerProvider";
+import { InvalidateProjectsOnAuthChange } from "@/components/providers/InvalidateProjectsOnAuthChange";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
@@ -64,6 +65,7 @@ function RecoveryRedirect() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <InvalidateProjectsOnAuthChange />
       <SessionTrackerProvider>
         <TooltipProvider>
           <Toaster />

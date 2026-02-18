@@ -5,6 +5,7 @@ export interface TradeType {
 }
 
 export const tradeTypes: TradeType[] = [
+  { id: "demolition", name: "Démolition", color: "#B45309" },
   { id: "excavation", name: "Excavation", color: "#8B4513" },
   { id: "fondation", name: "Fondation/Béton", color: "#6B7280" },
   { id: "charpente", name: "Charpentier", color: "#D97706" },

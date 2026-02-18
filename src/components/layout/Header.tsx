@@ -28,9 +28,9 @@ import logo from "@/assets/logo.png";
 const getNavItems = (t: (key: string) => string) => [
   { href: "/mes-projets", label: t("nav.myProjects"), icon: FolderOpen },
   { href: "/dashboard", label: t("nav.steps"), icon: LayoutDashboard },
-  { href: "/galerie", label: t("nav.myFiles"), icon: FolderDown },
   { href: "/budget", label: t("nav.budget"), icon: Calculator },
   { href: "/echeancier", label: t("nav.schedule"), icon: CalendarDays },
+  { href: "/galerie", label: t("nav.myFiles"), icon: FolderDown },
   { href: "/code-batiment", label: t("nav.buildingCode"), icon: Scale },
   { href: "/guide", label: t("nav.guide"), icon: BookOpen },
   { href: "/forfaits", label: t("nav.plans"), icon: CreditCard },

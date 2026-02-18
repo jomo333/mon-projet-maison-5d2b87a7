@@ -910,6 +910,7 @@
   "categories": {
     "excavation": "Excavation",
     "foundation": "Foundation",
+    "demolitionPrep": "Demolition and preparation",
     "plumbing": "Plumbing",
     "electrical": "Electrical",
     "structure": "Structure and framing",
@@ -2091,6 +2092,51 @@
         }
       }
     },
+    "demolition-prep": {
+      "title": "Demolition & Preparation",
+      "description": "Partial demolition work and preparation of the existing house before starting the extension.",
+      "duration": "3-7 days",
+      "tasks": {
+        "protection-existant": {
+          "title": "Protection of existing structure",
+          "description": "Protect the inhabited areas from dust, moisture, and weather before starting demolition work.",
+          "tips": [
+            "Install watertight plastic sheets between work zones and living areas",
+            "Block openings with temporary panels if necessary",
+            "Notify your insurance that demolition work will take place"
+          ]
+        },
+        "demolition-int": {
+          "title": "Interior demolition",
+          "description": "Demolition of interior walls, floors, and ceilings adjacent to the extension area.",
+          "tips": [
+            "Identify load-bearing walls on your plans before demolishing — never remove a load-bearing wall without an approved replacement plan",
+            "Cut electricity, plumbing, and heating in the affected areas before starting",
+            "Provide temporary shoring for load-bearing structures if necessary",
+            "Test for asbestos or lead in old buildings (pre-1990)"
+          ],
+          "documents": ["Load-bearing wall plan", "Asbestos test report (if applicable)"]
+        },
+        "demolition-ext": {
+          "title": "Exterior demolition",
+          "description": "Demolition of the exterior wall, foundation wall, or footings at the junction point with the extension.",
+          "tips": [
+            "The opening in the existing wall must be protected by the first evening (tarp or panel)",
+            "Check utilities (water, gas, electricity) before any foundation demolition",
+            "Keep the inside of the house protected from weather at all times"
+          ]
+        },
+        "nettoyage-debris": {
+          "title": "Cleanup and debris removal",
+          "description": "Removal of demolition materials and site cleanup before excavation begins.",
+          "tips": [
+            "Rent a waste container for efficient removal",
+            "Some materials (concrete, brick) can be recovered or recycled",
+            "Completely clean the perimeter before the excavator arrives"
+          ]
+        }
+      }
+    },
     "excavation": {
       "title": "Excavation",
       "description": "Site preparation and digging for foundations.",
@@ -2375,6 +2421,15 @@
           "tips": [
             "Use a certified installer",
             "Plan appliance locations before installation"
+          ]
+        },
+        "balayeuse-centrale": {
+          "title": "Central vacuum conduit",
+          "description": "Installation of PVC conduits for the built-in central vacuum system.",
+          "tips": [
+            "Plan wall inlet locations before closing walls",
+            "Use 2-inch diameter conduits for proper suction airflow",
+            "Install the main unit outlet near the electrical panel or in the garage"
           ]
         },
         "branchements": {
@@ -3263,6 +3318,48 @@
         }
       }
     },
+    "demolition-prep": {
+      "title": "Demolition & Preparation",
+      "description": "Partial demolition work and preparation of the existing house before starting the extension.",
+      "duration": "3-7 days",
+      "tasks": {
+        "protection-existant": {
+          "title": "Protection of existing structure",
+          "description": "Protect the inhabited areas from dust, moisture, and weather before starting demolition work.",
+          "tips": [
+            "Install watertight plastic sheets between work zones and living areas",
+            "Block openings with temporary panels if necessary",
+            "Notify your insurance that demolition work will take place"
+          ]
+        },
+        "demolition-int": {
+          "title": "Interior demolition",
+          "description": "Demolition of interior walls, floors, and ceilings adjacent to the extension area.",
+          "tips": [
+            "Identify load-bearing walls on your plans before demolishing",
+            "Cut electricity, plumbing, and heating in the affected areas before starting",
+            "Test for asbestos or lead in old buildings (pre-1990)"
+          ],
+          "documents": ["Load-bearing wall plan", "Asbestos test report (if applicable)"]
+        },
+        "demolition-ext": {
+          "title": "Exterior demolition",
+          "description": "Demolition of the exterior wall, foundation wall, or footings at the junction point with the extension.",
+          "tips": [
+            "The opening in the existing wall must be protected by the first evening",
+            "Check utilities before any foundation demolition"
+          ]
+        },
+        "nettoyage-debris": {
+          "title": "Cleanup and debris removal",
+          "description": "Removal of demolition materials and site cleanup before excavation begins.",
+          "tips": [
+            "Rent a waste container for efficient removal",
+            "Completely clean the perimeter before the excavator arrives"
+          ]
+        }
+      }
+    },
     "excavation": {
       "title": "Excavation",
       "description": "Site preparation and digging for foundations.",
@@ -3559,6 +3656,15 @@
           "tips": [
             "Use a certified installer for natural gas or propane",
             "Plan appliance locations before installing lines"
+          ]
+        },
+        "balayeuse-centrale": {
+          "title": "Central vacuum conduit",
+          "description": "Installation of PVC conduits for the built-in central vacuum system.",
+          "tips": [
+            "Plan wall inlet locations before closing walls",
+            "Use 2-inch diameter conduits for proper suction airflow",
+            "Install the main unit outlet near the electrical panel or in the garage"
           ]
         },
         "branchements": {

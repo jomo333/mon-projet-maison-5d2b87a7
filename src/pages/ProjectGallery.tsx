@@ -57,7 +57,10 @@ import {
   X,
   FolderArchive,
   Sparkles,
-  Trash2
+  Trash2,
+  Receipt,
+  Upload,
+  Plus
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { toast } from "sonner";
@@ -514,7 +517,100 @@ const ProjectGallery = () => {
     enabled: !!projectId && !!user,
   });
 
-  // Generate signed URLs for photos
+  // Factures matériaux DIY state
+  const [isUploadingFacture, setIsUploadingFacture] = useState(false);
+  const factureInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch factures matériaux (DIY invoices stored under step_id = 'factures-materiaux')
+  const { data: facturesMateriaux = [], isLoading: facturesLoading } = useQuery({
+    queryKey: ["factures-materiaux", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("task_attachments")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("step_id", "factures-materiaux")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && !!user,
+  });
+
+  // Upload facture matériaux
+  const uploadFactureMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!projectId || !user) throw new Error("Non authentifié");
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${file.name}`;
+      const path = `${user.id}/${projectId}/factures-materiaux/${fileName}`;
+
+      const { error: storageError } = await supabase.storage
+        .from("task-attachments")
+        .upload(path, file);
+      if (storageError) throw storageError;
+
+      const { data: urlData } = supabase.storage
+        .from("task-attachments")
+        .getPublicUrl(path);
+
+      const { error: dbError } = await supabase.from("task_attachments").insert({
+        project_id: projectId,
+        step_id: "factures-materiaux",
+        task_id: "factures-materiaux",
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type || "application/octet-stream",
+        file_size: file.size,
+        category: "facture",
+      });
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      toast.success("Facture enregistrée");
+    },
+    onError: (e: Error) => {
+      toast.error("Erreur d'envoi : " + e.message);
+    },
+  });
+
+  const handleFactureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setIsUploadingFacture(true);
+    for (const file of files) {
+      await uploadFactureMutation.mutateAsync(file).catch(() => {});
+    }
+    setIsUploadingFacture(false);
+    if (factureInputRef.current) factureInputRef.current.value = "";
+  };
+
+  // Delete facture mutation
+  const deleteFactureMutation = useMutation({
+    mutationFn: async (doc: { id: string; file_url: string }) => {
+      if (!user) throw new Error("Non authentifié");
+      const bucketMarker = "/task-attachments/";
+      const markerIndex = doc.file_url.indexOf(bucketMarker);
+      if (markerIndex >= 0) {
+        const path = doc.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
+        await supabase.storage.from("task-attachments").remove([path]);
+      }
+      const { error } = await supabase.from("task_attachments").delete().eq("id", doc.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      toast.success("Facture supprimée");
+    },
+    onError: (e: Error) => {
+      toast.error("Erreur de suppression : " + e.message);
+    },
+  });
+
+
   useEffect(() => {
     const generatePhotoUrls = async () => {
       if (!photos.length || !user) return;
@@ -818,7 +914,7 @@ const ProjectGallery = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4">
               <TabsTrigger value="photos" className="gap-2">
                 <Camera className="h-4 w-4" />
                 {t("gallery.photos")} ({photos.length})
@@ -830,6 +926,10 @@ const ProjectGallery = () => {
               <TabsTrigger value="soumissions" className="gap-2">
                 <ClipboardCheck className="h-4 w-4" />
                 {t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})
+              </TabsTrigger>
+              <TabsTrigger value="factures" className="gap-2">
+                <Receipt className="h-4 w-4" />
+                Factures ({facturesMateriaux.length})
               </TabsTrigger>
             </TabsList>
 
@@ -1324,6 +1424,222 @@ const ProjectGallery = () => {
                   )}
                 </div>
               )}
+            </TabsContent>
+
+            {/* Factures matériaux Tab */}
+            <TabsContent value="factures" className="mt-6">
+              <div className="space-y-4">
+                {/* Header + upload button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Receipt className="h-5 w-5 text-primary" />
+                      Factures matériaux – Fait par moi-même
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enregistrez toutes vos factures d'achat de matériaux pour vos travaux DIY.
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      ref={factureInputRef}
+                      type="file"
+                      accept="image/*,application/pdf,.jpg,.jpeg,.png,.heic"
+                      multiple
+                      className="hidden"
+                      onChange={handleFactureUpload}
+                    />
+                    <Button
+                      onClick={() => factureInputRef.current?.click()}
+                      disabled={isUploadingFacture || !projectId}
+                      className="gap-2"
+                    >
+                      {isUploadingFacture ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                      Ajouter une facture
+                    </Button>
+                  </div>
+                </div>
+
+                {/* List of factures */}
+                {facturesLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-16 rounded-lg" />
+                    ))}
+                  </div>
+                ) : facturesMateriaux.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center">
+                      <Receipt className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground font-medium">Aucune facture enregistrée</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Cliquez sur "Ajouter une facture" pour téléverser vos reçus et factures d'achats de matériaux.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Group by trade category */}
+                    {(() => {
+                      // Parse metadata from file_name for invoices created via DIYPurchaseInvoices
+                      const parseInvoiceMeta = (fileName: string): { displayName: string; amount?: number; notes?: string } => {
+                        if (fileName.includes("||META||")) {
+                          const [displayName, metaStr] = fileName.split("||META||");
+                          try {
+                            const meta = JSON.parse(metaStr);
+                            return { displayName, amount: meta.amount, notes: meta.notes };
+                          } catch {
+                            return { displayName };
+                          }
+                        }
+                        return { displayName: fileName };
+                      };
+
+                      // Group by task_id (which encodes the trade)
+                      const byTrade: Record<string, typeof facturesMateriaux> = {};
+                      facturesMateriaux.forEach(doc => {
+                        const tradeKey = doc.task_id || "general";
+                        if (!byTrade[tradeKey]) byTrade[tradeKey] = [];
+                        byTrade[tradeKey].push(doc);
+                      });
+
+                      const formatTradeLabel = (taskId: string) => {
+                        if (!taskId || taskId === "general") return "Général";
+                        return taskId
+                          .replace("facture-diy-", "")
+                          .split("-")
+                          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                          .join(" ");
+                      };
+
+                      const totalAmount = facturesMateriaux.reduce((sum, doc) => {
+                        const { amount } = parseInvoiceMeta(doc.file_name);
+                        return sum + (amount || 0);
+                      }, 0);
+
+                      return (
+                        <>
+                          {/* Total summary */}
+                          {totalAmount > 0 && (
+                            <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 mb-4">
+                              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Total des factures matériaux :</span>
+                              <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(totalAmount)}</span>
+                            </div>
+                          )}
+
+                          {Object.entries(byTrade).map(([tradeKey, tradeDocs]) => {
+                            const tradeTotal = tradeDocs.reduce((sum, doc) => {
+                              const { amount } = parseInvoiceMeta(doc.file_name);
+                              return sum + (amount || 0);
+                            }, 0);
+
+                            return (
+                              <div key={tradeKey} className="space-y-2">
+                                {/* Trade header */}
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {formatTradeLabel(tradeKey)}
+                                    </Badge>
+                                    <span className="text-muted-foreground font-normal">{tradeDocs.length} facture(s)</span>
+                                  </h4>
+                                  {tradeTotal > 0 && (
+                                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                      {formatCurrency(tradeTotal)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {tradeDocs.map((doc) => {
+                                  const isPreviewable = canPreview(doc.file_type);
+                                  const FileIcon = getFileIcon(doc.file_type);
+                                  const { displayName, amount, notes } = parseInvoiceMeta(doc.file_name);
+                                  return (
+                                    <Card key={doc.id} className="border-l-4 border-l-emerald-400">
+                                      <CardContent className="p-3 flex items-center gap-3">
+                                        <FileIcon className="h-7 w-7 text-muted-foreground flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">{displayName}</p>
+                                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                            {amount !== undefined && amount > 0 && (
+                                              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                                {formatCurrency(amount)}
+                                              </span>
+                                            )}
+                                            {notes && (
+                                              <span className="text-xs text-muted-foreground truncate">• {notes}</span>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(doc.created_at).toLocaleDateString("fr-CA")}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                          {isPreviewable && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              title="Visualiser"
+                                              onClick={() => openDocumentPreview(doc)}
+                                            >
+                                              <Eye className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Télécharger"
+                                            onClick={() => downloadFile(doc.file_url, displayName)}
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Supprimer"
+                                                className="text-destructive hover:text-destructive"
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => deleteFactureMutation.mutate({ id: doc.id, file_url: doc.file_url })}
+                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                  Supprimer
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -910,6 +910,7 @@
   "categories": {
     "excavation": "Excavation",
     "foundation": "Fondation",
+    "demolitionPrep": "Démolition et préparation",
     "plumbing": "Plomberie",
     "electrical": "Électricité",
     "structure": "Structure et charpente",
@@ -2092,6 +2093,51 @@
         }
       }
     },
+    "demolition-prep": {
+      "title": "Démolition et préparation",
+      "description": "Travaux de démolition partielle et préparation de la maison existante avant le début de l'agrandissement.",
+      "duration": "3-7 jours",
+      "tasks": {
+        "protection-existant": {
+          "title": "Protection de l'existant",
+          "description": "Protéger les zones habitées contre la poussière, l'humidité et les intempéries avant de commencer les travaux de démolition.",
+          "tips": [
+            "Installez des bâches plastiques étanches entre les zones de travail et les zones habitées",
+            "Condamnez les ouvertures avec des panneaux temporaires si nécessaire",
+            "Prévenez vos assurances que des travaux de démolition auront lieu"
+          ]
+        },
+        "demolition-int": {
+          "title": "Démolition intérieure",
+          "description": "Démolition des murs, planchers et plafonds intérieurs adjacents à la zone d'agrandissement.",
+          "tips": [
+            "Repérez les murs porteurs sur vos plans avant de démolir — ne jamais démolir un mur porteur sans un plan de remplacement approuvé",
+            "Coupez l'électricité, la plomberie et le chauffage dans les zones concernées avant de commencer",
+            "Prévoyez des étais temporaires pour les structures portantes si nécessaire",
+            "Faites tester pour la présence d'amiante ou de plomb dans les vieilles constructions (avant 1990)"
+          ],
+          "documents": ["Plan des murs porteurs", "Rapport de test d'amiante (si applicable)"]
+        },
+        "demolition-ext": {
+          "title": "Démolition extérieure",
+          "description": "Démolition du mur extérieur, du solage ou des fondations existants à l'endroit de la jonction avec l'agrandissement.",
+          "tips": [
+            "L'ouverture dans le mur existant doit être protégée dès le premier soir (bâche ou panneau)",
+            "Vérifiez les services publics (eau, gaz, électricité) avant toute démolition de fondation",
+            "Gardez l'intérieur de la maison hors d'atteinte des intempéries en tout temps"
+          ]
+        },
+        "nettoyage-debris": {
+          "title": "Nettoyage et évacuation des débris",
+          "description": "Évacuation des matériaux de démolition et nettoyage du site avant le début de l'excavation.",
+          "tips": [
+            "Louez un conteneur à déchets pour une évacuation efficace",
+            "Certains matériaux (béton, brique) peuvent être récupérés ou recyclés",
+            "Nettoyez complètement le périmètre avant l'arrivée de l'excavatrice"
+          ]
+        }
+      }
+    },
     "excavation": {
       "title": "Excavation",
       "description": "Préparation du terrain et creusage pour les fondations.",
@@ -2376,6 +2422,15 @@
           "tips": [
             "Faites appel à un installateur certifié",
             "Prévoyez l'emplacement des appareils avant l'installation"
+          ]
+        },
+        "balayeuse-centrale": {
+          "title": "Conduit pour balayeuse centrale",
+          "description": "Installation des conduits PVC pour le système de balayeuse centrale encastrée.",
+          "tips": [
+            "Planifiez l'emplacement des prises murales avant de fermer les murs",
+            "Utilisez des conduits de 2 pouces de diamètre pour un bon débit d'aspiration",
+            "Installez la sortie principale près de l'entrée électrique ou dans le garage"
           ]
         },
         "branchements": {
@@ -3285,6 +3340,48 @@
         }
       }
     },
+    "demolition-prep": {
+      "title": "Démolition et préparation",
+      "description": "Travaux de démolition partielle et préparation de la maison existante avant le début de l'agrandissement.",
+      "duration": "3-7 jours",
+      "tasks": {
+        "protection-existant": {
+          "title": "Protection de l'existant",
+          "description": "Protéger les zones habitées contre la poussière, l'humidité et les intempéries avant de commencer les travaux de démolition.",
+          "tips": [
+            "Installez des bâches plastiques étanches entre les zones de travail et les zones habitées",
+            "Condamnez les ouvertures avec des panneaux temporaires si nécessaire",
+            "Prévenez vos assurances que des travaux de démolition auront lieu"
+          ]
+        },
+        "demolition-int": {
+          "title": "Démolition intérieure",
+          "description": "Démolition des murs, planchers et plafonds intérieurs adjacents à la zone d'agrandissement.",
+          "tips": [
+            "Repérez les murs porteurs sur vos plans avant de démolir",
+            "Coupez l'électricité, la plomberie et le chauffage dans les zones concernées avant de commencer",
+            "Faites tester pour la présence d'amiante ou de plomb dans les vieilles constructions (avant 1990)"
+          ],
+          "documents": ["Plan des murs porteurs", "Rapport de test d'amiante (si applicable)"]
+        },
+        "demolition-ext": {
+          "title": "Démolition extérieure",
+          "description": "Démolition du mur extérieur, du solage ou des fondations existants à l'endroit de la jonction avec l'agrandissement.",
+          "tips": [
+            "L'ouverture dans le mur existant doit être protégée dès le premier soir",
+            "Vérifiez les services publics avant toute démolition de fondation"
+          ]
+        },
+        "nettoyage-debris": {
+          "title": "Nettoyage et évacuation des débris",
+          "description": "Évacuation des matériaux de démolition et nettoyage du site avant le début de l'excavation.",
+          "tips": [
+            "Louez un conteneur à déchets pour une évacuation efficace",
+            "Nettoyez complètement le périmètre avant l'arrivée de l'excavatrice"
+          ]
+        }
+      }
+    },
     "excavation": {
       "title": "Excavation",
       "description": "Préparation du terrain et creusage pour les fondations.",
@@ -3581,6 +3678,15 @@
           "tips": [
             "Faites appel à un installateur certifié pour le gaz naturel ou propane",
             "Prévoyez l'emplacement des appareils avant l'installation des conduites"
+          ]
+        },
+        "balayeuse-centrale": {
+          "title": "Conduit pour balayeuse centrale",
+          "description": "Installation des conduits PVC pour le système de balayeuse centrale encastrée.",
+          "tips": [
+            "Planifiez l'emplacement des prises murales avant de fermer les murs",
+            "Utilisez des conduits de 2 pouces de diamètre pour un bon débit d'aspiration",
+            "Installez la sortie principale près de l'entrée électrique ou dans le garage"
           ]
         },
         "branchements": {

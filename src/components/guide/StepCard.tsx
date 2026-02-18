@@ -2,7 +2,7 @@ import { Step, usePhases } from "@/hooks/useConstructionSteps";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2, Lock, Check } from "lucide-react";
+import { Clock, ChevronRight, ClipboardList, DollarSign, FileText, Home, Umbrella, DoorOpen, Zap, Droplets, Wind, Thermometer, PaintBucket, Square, ChefHat, Sparkles, Building, ClipboardCheck, Circle, CalendarClock, CheckCircle2, Lock, Check, Hammer } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr, enCA } from "date-fns/locale";
@@ -26,6 +26,7 @@ const iconMap: Record<string, LucideIcon> = {
   Building,
   ClipboardCheck,
   Circle,
+  Hammer,
 };
 
 interface StepCardProps {

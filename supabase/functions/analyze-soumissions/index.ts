@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SOUMISSIONS_MODEL_FLASH = "google/gemini-1.5-flash";
+const SOUMISSIONS_MODEL_PRO = "google/gemini-1.5-pro";
+
 // Helper to validate authentication
 async function validateAuth(authHeader: string | null): Promise<{ userId: string } | { error: string; status: number }> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -533,9 +536,7 @@ serve(async (req) => {
 
     console.log(`Analyzing ${documents.length} documents for ${tradeName} with ${useNativeGemini ? "Gemini API" : "Lovable gateway"}`);
 
-    // Modèle pour la passerelle Lovable (vision + texte) — utilisé seulement si !useNativeGemini.
-    // Noms reconnus: google/gemini-1.5-flash, google/gemini-1.5-pro
-    const soumissionsModel: string = detailed ? "google/gemini-1.5-pro" : "google/gemini-1.5-flash";
+    const soumissionsModel = detailed ? SOUMISSIONS_MODEL_PRO : SOUMISSIONS_MODEL_FLASH;
 
     // Build message parts with documents
     const messageParts: any[] = [];
@@ -696,7 +697,6 @@ Calcule l'écart en % et signale si le budget est dépassé.
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    const modelForGateway = soumissionsModel ?? "google/gemini-1.5-flash";
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -704,7 +704,7 @@ Calcule l'écart en % et signale si le budget est dépassé.
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: modelForGateway,
+        model: detailed ? SOUMISSIONS_MODEL_PRO : SOUMISSIONS_MODEL_FLASH,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: messageParts }

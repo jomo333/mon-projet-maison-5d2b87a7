@@ -73,10 +73,20 @@ cd "c:\Users\Utilisateur\Desktop\mon-projet-maison-main (2)\mon-projet-maison-5d
 supabase login
 supabase link --project-ref lqxbwqndxjdxqzftihic
 supabase functions deploy analyze-soumissions
+supabase functions deploy chat-assistant
+supabase functions deploy analyze-diy-materials
 supabase functions deploy stripe-webhook
 ```
 
 Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’URL du dashboard Supabase).
+
+### Clé API Gemini (obligatoire pour les fonctions IA)
+
+Les fonctions **analyze-soumissions**, **chat-assistant** et **analyze-diy-materials** appellent directement l’API Google Gemini (plus de passerelle Lovable). Configure une seule variable :
+
+- **Supabase Dashboard** → **Project Settings** → **Edge Functions** → **Secrets** : ajoute **`GEMINI_API_KEY`** avec ta clé API Google AI (https://aistudio.google.com/apikey).
+
+Sans cette clé, les analyses IA et le chat assistant renverront une erreur.
 
 ### Webhook Stripe (achats test ou réels → déverrouillage des forfaits)
 

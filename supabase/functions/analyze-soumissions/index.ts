@@ -6,9 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SOUMISSIONS_MODEL_FLASH = "google/gemini-1.5-flash";
-const SOUMISSIONS_MODEL_PRO = "google/gemini-1.5-pro";
-
 // Helper to validate authentication
 async function validateAuth(authHeader: string | null): Promise<{ userId: string } | { error: string; status: number }> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -527,16 +524,11 @@ serve(async (req) => {
     }
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const useNativeGemini = !!GEMINI_API_KEY;
-
-    if (!useNativeGemini && !LOVABLE_API_KEY) {
-      throw new Error("GEMINI_API_KEY ou LOVABLE_API_KEY doit être configuré (Supabase → Edge Functions → Secrets)");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY doit être configuré (Supabase → Edge Functions → Secrets)");
     }
 
-    console.log(`Analyzing ${documents.length} documents for ${tradeName} with ${useNativeGemini ? "Gemini API" : "Lovable gateway"}`);
-
-    const soumissionsModel = detailed ? SOUMISSIONS_MODEL_PRO : SOUMISSIONS_MODEL_FLASH;
+    console.log(`Analyzing ${documents.length} documents for ${tradeName} via Gemini API`);
 
     // Build message parts with documents
     const messageParts: any[] = [];
@@ -614,132 +606,83 @@ Calcule l'écart en % et signale si le budget est dépassé.
 ` : ''}`
     });
 
-    console.log("Sending request to", soumissionsModel, "with", messageParts.length, "parts");
-
-    if (useNativeGemini) {
-      // Appel direct à l'API Google Gemini (Generative Language)
-      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-1.5-flash";
-      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
-      for (const part of messageParts) {
-        if (part.type === "text" && part.text) {
-          geminiParts.push({ text: part.text });
-        } else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
-          const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
-          if (match) {
-            geminiParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
-          }
+    const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-1.5-flash";
+    console.log("Sending request to", geminiModel, "with", messageParts.length, "parts");
+    const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+    for (const part of messageParts) {
+      if (part.type === "text" && part.text) {
+        geminiParts.push({ text: part.text });
+      } else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
+        const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          geminiParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
         }
       }
-      const geminiBody = {
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: "user", parts: geminiParts }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
-      };
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-      const geminiRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
-        },
-        body: JSON.stringify(geminiBody),
-      });
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.error("Gemini API error:", geminiRes.status, errText);
-        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
-        const message = isQuota
-          ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
-          : "Erreur temporaire du service IA. Réessayez dans un moment.";
-        return new Response(JSON.stringify({ error: message }), {
-          status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      await incrementAiUsage(authHeader);
-      await trackAiAnalysisUsage(authHeader, "analyze-soumissions", null);
-      // Convertir le stream Gemini (SSE) en format attendu par le front (OpenAI-style SSE)
-      const reader = geminiRes.body?.getReader();
-      if (!reader) {
-        return new Response(JSON.stringify({ error: "Pas de flux de réponse" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          const decoder = new TextDecoder();
-          let buffer = "";
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() ?? "";
-              for (const line of lines) {
-                if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                  try {
-                    const json = JSON.parse(line.slice(6));
-                    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                      const openAiChunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
-                      controller.enqueue(encoder.encode("data: " + openAiChunk + "\n\n"));
-                    }
-                  } catch (_) {}
-                }
-              }
-            }
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          } finally {
-            controller.close();
-          }
-        },
-      });
-      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const geminiBody = {
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: geminiParts }],
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
+    };
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+    const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY,
       },
-      body: JSON.stringify({
-        model: detailed ? SOUMISSIONS_MODEL_PRO : SOUMISSIONS_MODEL_FLASH,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: messageParts }
-        ],
-        stream: true,
-      }),
+      body: JSON.stringify(geminiBody),
     });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limite de requêtes atteinte, réessayez plus tard." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Crédits insuffisants, veuillez recharger votre compte." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Erreur lors de l'analyse: " + errorText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error("Gemini API error:", geminiRes.status, errText);
+      const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
+      const message = isQuota
+        ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
+        : "Erreur temporaire du service IA. Réessayez dans un moment.";
+      return new Response(JSON.stringify({ error: message }), {
+        status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
     await incrementAiUsage(authHeader);
-    await trackAiAnalysisUsage(authHeader, 'analyze-soumissions', null);
-
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    await trackAiAnalysisUsage(authHeader, "analyze-soumissions", null);
+    const reader = geminiRes.body?.getReader();
+    if (!reader) {
+      return new Response(JSON.stringify({ error: "Pas de flux de réponse" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              if (line.startsWith("data: ") && line !== "data: [DONE]") {
+                try {
+                  const json = JSON.parse(line.slice(6));
+                  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) {
+                    const openAiChunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
+                    controller.enqueue(encoder.encode("data: " + openAiChunk + "\n\n"));
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        } finally {
+          controller.close();
+        }
+      },
     });
+    return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (error) {
     console.error("analyze-soumissions error:", error);
     return new Response(

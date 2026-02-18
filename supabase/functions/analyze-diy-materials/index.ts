@@ -302,10 +302,10 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY non configurée" }),
+        JSON.stringify({ error: "GEMINI_API_KEY doit être configurée (Supabase → Edge Functions → Secrets)" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -369,51 +369,89 @@ serve(async (req) => {
       text: userPrompt,
     });
 
-    // Call Lovable AI Gateway with streaming
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Convertir vers format Gemini (parts)
+    const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+    for (const part of messageContent) {
+      if (part.type === "text" && part.text) {
+        geminiParts.push({ text: part.text });
+      } else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
+        const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          geminiParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+    }
+
+    const geminiBody = {
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT_DIY }] },
+      contents: [{ role: "user", parts: geminiParts }],
+      generationConfig: { maxOutputTokens: 4000, temperature: 0.2 },
+    };
+    const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY,
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_DIY },
-          { role: "user", content: messageContent },
-        ],
-        stream: true,
-        max_tokens: 4000,
-      }),
+      body: JSON.stringify(geminiBody),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    if (!geminiRes.ok) {
+      if (geminiRes.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de requêtes atteinte, veuillez réessayer plus tard." }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Crédits insuffisants. Veuillez recharger votre compte." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      const errorText = await geminiRes.text();
+      console.error("Gemini API error:", geminiRes.status, errorText);
       return new Response(
         JSON.stringify({ error: "Erreur du service IA" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Increment AI usage for the user
     await incrementAiUsage(authHeader);
-    await trackAiAnalysisUsage(authHeader, 'analyze-diy-materials', null);
+    await trackAiAnalysisUsage(authHeader, "analyze-diy-materials", null);
 
-    // Return streaming response
-    return new Response(response.body, {
+    const reader = geminiRes.body?.getReader();
+    if (!reader) {
+      return new Response(JSON.stringify({ error: "Pas de flux de réponse" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              if (line.startsWith("data: ") && line !== "data: [DONE]") {
+                try {
+                  const json = JSON.parse(line.slice(6));
+                  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) {
+                    controller.enqueue(encoder.encode("data: " + JSON.stringify({ choices: [{ delta: { content: text } }] }) + "\n\n"));
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
 

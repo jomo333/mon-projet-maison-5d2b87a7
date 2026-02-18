@@ -238,8 +238,6 @@ export type Database = {
           name: string
           price_monthly: number
           price_yearly: number | null
-          stripe_price_lookup_monthly: string | null
-          stripe_price_lookup_yearly: string | null
           updated_at: string
         }
         Insert: {
@@ -254,8 +252,6 @@ export type Database = {
           name: string
           price_monthly?: number
           price_yearly?: number | null
-          stripe_price_lookup_monthly?: string | null
-          stripe_price_lookup_yearly?: string | null
           updated_at?: string
         }
         Update: {
@@ -270,9 +266,6 @@ export type Database = {
           name?: string
           price_monthly?: number
           price_yearly?: number | null
-          stripe_price_lookup_monthly?: string | null
-          stripe_price_lookup_yearly?: string | null
-          stripe_product_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -628,7 +621,6 @@ export type Database = {
           plan_id: string | null
           start_date: string
           status: string
-          stripe_subscription_id: string | null
           trial_end_date: string | null
           updated_at: string
           user_id: string
@@ -644,7 +636,6 @@ export type Database = {
           plan_id?: string | null
           start_date?: string
           status?: string
-          stripe_subscription_id?: string | null
           trial_end_date?: string | null
           updated_at?: string
           user_id: string
@@ -660,7 +651,6 @@ export type Database = {
           plan_id?: string | null
           start_date?: string
           status?: string
-          stripe_subscription_id?: string | null
           trial_end_date?: string | null
           updated_at?: string
           user_id?: string

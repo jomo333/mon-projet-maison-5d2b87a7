@@ -48,7 +48,7 @@ async function fetchFileAsBase64(url: string): Promise<{ base64: string; mediaTy
 }
 
 const SYSTEM_PROMPT = `Tu es un expert en lecture de factures au Québec. 
-Ton rôle est d'extraire les montants financiers d'une facture ou d'un reçu.
+Ton rôle est d'extraire les montants financiers et les informations clés d'une facture ou d'un reçu.
 
 RÈGLES IMPORTANTES:
 - Cherche TOUJOURS le montant AVANT taxes (sous-total, subtotal, montant HT)
@@ -56,6 +56,8 @@ RÈGLES IMPORTANTES:
 - Cherche la TVQ (9.975%, Quebec Sales Tax, QST, PST)
 - Si tu vois seulement un TOTAL, essaie de calculer le montant avant taxes
 - Les montants peuvent être en format français (1 234,56) ou anglais (1,234.56)
+- Pour le fournisseur (supplier): cherche le nom de l'entreprise vendeur (en-tête, logo, nom sur le document). Ne pas confondre avec le client.
+- Pour la date (purchase_date): cherche la date de facturation/d'achat. Format retourné: YYYY-MM-DD si possible.
 - Réponds UNIQUEMENT avec un JSON valide, pas de texte autour
 
 Format de réponse obligatoire (JSON uniquement):
@@ -65,7 +67,9 @@ Format de réponse obligatoire (JSON uniquement):
   "tvq": 0.00,
   "totalTTC": 0.00,
   "confidence": "high|medium|low",
-  "notes": "description courte des items/fournisseur trouvé sur la facture",
+  "supplier": "Nom du fournisseur/vendeur",
+  "purchase_date": "YYYY-MM-DD ou null si non trouvée",
+  "notes": "description courte des items principaux achetés",
   "currency": "CAD"
 }
 
@@ -76,6 +80,8 @@ Si tu ne peux pas extraire les montants, retourne:
   "tvq": null,
   "totalTTC": null,
   "confidence": "none",
+  "supplier": null,
+  "purchase_date": null,
   "notes": "Impossible de lire les montants",
   "currency": "CAD"
 }`;

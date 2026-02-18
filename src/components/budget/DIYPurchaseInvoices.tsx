@@ -56,6 +56,8 @@ interface PurchaseInvoice {
   created_at: string;
   notes?: string;
   amount?: number;
+  supplier?: string;
+  purchase_date?: string;
 }
 
 interface DIYPurchaseInvoicesProps {
@@ -96,6 +98,8 @@ export function DIYPurchaseInvoices({
   const [newTPS, setNewTPS] = useState("");            // TPS (5%)
   const [newTVQ, setNewTVQ] = useState("");            // TVQ (9.975%)
   const [newDescription, setNewDescription] = useState("");
+  const [newSupplier, setNewSupplier] = useState("");  // nom du fournisseur
+  const [newPurchaseDate, setNewPurchaseDate] = useState(() => new Date().toISOString().split("T")[0]); // date d'achat
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionConfidence, setExtractionConfidence] = useState<"high" | "medium" | "low" | "none" | null>(null);
@@ -122,21 +126,25 @@ export function DIYPurchaseInvoices({
 
       if (error) throw error;
 
-      // Parse amount and notes from file_name metadata
+      // Parse amount, notes, supplier and purchase_date from file_name metadata
       return (data || []).map((row) => {
         let amount: number | undefined;
         let notes: string | undefined;
+        let supplier: string | undefined;
+        let purchase_date: string | undefined;
         try {
           const meta = JSON.parse(row.file_name.includes("||META||")
             ? row.file_name.split("||META||")[1]
             : "{}");
           amount = meta.amount;
           notes = meta.notes;
+          supplier = meta.supplier || undefined;
+          purchase_date = meta.purchase_date || undefined;
         } catch {}
         const displayName = row.file_name.includes("||META||")
           ? row.file_name.split("||META||")[0]
           : row.file_name;
-        return { ...row, file_name: displayName, amount, notes } as PurchaseInvoice;
+        return { ...row, file_name: displayName, amount, notes, supplier, purchase_date } as PurchaseInvoice;
       });
     },
     enabled: !!projectId,
@@ -194,8 +202,10 @@ export function DIYPurchaseInvoices({
         if (result.tps && result.tps > 0) setNewTPS(result.tps.toFixed(2));
         if (result.tvq && result.tvq > 0) setNewTVQ(result.tvq.toFixed(2));
         if (result.notes) setNewDescription(result.notes);
+        if (result.supplier) setNewSupplier(result.supplier);
+        if (result.purchase_date) setNewPurchaseDate(result.purchase_date);
         setExtractionConfidence(result.confidence);
-        toast.success("💡 Prix extrait automatiquement — vérifiez et ajustez si nécessaire");
+        toast.success("💡 Prix et fournisseur extraits automatiquement — vérifiez et ajustez si nécessaire");
       } else {
         toast.info("Prix non trouvé automatiquement — entrez le montant manuellement");
       }
@@ -240,15 +250,29 @@ export function DIYPurchaseInvoices({
         .from("task-attachments")
         .getPublicUrl(storagePath);
 
-      // Store amount (HT) and taxes in file_name metadata — only HT goes to budget
+      // Build display name: "Fournisseur - Date - Catégorie" or fallback to original file name
+      const supplierPart = newSupplier.trim() || null;
+      const datePart = newPurchaseDate || null;
+      let displayName = pendingFile.name;
+      if (supplierPart && datePart) {
+        const fileExt = pendingFile.name.split(".").pop();
+        displayName = `${supplierPart} - ${datePart} - ${categoryName}.${fileExt}`;
+      } else if (supplierPart) {
+        const fileExt = pendingFile.name.split(".").pop();
+        displayName = `${supplierPart} - ${categoryName}.${fileExt}`;
+      }
+
+      // Store amount (HT), taxes and metadata in file_name — only HT goes to budget
       const meta = JSON.stringify({
         amount,          // montant avant taxes, seul montant enregistré au budget
         tps: tpsNum,
         tvq: tvqNum,
         totalTTC: totalTTC || amount,
         notes: newDescription,
+        supplier: supplierPart,
+        purchase_date: datePart,
       });
-      const fileNameWithMeta = `${pendingFile.name}||META||${meta}`;
+      const fileNameWithMeta = `${displayName}||META||${meta}`;
 
       const { error: dbError } = await supabase.from("task_attachments").insert({
         project_id: projectId,
@@ -268,7 +292,8 @@ export function DIYPurchaseInvoices({
       onSpentUpdate(newTotal);
 
       queryClient.invalidateQueries({ queryKey });
-      toast.success(`Facture ajoutée : ${formatCurrency(amount)} (avant taxes)`);
+      const supplierLabel = supplierPart ? ` — ${supplierPart}` : "";
+      toast.success(`Facture ajoutée : ${formatCurrency(amount)} (avant taxes)${supplierLabel}`);
 
       setShowAddDialog(false);
       setPendingFile(null);
@@ -276,6 +301,8 @@ export function DIYPurchaseInvoices({
       setNewTPS("");
       setNewTVQ("");
       setNewDescription("");
+      setNewSupplier("");
+      setNewPurchaseDate(new Date().toISOString().split("T")[0]);
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Erreur lors du téléchargement de la facture");
@@ -407,20 +434,32 @@ export function DIYPurchaseInvoices({
               {/* File info */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{invoice.file_name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {invoice.amount !== undefined && invoice.amount > 0 && (
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      {formatCurrency(invoice.amount)}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                  {invoice.supplier && (
+                    <span className="text-xs font-semibold text-foreground truncate">
+                      🏪 {invoice.supplier}
                     </span>
                   )}
-                  {invoice.notes && (
+                  {invoice.purchase_date && (
+                    <span className="text-xs text-muted-foreground">
+                      📅 {new Date(invoice.purchase_date + "T12:00:00").toLocaleDateString("fr-CA")}
+                    </span>
+                  )}
+                  {invoice.amount !== undefined && invoice.amount > 0 && (
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      {formatCurrency(invoice.amount)} HT
+                    </span>
+                  )}
+                  {invoice.notes && !invoice.supplier && (
                     <span className="text-xs text-muted-foreground truncate">
                       • {invoice.notes}
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(invoice.created_at).toLocaleDateString("fr-CA")}
-                  </span>
+                  {!invoice.purchase_date && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(invoice.created_at).toLocaleDateString("fr-CA")}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -492,6 +531,8 @@ export function DIYPurchaseInvoices({
           setNewTPS("");
           setNewTVQ("");
           setNewDescription("");
+          setNewSupplier("");
+          setNewPurchaseDate(new Date().toISOString().split("T")[0]);
           setExtractionConfidence(null);
         }
       }}>
@@ -615,10 +656,36 @@ export function DIYPurchaseInvoices({
               )}
             </div>
 
+            {/* Supplier + Date row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="invoice-supplier" className="flex items-center gap-1">
+                  🏪 Fournisseur <span className="text-muted-foreground text-xs">(optionnel)</span>
+                </Label>
+                <Input
+                  id="invoice-supplier"
+                  value={newSupplier}
+                  onChange={(e) => setNewSupplier(e.target.value)}
+                  placeholder="Ex: Home Depot, Rona..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="invoice-date" className="flex items-center gap-1">
+                  📅 Date d'achat
+                </Label>
+                <Input
+                  id="invoice-date"
+                  type="date"
+                  value={newPurchaseDate}
+                  onChange={(e) => setNewPurchaseDate(e.target.value)}
+                />
+              </div>
+            </div>
+
             {/* Description - optional */}
             <div className="space-y-2">
               <Label htmlFor="invoice-description">
-                Description <span className="text-muted-foreground text-xs">(optionnel)</span>
+                Items achetés <span className="text-muted-foreground text-xs">(optionnel)</span>
               </Label>
               <Input
                 id="invoice-description"
@@ -628,6 +695,20 @@ export function DIYPurchaseInvoices({
                 onKeyDown={(e) => { if (e.key === "Enter") handleUpload(); }}
               />
             </div>
+
+            {/* Naming preview */}
+            {(newSupplier.trim() || newPurchaseDate) && (
+              <div className="p-3 rounded-lg border border-border bg-muted/20">
+                <p className="text-xs text-muted-foreground">
+                  📁 Nom du fichier enregistré :{" "}
+                  <span className="font-medium text-foreground">
+                    {newSupplier.trim() ? newSupplier.trim() : "—"}
+                    {newPurchaseDate ? ` - ${newPurchaseDate}` : ""}
+                    {` - ${categoryName}`}
+                  </span>
+                </p>
+              </div>
+            )}
 
             {/* Category info */}
             <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30">
@@ -644,6 +725,8 @@ export function DIYPurchaseInvoices({
               setNewTPS("");
               setNewTVQ("");
               setNewDescription("");
+              setNewSupplier("");
+              setNewPurchaseDate(new Date().toISOString().split("T")[0]);
               setExtractionConfidence(null);
             }}>
               Annuler

@@ -59,7 +59,9 @@ import {
   Crown,
   Info,
   Receipt,
+  Camera,
 } from "lucide-react";
+import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
 import { toast } from "sonner";
 import { AnalysisFullView } from "./AnalysisFullView";
 import { DIYAnalysisView } from "./DIYAnalysisView";
@@ -1205,6 +1207,13 @@ export function CategorySubmissionsDialog({
       uploadMutation.mutate(files[0]);
     }
     e.target.value = '';
+  };
+
+  const handleFilesSelected = (files: FileList) => {
+    if (files && files.length > 0) {
+      setUploading(true);
+      uploadMutation.mutate(files[0]);
+    }
   };
 
   // Fetch project plans for DIY analysis
@@ -2728,20 +2737,14 @@ export function CategorySubmissionsDialog({
                   <FileText className="h-4 w-4" />
                   Soumissions ({documents.length})
                 </h4>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={uploading}
-                    onClick={() => document.getElementById(`upload-${currentTaskId}`)?.click()}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4" />
-                    )}
-                    <span className="ml-2">Télécharger</span>
-                  </Button>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <FileOrPhotoUpload
+                    onFilesSelected={handleFilesSelected}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.heic"
+                    uploading={uploading}
+                    fileLabel="Télécharger un fichier"
+                    photoLabel="Photo du document"
+                  />
                   <input
                     id={`upload-${currentTaskId}`}
                     type="file"

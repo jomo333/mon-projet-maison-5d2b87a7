@@ -523,9 +523,25 @@ const Budget = () => {
   const totalSpent = budgetCategories.reduce((acc, cat) => acc + cat.spent, 0);
   const percentUsed = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   
+  // Tax rates (QC)
+  const TPS_RATE = 0.05;
+  const TVQ_RATE = 0.09975;
+  const TAX_RATE = TPS_RATE + TVQ_RATE; // 14.975%
+
   // Display values - show 0 if no analysis done
   const displayBudget = hasAnalyzedBudget ? totalBudget : 0;
   const displayRemaining = hasAnalyzedBudget ? (totalBudget - totalSpent) : 0;
+
+  // Tax amounts (on HT amounts)
+  const budgetTPS = displayBudget * TPS_RATE;
+  const budgetTVQ = displayBudget * TVQ_RATE;
+  const budgetTTC = displayBudget * (1 + TAX_RATE);
+
+  const spentTPS = totalSpent * TPS_RATE;
+  const spentTVQ = totalSpent * TVQ_RATE;
+  const spentTTC = totalSpent * (1 + TAX_RATE);
+
+  const remainingTTC = displayRemaining * (1 + TAX_RATE);
 
   const pieData = budgetCategories.map((cat) => ({
     name: translateCategoryName(cat.name),
@@ -866,6 +882,7 @@ const Budget = () => {
 
           {/* Summary Cards - Fourchettes de prix ±15% */}
           <div className="grid gap-4 md:grid-cols-3">
+            {/* Budget estimé */}
             <Card className="animate-fade-in">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -881,6 +898,16 @@ const Budget = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{t("budget.budgetRange")}</p>
                     <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.budgetIncludes")}</p>
+                    {/* Taxes breakdown */}
+                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                      <p className="text-xs text-muted-foreground/80">
+                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
+                        <span className="font-semibold">{formatCurrency(Math.round(budgetTTC))}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        TPS : {formatCurrency(Math.round(budgetTPS))} · TVQ : {formatCurrency(Math.round(budgetTVQ))}
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -891,6 +918,7 @@ const Budget = () => {
               </CardContent>
             </Card>
 
+            {/* Dépensées */}
             <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -907,11 +935,24 @@ const Budget = () => {
                   {percentUsed.toFixed(1)}% {t("budget.percentUsed")}
                 </p>
                 {totalSpent > 0 && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.spentIncludes")}</p>
+                  <>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.spentIncludes")}</p>
+                    {/* Taxes breakdown */}
+                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                      <p className="text-xs text-muted-foreground/80">
+                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
+                        <span className="font-semibold">{formatCurrency(Math.round(spentTTC))}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        TPS : {formatCurrency(Math.round(spentTPS))} · TVQ : {formatCurrency(Math.round(spentTVQ))}
+                      </p>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
 
+            {/* Restant estimé */}
             <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -926,6 +967,16 @@ const Budget = () => {
                       {formatCurrency(Math.round(displayRemaining * 0.90))} à {formatCurrency(Math.round(displayRemaining * 1.10))}
                     </div>
                     <p className="text-xs text-muted-foreground/70 mt-1 italic">{t("budget.remainingIncludes")}</p>
+                    {/* Taxes breakdown */}
+                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                      <p className="text-xs text-muted-foreground/80">
+                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
+                        <span className="font-semibold text-success">{formatCurrency(Math.round(remainingTTC))}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        TPS : {formatCurrency(Math.round(displayRemaining * TPS_RATE))} · TVQ : {formatCurrency(Math.round(displayRemaining * TVQ_RATE))}
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>

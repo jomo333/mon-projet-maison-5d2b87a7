@@ -147,6 +147,13 @@ export function CategorySubmissionsDialog({
     const translated = t(key);
     return translated === key ? name : translated;
   };
+
+  // Parse la saisie utilisateur pour ne garder que chiffres et un séparateur décimal (pour champs montant)
+  const parseCurrencyInput = (input: string): string => {
+    const normalized = input.replace(/,/g, ".");
+    const match = normalized.match(/^\d*\.?\d*/);
+    return match ? match[0] : "";
+  };
   
   const queryClient = useQueryClient();
   const { user, session } = useAuth();
@@ -166,6 +173,10 @@ export function CategorySubmissionsDialog({
   const [supplierLeadDays, setSupplierLeadDays] = useState<number | null>(null);
   const [selectedAmount, setSelectedAmount] = useState("");
   const [showFullAnalysis, setShowFullAnalysis] = useState(false);
+  // Affichage formaté (6 500,00 $) dans les champs montant quand non focus
+  const [budgetInputFocused, setBudgetInputFocused] = useState(false);
+  const [spentInputFocused, setSpentInputFocused] = useState(false);
+  const [selectedAmountInputFocused, setSelectedAmountInputFocused] = useState(false);
   
   // DIY AI Analysis state
   const [analyzingDIY, setAnalyzingDIY] = useState(false);
@@ -2318,9 +2329,12 @@ export function CategorySubmissionsDialog({
                     <Label htmlFor="budget">Budget estimé ($)</Label>
                     <Input
                       id="budget"
-                      type="number"
-                      value={budget}
-                      onChange={(e) => setBudget(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={budgetInputFocused ? budget : formatCurrency(parseFloat(budget) || 0)}
+                      onFocus={() => setBudgetInputFocused(true)}
+                      onBlur={() => setBudgetInputFocused(false)}
+                      onChange={(e) => setBudget(parseCurrencyInput(e.target.value))}
                       placeholder="0"
                     />
                   </div>
@@ -2335,9 +2349,12 @@ export function CategorySubmissionsDialog({
                     </Label>
                     <Input
                       id="spent"
-                      type="number"
-                      value={spent}
-                      onChange={(e) => setSpent(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={spentInputFocused ? spent : formatCurrency(parseFloat(spent) || 0)}
+                      onFocus={() => setSpentInputFocused(true)}
+                      onBlur={() => setSpentInputFocused(false)}
+                      onChange={(e) => setSpent(parseCurrencyInput(e.target.value))}
                       placeholder="0"
                       readOnly={subCategories.length > 0}
                       className={subCategories.length > 0 ? "bg-muted" : ""}
@@ -3119,11 +3136,15 @@ export function CategorySubmissionsDialog({
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="supplier-amount"
-                        type="number"
-                        value={selectedAmount}
+                        type="text"
+                        inputMode="decimal"
+                        value={selectedAmountInputFocused ? selectedAmount : formatCurrency(parseFloat(selectedAmount) || 0)}
+                        onFocus={() => setSelectedAmountInputFocused(true)}
+                        onBlur={() => setSelectedAmountInputFocused(false)}
                         onChange={(e) => {
-                          setSelectedAmount(e.target.value);
-                          setSpent(e.target.value);
+                          const v = parseCurrencyInput(e.target.value);
+                          setSelectedAmount(v);
+                          setSpent(v);
                         }}
                         placeholder="0"
                         className="pl-9"

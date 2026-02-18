@@ -465,7 +465,8 @@ export function DIYAnalysisView({
       };
     }
 
-    if (amount > 0) {
+    // Appeler dès qu'on a un fournisseur (montant peut être 0, modifiable dans le tableau)
+    if (supplier) {
       onApplyEstimate(amount, supplier);
     }
   };

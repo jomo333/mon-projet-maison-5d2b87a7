@@ -428,65 +428,8 @@ export function DIYItemsTable({
                                 </div>
                               )}
 
-                              {/* Quotes */}
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                                    <Store className="h-3 w-3" />
-                                    {t("diyItems.quotesLabel", "Devis fournisseurs")}
-                                  </label>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setAddingQuoteToItemId(item.id)}
-                                    className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                    {t("diyItems.addQuote", "Ajouter")}
-                                  </Button>
-                                </div>
 
-                                {item.quotes.length === 0 ? (
-                                  <div className="text-xs text-muted-foreground border rounded-lg border-dashed p-3">
-                                    {t("diyItems.noQuotes", "Aucun devis pour cet item")}
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    {item.quotes.map((q) => (
-                                      <div
-                                        key={q.id}
-                                        className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-background"
-                                      >
-                                        <div className="min-w-0">
-                                          <p className="text-sm font-medium flex items-center gap-2">
-                                            <Store className="h-4 w-4 text-amber-600" />
-                                            {q.storeName || t("diyItems.unnamedStore", "Magasin")}
-                                          </p>
-                                          {q.description && (
-                                            <p className="text-xs text-muted-foreground mt-0.5">{q.description}</p>
-                                          )}
-                                          {q.notes && (
-                                            <p className="text-xs text-muted-foreground mt-1">{q.notes}</p>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          <span className="font-semibold text-amber-700 dark:text-amber-400">
-                                            {q.amount ? formatCurrency(q.amount) : "-"}
-                                          </span>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive"
-                                            onClick={() => onRemoveQuote(item.id, q.id)}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+
 
                               {/* Order lead days per item */}
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

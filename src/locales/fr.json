@@ -3579,6 +3579,15 @@
             "Prévoyez l'emplacement des appareils avant l'installation des conduites"
           ]
         },
+        "balayeuse-centrale": {
+          "title": "Conduit pour balayeuse centrale",
+          "description": "Installation des conduits PVC pour le système de balayeuse centrale encastrée.",
+          "tips": [
+            "Planifiez l'emplacement des prises murales avant de fermer les murs",
+            "Utilisez des conduits de 2 pouces de diamètre pour un bon débit d'aspiration",
+            "Installez la sortie principale près de l'entrée électrique ou dans le garage"
+          ]
+        },
         "branchements": {
           "title": "Branchements municipaux",
           "description": "Raccordement à l'aqueduc et aux égouts (ou installation septique).",

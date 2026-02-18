@@ -42,6 +42,8 @@ import {
   CheckCircle2,
   Package,
   ExternalLink,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -95,6 +97,8 @@ export function DIYPurchaseInvoices({
   const [newTVQ, setNewTVQ] = useState("");            // TVQ (9.975%)
   const [newDescription, setNewDescription] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionConfidence, setExtractionConfidence] = useState<"high" | "medium" | "low" | "none" | null>(null);
 
   // Auto-calculate taxes
   const amountHTNum = parseFloat(newAmountHT) || 0;
@@ -140,11 +144,76 @@ export function DIYPurchaseInvoices({
 
   const totalInvoices = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
+  const extractPriceFromFile = async (file: File) => {
+    setIsExtracting(true);
+    setExtractionConfidence(null);
+    try {
+      // Upload file temporarily to get a URL for the AI to read
+      if (!user) return;
+      const sanitizedName = sanitizeFileName(file.name);
+      const tempPath = `${user.id}/temp-extract/${Date.now()}_${sanitizedName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("task-attachments")
+        .upload(tempPath, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage
+        .from("task-attachments")
+        .getPublicUrl(tempPath);
+
+      // Call the extraction edge function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-invoice-price`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ fileUrl: urlData.publicUrl, fileName: file.name }),
+        }
+      );
+
+      // Clean up temp file
+      await supabase.storage.from("task-attachments").remove([tempPath]);
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        toast.error(errData?.error || "Impossible d'extraire le prix automatiquement");
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.confidence !== "none" && result.amountHT !== null) {
+        setNewAmountHT(result.amountHT.toFixed(2));
+        if (result.tps && result.tps > 0) setNewTPS(result.tps.toFixed(2));
+        if (result.tvq && result.tvq > 0) setNewTVQ(result.tvq.toFixed(2));
+        if (result.notes) setNewDescription(result.notes);
+        setExtractionConfidence(result.confidence);
+        toast.success("💡 Prix extrait automatiquement — vérifiez et ajustez si nécessaire");
+      } else {
+        toast.info("Prix non trouvé automatiquement — entrez le montant manuellement");
+      }
+    } catch (err) {
+      console.error("Price extraction error:", err);
+      // Silent fail — user can enter manually
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const handleFilesSelected = (files: FileList) => {
     const file = files[0];
     if (!file) return;
     setPendingFile(file);
     setShowAddDialog(true);
+    // Auto-extract price from the file
+    extractPriceFromFile(file);
   };
 
   const handleUpload = async () => {
@@ -423,6 +492,7 @@ export function DIYPurchaseInvoices({
           setNewTPS("");
           setNewTVQ("");
           setNewDescription("");
+          setExtractionConfidence(null);
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -449,6 +519,36 @@ export function DIYPurchaseInvoices({
                 </div>
               </div>
             )}
+
+            {/* AI extraction status / result */}
+            {isExtracting ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-primary">Lecture automatique en cours…</p>
+                  <p className="text-xs text-muted-foreground">L'IA analyse votre facture pour extraire le prix</p>
+                </div>
+              </div>
+            ) : extractionConfidence && extractionConfidence !== "none" ? (
+              <div className={`flex items-center gap-2 p-3 rounded-lg border ${
+                extractionConfidence === "high" 
+                  ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30" 
+                  : "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/30"
+              }`}>
+                <Sparkles className={`h-4 w-4 shrink-0 ${extractionConfidence === "high" ? "text-emerald-600" : "text-amber-600"}`} />
+                <div className="flex-1">
+                  <p className={`text-xs font-medium ${extractionConfidence === "high" ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>
+                    {extractionConfidence === "high" ? "✅ Prix détecté automatiquement" : "⚠️ Prix détecté — vérifiez les montants"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Vérifiez et corrigez si nécessaire avant d'enregistrer</p>
+                </div>
+              </div>
+            ) : extractionConfidence === "none" ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">
+                <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Prix non détecté — entrez le montant manuellement</p>
+              </div>
+            ) : null}
 
             {/* Important tax notice */}
             <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
@@ -544,20 +644,23 @@ export function DIYPurchaseInvoices({
               setNewTPS("");
               setNewTVQ("");
               setNewDescription("");
+              setExtractionConfidence(null);
             }}>
               Annuler
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={uploading || !newAmountHT || amountHTNum <= 0}
+              disabled={uploading || isExtracting || !newAmountHT || amountHTNum <= 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {uploading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : isExtracting ? (
+                <Sparkles className="h-4 w-4 animate-pulse mr-2" />
               ) : (
                 <Receipt className="h-4 w-4 mr-2" />
               )}
-              Enregistrer la facture
+              {isExtracting ? "Lecture en cours…" : "Enregistrer la facture"}
             </Button>
           </DialogFooter>
         </DialogContent>

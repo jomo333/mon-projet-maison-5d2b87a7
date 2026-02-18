@@ -902,6 +902,7 @@
   "categories": {
     "excavation": "Excavation",
     "foundation": "Foundation",
+    "demolitionPrep": "Demolition and preparation",
     "plumbing": "Plumbing",
     "electrical": "Electrical",
     "structure": "Structure and framing",

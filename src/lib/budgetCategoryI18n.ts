@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
  * but the UI should display them in the current language.
  */
 export const CATEGORY_KEY_BY_FR_NAME: Record<string, string> = {
+  "Démolition et préparation": "demolitionPrep",
   "Excavation": "excavation",
   "Fondation": "foundation",
   "Structure et charpente": "structure",

@@ -29,12 +29,14 @@ import { translateBudgetItemName } from "@/lib/budgetItemI18n";
 import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import {
   mapAnalysisToStepCategories,
+  buildDefaultCategories,
   defaultCategories as libDefaultCategories,
   stepTasksByCategory,
   categoryColors,
   type BudgetCategory as LibBudgetCategory,
   type IncomingAnalysisCategory,
 } from "@/lib/budgetCategories";
+import { useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -189,7 +191,18 @@ const Budget = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch budget categories for selected project
+  // Derive selected project to get project-aware categories (incl. Démolition for agrandissement)
+  const selectedProject = useMemo(() => 
+    projects.find(p => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId]
+  );
+
+  const projectAwareCategories = useMemo(() => {
+    const cats = buildDefaultCategories(selectedProject?.project_type ?? undefined);
+    return cats.map(cat => ({ ...cat, spent: 0 }));
+  }, [selectedProject?.project_type]);
+
+
   const { data: savedBudget = [], isLoading: savedBudgetLoading } = useQuery({
     queryKey: ["project-budget", selectedProjectId],
     queryFn: async () => {
@@ -283,15 +296,12 @@ const Budget = () => {
     if (savedBudgetLoading) return; // Ne pas toucher aux catégories pendant le chargement
     if (savedBudget && savedBudget.length > 0) {
       // IMPORTANT: Always display categories in the construction-step order.
-      // For legacy projects, this also allows new steps (e.g. "Excavation")
-      // to appear automatically before "Fondation" without deleting existing data.
+      // projectAwareCategories includes "Démolition et préparation" for agrandissement projects.
       const savedByName = new Map(
         savedBudget.map((row) => [row.category_name, row])
       );
 
-      const defaultNames = new Set(defaultCategories.map((c) => c.name));
-
-      const ordered: BudgetCategory[] = defaultCategories.map((defCat) => {
+      const ordered: BudgetCategory[] = projectAwareCategories.map((defCat) => {
         const saved = savedByName.get(defCat.name);
         if (!saved) {
           return {
@@ -312,14 +322,14 @@ const Budget = () => {
         };
       });
 
-      // Exclude legacy categories that no longer match the 18-step structure
+      // Exclude legacy categories that no longer match the step structure
       // These will be ignored (not displayed) - only current step categories are shown
       setBudgetCategories(rerouteFoundationItems(ordered));
     } else if (selectedProjectId) {
       // Reset to default only when loaded and no budget saved for this project
-      setBudgetCategories(defaultCategories);
+      setBudgetCategories(projectAwareCategories);
     }
-  }, [savedBudget, selectedProjectId, savedBudgetLoading]);
+  }, [savedBudget, selectedProjectId, savedBudgetLoading, projectAwareCategories]);
 
   // Auto-select first project if available (and sync URL)
   useEffect(() => {
@@ -472,7 +482,7 @@ const Budget = () => {
       }
     },
     onSuccess: (_data, variables) => {
-      setBudgetCategories(defaultCategories);
+      setBudgetCategories(projectAwareCategories);
       queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
       queryClient.invalidateQueries({ queryKey: ["user-projects"] });
       if (variables?.deletePlans) {
@@ -526,7 +536,7 @@ const Budget = () => {
   const handleBudgetGenerated = async (categories: IncomingAnalysisCategory[]) => {
     // Convert analysis (12 categories) -> step categories (our table)
     // Uses mapAnalysisToStepCategories which now keeps taxes/contingency separate (not distributed)
-    const mapped = mapAnalysisToStepCategories(categories, libDefaultCategories).map(cat => ({
+    const mapped = mapAnalysisToStepCategories(categories, projectAwareCategories).map(cat => ({
       ...cat,
       spent: cat.spent ?? 0,
     }));

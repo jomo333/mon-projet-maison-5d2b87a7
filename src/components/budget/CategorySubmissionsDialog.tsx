@@ -2551,10 +2551,7 @@ export function CategorySubmissionsDialog({
                         onClick={async () => {
                           const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
                           if (!currentSubCat) return;
-                          
                           const materialCost = currentSubCat.materialCostOnly || 0;
-                          
-                          // Save to database
                           const existingNotes = supplierStatus || {};
                           const updatedNotes = JSON.stringify({
                             ...existingNotes,
@@ -2563,9 +2560,9 @@ export function CategorySubmissionsDialog({
                             materialCostOnly: materialCost,
                             isDIY: true,
                             hasDIYAnalysis: !!diyAnalysisResult,
+                            orderLeadDays: currentSubCat.orderLeadDays ?? null,
                           });
-                          
-                          await supabase
+                          const { error } = await supabase
                             .from('task_dates')
                             .upsert({
                               project_id: projectId,
@@ -2573,23 +2570,19 @@ export function CategorySubmissionsDialog({
                               task_id: currentTaskId,
                               notes: updatedNotes,
                             }, { onConflict: 'project_id,step_id,task_id' });
-                          
-                          // Update sub-category with amount
+                          if (error) {
+                            toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
+                            return;
+                          }
                           setSubCategories(prev => prev.map(sc =>
-                            sc.id === activeSubCategoryId
-                              ? { ...sc, amount: materialCost }
-                              : sc
+                            sc.id === activeSubCategoryId ? { ...sc, amount: materialCost } : sc
                           ));
-                          
-                          // Update total spent
                           const newTotalSpent = subCategories
                             .map(sc => sc.id === activeSubCategoryId ? materialCost : sc.amount)
                             .reduce((sum, amt) => sum + (amt || 0), 0);
                           setSpent(newTotalSpent.toString());
-                          
                           queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                           queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
-                          
                           toast.success(t("toasts.materialsCostSaved"));
                         }}
                       >
@@ -2654,11 +2647,8 @@ export function CategorySubmissionsDialog({
                             onClick={async () => {
                               const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
                               if (!currentSubCat) return;
-                              
                               const orderLeadDays = currentSubCat.orderLeadDays ?? null;
                               const materialCost = currentSubCat.materialCostOnly || 0;
-                              
-                              // Save to database
                               const existingNotes = supplierStatus || {};
                               const updatedNotes = JSON.stringify({
                                 ...existingNotes,
@@ -2667,10 +2657,9 @@ export function CategorySubmissionsDialog({
                                 materialCostOnly: materialCost,
                                 isDIY: true,
                                 hasDIYAnalysis: !!diyAnalysisResult,
-                                orderLeadDays: orderLeadDays,
+                                orderLeadDays,
                               });
-                              
-                              await supabase
+                              const { error } = await supabase
                                 .from('task_dates')
                                 .upsert({
                                   project_id: projectId,
@@ -2678,11 +2667,12 @@ export function CategorySubmissionsDialog({
                                   task_id: currentTaskId,
                                   notes: updatedNotes,
                                 }, { onConflict: 'project_id,step_id,task_id' });
-                              
+                              if (error) {
+                                toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
+                                return;
+                              }
                               queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                               queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
-                              
-                              // Sync alerts to create the material order alert
                               if (orderLeadDays && orderLeadDays > 0) {
                                 try {
                                   await syncAlertsFromSoumissions();

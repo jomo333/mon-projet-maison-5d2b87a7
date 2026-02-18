@@ -132,11 +132,19 @@ export function usePlanLimits(): PlanLimitsHook {
   const canUseBudgetAndSchedule = useMemo(() => {
     if (isAdmin) return true;
     if (loading) return true; // Ne pas verrouiller pendant le chargement
-    const name = (plan?.name || "Découverte").trim().toLowerCase();
-    // 1) Forfaits payants par nom : Essentiel et Gestion complète uniquement
-    const paidNames = ["essentiel", "essential", "gestion complète", "gestion complete"];
+    const rawName = plan?.name || "Découverte";
+    const name = rawName.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""); // "essentiel" même avec accents
+    // 1) Forfaits payants par nom : Essentiel et Gestion complète uniquement (inclut variantes)
+    const paidNames = ["essentiel", "essential", "gestion complete", "gestion complète"];
     if (paidNames.some((paid) => name.includes(paid))) return true;
-    // 2) Secours par limites : Essentiel = 3 projets, 5 IA ; Gratuit = 1, 0 ou 1
+    // 2) Nom brut contient "Essentiel" (casse/unicode éventuel)
+    if (/essentiel|essential/i.test(rawName)) return true;
+    // 3) Secours par limites : Essentiel = 3 projets, 5 IA ; Gratuit = 1, 0 ou 1
+    const essentielMin = { projects: 3, ai_analyses: 5 };
+    const hasEssentielLimits =
+      (limits.projects >= essentielMin.projects && limits.projects !== -1) ||
+      (limits.ai_analyses >= essentielMin.ai_analyses && limits.ai_analyses !== -1);
+    if (hasEssentielLimits) return true;
     const freeTier = { projects: 1, ai_analyses: 1 };
     const hasPaidLimits =
       (limits.projects > freeTier.projects && limits.projects !== -1) ||
@@ -145,7 +153,7 @@ export function usePlanLimits(): PlanLimitsHook {
       limits.ai_analyses === -1;
     if (hasPaidLimits) return true;
     const isFreePlanName = name === "gratuit" || name === "découverte" || name === "decouverte";
-    if (!isFreePlanName) return true;
+    if (!isFreePlanName) return true; // Plans inconnus = accès par défaut
     return false;
   }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading]);
 

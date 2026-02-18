@@ -72,12 +72,14 @@ export function useSubscription(): SubscriptionData {
       setLoading(true);
       setError(null);
 
-      // Fetch subscription
+      // Fetch subscription (incl. paused/past_due pour garder le plan et les limites)
       const { data: subData, error: subError } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["active", "trial"])
+        .in("status", ["active", "trial", "paused", "past_due"])
+        .order("current_period_end", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (subError) throw subError;
@@ -103,12 +105,13 @@ export function useSubscription(): SubscriptionData {
         }
       }
 
-      // If no plan found, fetch Gratuit plan
+      // If no plan found, try Découverte then Gratuit (noms possibles en base)
       if (!planData) {
         const { data: gratuitPlan, error: gratuitError } = await supabase
           .from("plans")
           .select("*")
-          .eq("name", "Découverte")
+          .in("name", ["Découverte", "Gratuit"])
+          .limit(1)
           .maybeSingle();
 
         if (!gratuitError && gratuitPlan) {

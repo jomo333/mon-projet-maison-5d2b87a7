@@ -73,9 +73,34 @@ cd "c:\Users\Utilisateur\Desktop\mon-projet-maison-main (2)\mon-projet-maison-5d
 supabase login
 supabase link --project-ref lqxbwqndxjdxqzftihic
 supabase functions deploy analyze-soumissions
+supabase functions deploy stripe-webhook
 ```
 
 Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’URL du dashboard Supabase).
+
+### Webhook Stripe (achats test ou réels → déverrouillage des forfaits)
+
+Pour que les achats Stripe (mode test ou live) créent ou mettent à jour l’abonnement dans l’app (et déverrouillent les options du forfait), déploie la fonction `stripe-webhook` et configure Stripe :
+
+1. **Déployer la fonction**  
+   `supabase functions deploy stripe-webhook`
+
+2. **Variables d’environnement** (Supabase Dashboard → Project Settings → Edge Functions → Secrets, ou `supabase secrets set`) :
+   - `STRIPE_SECRET_KEY` : clé secrète Stripe (sk_test_… ou sk_live_…)
+   - `STRIPE_WEBHOOK_SECRET` : secret du webhook Stripe (whsec_…)
+   - `STRIPE_PRICE_TO_PLAN_JSON` : correspondance **price ID Stripe → UUID du plan** dans ta table `plans`. Exemple :
+     ```json
+     {"price_1234Essentiel": "uuid-du-plan-essentiel", "price_5678Pro": "uuid-du-plan-pro"}
+     ```
+     Les UUID des plans sont dans Supabase → Table Editor → `plans` → colonne `id`.
+
+3. **Dans le Dashboard Stripe** (Developers → Webhooks) : ajouter un endpoint dont l’URL est  
+   `https://lqxbwqndxjdxqzftihic.supabase.co/functions/v1/stripe-webhook`  
+   et sélectionner les événements : `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+4. **Lors de la création du Checkout Stripe** (côté front ou backend), passe l’email du client (ou `client_reference_id` = `user_id` Supabase) pour que le webhook puisse associer l’abonnement au bon utilisateur.
+
+**Assignation manuelle par l’admin** : dans Admin → Abonnés, utiliser « Assigner un forfait » pour donner un forfait sans passer par Stripe. L’utilisateur devra éventuellement rafraîchir la page pour voir les options déverrouillées.
 
 ## Can I connect a custom domain to my Lovable project?
 

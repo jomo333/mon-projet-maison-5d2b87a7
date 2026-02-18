@@ -377,7 +377,7 @@ export default function AdminSubscribers() {
 
         toast({
           title: "Forfait assigné",
-          description: `${selectedUser.display_name || "L'utilisateur"} a maintenant accès au forfait.`,
+          description: `${selectedUser.display_name || "L'utilisateur"} a maintenant accès au forfait. L'utilisateur devra peut-être rafraîchir la page pour voir les options déverrouillées.`,
         });
 
         fetchUsers();
@@ -434,7 +434,9 @@ export default function AdminSubscribers() {
 
       toast({
         title: "Action effectuée",
-        description: "L'abonnement a été mis à jour avec succès.",
+        description: actionType === "change_plan"
+          ? "Le forfait a été mis à jour. L'utilisateur devra peut-être rafraîchir la page pour voir les options déverrouillées."
+          : "L'abonnement a été mis à jour avec succès.",
       });
 
       fetchUsers();

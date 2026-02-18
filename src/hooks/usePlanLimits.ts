@@ -128,17 +128,23 @@ export function usePlanLimits(): PlanLimitsHook {
     return currentPlan === "Gestion complète";
   }, [plan?.name, isAdmin]);
 
-  // Budget, échéancier, analyse IA soumissions : Essentiel et Gestion complète
+  // Budget, échéancier, analyse IA soumissions : Essentiel et au-dessus
   const canUseBudgetAndSchedule = useMemo(() => {
     if (isAdmin) return true;
-    if (loading) return true; // Ne pas verrouiller pendant le chargement du forfait
+    if (loading) return true; // Ne pas verrouiller pendant le chargement
+    // Priorité aux limites : si plus que le forfait gratuit (1 projet, 1 IA/mois), déverrouiller
+    const freeTier = { projects: 1, ai_analyses: 1 };
+    const hasPaidLimits =
+      (limits.projects > freeTier.projects && limits.projects !== -1) ||
+      limits.projects === -1 ||
+      (limits.ai_analyses > freeTier.ai_analyses && limits.ai_analyses !== -1) ||
+      limits.ai_analyses === -1;
+    if (hasPaidLimits) return true;
     const name = (plan?.name || "Découverte").trim().toLowerCase();
     const paidNames = ["essentiel", "essential", "gestion complète", "gestion complete", "pro"];
     if (paidNames.some((paid) => name.includes(paid))) return true;
     const isFreePlanName = name === "gratuit" || name === "découverte" || name === "decouverte";
     if (!isFreePlanName) return true;
-    const def = { projects: 1, ai_analyses: 1 };
-    if (limits.projects > def.projects || limits.ai_analyses > def.ai_analyses) return true;
     return false;
   }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading]);
 

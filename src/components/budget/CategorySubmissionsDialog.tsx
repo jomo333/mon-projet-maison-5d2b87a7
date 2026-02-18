@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/i18n";
+import { stripJsonBlocksFromAnalysisText } from "@/lib/analysisText";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -3230,7 +3231,7 @@ export function CategorySubmissionsDialog({
         onOpenChange={setShowFullAnalysis}
         categoryName={categoryName}
         categoryColor={categoryColor}
-        analysisResult={analysisResult || ''}
+        analysisResult={stripJsonBlocksFromAnalysisText(analysisResult || '')}
         extractedSuppliers={extractedSuppliers}
         selectedSupplierIndex={selectedSupplierIndex}
         selectedOptionIndex={selectedOptionIndex}
@@ -3248,7 +3249,7 @@ export function CategorySubmissionsDialog({
         onOpenChange={setShowDIYAnalysis}
         categoryName={categoryName}
         subCategoryName={analyzedDIYItemName || currentSubCategoryName || ''}
-        analysisResult={diyAnalysisResult || ''}
+        analysisResult={stripJsonBlocksFromAnalysisText(diyAnalysisResult || '')}
         initialSupplier={diySupplier?.name ? { name: diySupplier.name, phone: diySupplier.phone || '' } : undefined}
         onApplyEstimate={(amount, supplier) => {
           // If we analyzed a DIY item, update that item

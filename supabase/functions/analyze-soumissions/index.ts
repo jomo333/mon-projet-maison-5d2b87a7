@@ -425,9 +425,29 @@ Vérifie si le type de travaux peut bénéficier de subventions québécoises ou
 5. ✅ Obtenir un contrat écrit détaillé
 6. ✅ Vérifier les références de l'entrepreneur
 
+## ORDRE DE RÉPONSE OBLIGATOIRE (CRITIQUE)
+
+Tu DOIS structurer ta réponse EXACTEMENT dans cet ordre:
+
+**PARTIE 1 - EN PREMIER (tout le texte lisible pour l'utilisateur):**
+1. Commence par: **📋 Résumé des soumissions**
+2. Pour chaque entreprise: **🏢 Nom** puis **📞 Téléphone**, **📧 Courriel**
+3. Puis la section **🔍 Vérification de licence RBQ** avec le tableau et la légende
+4. Puis le **texte légal obligatoire** RBQ
+5. Puis **🧾 Vérification des numéros de taxes** avec le tableau et la légende
+6. Puis le **texte légal obligatoire** taxes
+7. Puis **💰 Tarification** pour chaque entreprise
+8. Puis le reste (spécifications, garanties, recommandation, etc.)
+
+**PARTIE 2 - À LA FIN UNIQUEMENT (après tout le texte ci-dessus):**
+9. En dernier, place le bloc \`\`\`contacts\`\`\` (JSON)
+10. Puis le bloc \`\`\`comparaison_json\`\`\` (JSON)
+
+NE JAMAIS mettre les blocs JSON au début. L'utilisateur doit voir d'abord le résumé formaté avec émojis et tableaux.
+
 ## RÈGLES IMPORTANTES
 
-1. **BLOCS JSON OBLIGATOIRES** - Tu DOIS TOUJOURS générer les blocs \`\`\`contacts\`\`\` et \`\`\`comparaison_json\`\`\`
+1. **BLOCS JSON OBLIGATOIRES** - Tu DOIS TOUJOURS générer les blocs \`\`\`contacts\`\`\` et \`\`\`comparaison_json\`\`\` **À LA FIN** de ta réponse, après tout le résumé formaté
 2. **LICENCE RBQ OBLIGATOIRE** - Cherche TOUJOURS le numéro RBQ dans les documents (souvent en bas de page ou en-tête)
 3. **NUMÉROS DE TAXES OBLIGATOIRES** - Cherche TOUJOURS les numéros TPS et TVQ sur les soumissions
 4. **SPÉCIFICATIONS TECHNIQUES OBLIGATOIRES** - Extrait TOUJOURS: BTU, kW, SEER, tonnes, HP, etc.
@@ -592,13 +612,13 @@ Documents à analyser:`
 
 ---
 
-Maintenant, analyse TOUS ces documents et fournis:
+Maintenant, analyse TOUS ces documents.
 
-1. Le bloc \`\`\`contacts\`\`\` avec les coordonnées extraites
-2. Le bloc \`\`\`options\`\`\` si des options/forfaits sont proposés
-3. Le bloc \`\`\`comparaison_json\`\`\` avec l'analyse détaillée
-4. Le tableau comparatif visuel
-5. Ta recommandation finale avec justification
+**ORDRE OBLIGATOIRE de ta réponse:**
+- COMMENCE par le résumé lisible: **📋 Résumé des soumissions**, puis pour chaque entreprise **🏢 Nom**, **📞**, **📧**, puis les tableaux **🔍 RBQ** et **🧾 Taxes** (avec textes légaux), puis **💰 Tarification**, spécifications, recommandation.
+- À LA FIN seulement, ajoute les deux blocs JSON: \`\`\`contacts\`\`\` puis \`\`\`comparaison_json\`\`\`.
+
+Ne mets jamais les blocs JSON en premier. Le lecteur doit voir d'abord le beau résumé formaté.
 
 ${budgetPrevu ? `
 IMPORTANT: Compare chaque soumission au budget prévu de ${budgetPrevu.toLocaleString('fr-CA')} $.
@@ -606,7 +626,10 @@ Calcule l'écart en % et signale si le budget est dépassé.
 ` : ''}`
     });
 
-    const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-1.5-flash";
+    // Modèle : GEMINI_MODEL_SOUMISSIONS dans Supabase Secrets pour cibler un modèle (ex. gemini-2.0-flash ou gemini-3-flash-preview = quota séparé de 1.5)
+    const defaultFlash = "gemini-1.5-flash";
+    const defaultPro = "gemini-1.5-pro";
+    const geminiModel = Deno.env.get("GEMINI_MODEL_SOUMISSIONS") || (detailed ? defaultPro : defaultFlash);
     console.log("Sending request to", geminiModel, "with", messageParts.length, "parts");
     const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
     for (const part of messageParts) {
@@ -625,29 +648,52 @@ Calcule l'écart en % et signale si le budget est dépassé.
       generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
     };
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-    const geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
-      },
-      body: JSON.stringify(geminiBody),
-    });
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, errText);
-      const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
-      const message = isQuota
-        ? "Quota de requêtes IA atteint. Réessayez dans 1 à 2 minutes ou vérifiez votre forfait Google AI."
-        : "Erreur temporaire du service IA. Réessayez dans un moment.";
+    const maxRetries = 2;
+    let geminiRes: Response | null = null;
+    let lastErrText = "";
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        const delayMs = attempt * 3000;
+        console.log("Quota/rate limit (429), retry in", delayMs / 1000, "s, attempt", attempt);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+      geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify(geminiBody),
+      });
+      if (geminiRes.ok) break;
+      lastErrText = await geminiRes.text();
+      const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(lastErrText || "");
+      if (!isQuota || attempt === maxRetries) break;
+    }
+    if (!geminiRes!.ok) {
+      const errText = lastErrText;
+      console.error("Gemini API error:", geminiRes!.status, errText);
+      const isQuota = geminiRes!.status === 429 || /quota|RESOURCE_EXHAUSTED|limit.*0/i.test(errText || "");
+      const isModelNotFound = geminiRes!.status === 404 || /not found|invalid model|model.*does not exist/i.test(errText || "");
+      let message: string;
+      if (isQuota) {
+        message = "Quota / limite de requêtes atteinte pour ce modèle. Réessayez dans 1 à 2 minutes, ou configurez un autre modèle (Supabase → Edge Functions → Secrets → GEMINI_MODEL_SOUMISSIONS = gemini-2.0-flash ou gemini-3-flash-preview pour utiliser le quota Gemini 2/3 Flash).";
+      } else if (isModelNotFound) {
+        message = "Modèle IA non disponible. Définissez GEMINI_MODEL_SOUMISSIONS dans Supabase (ex: gemini-1.5-flash, gemini-2.0-flash).";
+      } else if (geminiRes!.status === 403 || /API key|permission|forbidden/i.test(errText || "")) {
+        message = "Clé API invalide ou sans accès. Vérifiez GEMINI_API_KEY dans Supabase (Edge Functions → Secrets).";
+      } else {
+        message = "Erreur temporaire du service IA. Réessayez dans un moment. (Détail: " + (errText?.slice(0, 200) || geminiRes!.status) + ")";
+      }
       return new Response(JSON.stringify({ error: message }), {
-        status: isQuota ? 429 : geminiRes.status >= 400 ? geminiRes.status : 500,
+        status: isQuota ? 429 : geminiRes!.status >= 400 ? geminiRes!.status : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     await incrementAiUsage(authHeader);
     await trackAiAnalysisUsage(authHeader, "analyze-soumissions", null);
-    const reader = geminiRes.body?.getReader();
+    const successRes = geminiRes as Response;
+    const reader = successRes.body?.getReader();
     if (!reader) {
       return new Response(JSON.stringify({ error: "Pas de flux de réponse" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

@@ -84,9 +84,10 @@ Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’UR
 
 Les fonctions **analyze-soumissions**, **chat-assistant** et **analyze-diy-materials** appellent directement l’API Google Gemini (plus de passerelle Lovable). Configure une seule variable :
 
-- **Supabase Dashboard** → **Project Settings** → **Edge Functions** → **Secrets** : ajoute **`GEMINI_API_KEY`** avec ta clé API Google AI (https://aistudio.google.com/apikey).
+- **`GEMINI_API_KEY`** (obligatoire) : clé API Google AI Studio (https://aistudio.google.com/apikey).
+- **`GEMINI_MODEL_SOUMISSIONS`** (optionnel) : si tu as « quota atteint » alors qu’il te reste du quota, ajoute cette variable pour utiliser un autre modèle (quota séparé) : **`gemini-2.0-flash`** ou **`gemini-3-flash-preview`** (Gemini 3 Flash).
 
-Sans cette clé, les analyses IA et le chat assistant renverront une erreur.
+Sans `GEMINI_API_KEY`, les analyses IA et le chat renverront une erreur. En cas de 429, la fonction réessaie automatiquement 2 fois.
 
 ### Webhook Stripe (achats test ou réels → déverrouillage des forfaits)
 

@@ -533,8 +533,9 @@ serve(async (req) => {
 
     console.log(`Analyzing ${documents.length} documents for ${tradeName} with ${useNativeGemini ? "Gemini API" : "Lovable gateway"}`);
 
-    // Modèle pour la passerelle Lovable (vision + texte) — utilisé seulement si !useNativeGemini
-    const soumissionsModel = detailed ? "google/gemini-1.5-pro" : "google/gemini-3-flash-preview";
+    // Modèle pour la passerelle Lovable (vision + texte) — utilisé seulement si !useNativeGemini.
+    // Noms reconnus: google/gemini-1.5-flash, google/gemini-1.5-pro
+    const soumissionsModel: string = detailed ? "google/gemini-1.5-pro" : "google/gemini-1.5-flash";
 
     // Build message parts with documents
     const messageParts: any[] = [];
@@ -616,7 +617,7 @@ Calcule l'écart en % et signale si le budget est dépassé.
 
     if (useNativeGemini) {
       // Appel direct à l'API Google Gemini (Generative Language)
-      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-3-flash-preview";
+      const geminiModel = detailed ? "gemini-1.5-pro" : "gemini-1.5-flash";
       const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
       for (const part of messageParts) {
         if (part.type === "text" && part.text) {
@@ -695,6 +696,7 @@ Calcule l'écart en % et signale si le budget est dépassé.
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
+    const modelForGateway = soumissionsModel ?? "google/gemini-1.5-flash";
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -702,7 +704,7 @@ Calcule l'écart en % et signale si le budget est dépassé.
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: soumissionsModel,
+        model: modelForGateway,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: messageParts }

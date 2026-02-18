@@ -3370,6 +3370,9 @@
       }
     },
     "excavation": {
+      "title": "Excavation",
+      "description": "Préparation du terrain et creusage pour les fondations.",
+      "duration": "3-5 jours",
       "tasks": {
         "implantation": {
           "title": "Implantation de la maison",

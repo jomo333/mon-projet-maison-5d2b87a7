@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Paperclip, Upload, X, FileText, Image, File, Loader2, DollarSign, ArrowRight } from "lucide-react";
+import { Paperclip, X, FileText, Image, File, Loader2, DollarSign, ArrowRight } from "lucide-react";
+import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
 import {
   Select,
   SelectContent,
@@ -41,7 +42,6 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
   const [isUploading, setIsUploading] = useState(false);
   const [showBudgetSuggestion, setShowBudgetSuggestion] = useState(false);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -188,10 +188,7 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
     },
   });
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  const handleFilesSelected = async (files: FileList) => {
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -199,9 +196,6 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
       }
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 
@@ -239,29 +233,14 @@ export function TaskAttachments({ stepId, taskId, projectId }: TaskAttachmentsPr
           </SelectContent>
         </Select>
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          className="hidden"
+        <FileOrPhotoUpload
+          onFilesSelected={handleFilesSelected}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.heic"
+          uploading={isUploading}
+          fileLabel={t("attachments.addFile")}
+          photoLabel="Photo"
           multiple
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
         />
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="gap-2"
-        >
-          {isUploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-          {t("attachments.addFile")}
-        </Button>
       </div>
 
       {/* Attachments list */}

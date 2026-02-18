@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { formatCurrency } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
+import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Receipt,
-  Upload,
   Trash2,
   Loader2,
   Plus,
@@ -82,7 +82,7 @@ export function DIYPurchaseInvoices({
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -140,12 +140,11 @@ export function DIYPurchaseInvoices({
 
   const totalInvoices = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFilesSelected = (files: FileList) => {
+    const file = files[0];
     if (!file) return;
     setPendingFile(file);
     setShowAddDialog(true);
-    e.target.value = "";
   };
 
   const handleUpload = async () => {
@@ -278,22 +277,15 @@ export function DIYPurchaseInvoices({
               {formatCurrency(totalInvoices)}
             </Badge>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-          >
-            <Upload className="h-3 w-3" />
-            Ajouter une facture
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
+          <FileOrPhotoUpload
+            onFilesSelected={handleFilesSelected}
             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
-            onChange={handleFileSelect}
+            uploading={uploading}
+            fileLabel="Fichier / PDF"
+            photoLabel="Photo de facture"
+            fileVariant="outline"
+            photoVariant="outline"
+            className="[&>button]:border-emerald-300 [&>button]:text-emerald-700 [&>button]:hover:bg-emerald-50 dark:[&>button]:border-emerald-700 dark:[&>button]:text-emerald-400 dark:[&>button]:hover:bg-emerald-950/50"
           />
         </div>
       </div>

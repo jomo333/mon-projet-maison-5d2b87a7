@@ -90,9 +90,17 @@ export function DIYPurchaseInvoices({
 
   // Dialog for manual invoice entry
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newAmount, setNewAmount] = useState("");
+  const [newAmountHT, setNewAmountHT] = useState(""); // montant avant taxes
+  const [newTPS, setNewTPS] = useState("");            // TPS (5%)
+  const [newTVQ, setNewTVQ] = useState("");            // TVQ (9.975%)
   const [newDescription, setNewDescription] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Auto-calculate taxes
+  const amountHTNum = parseFloat(newAmountHT) || 0;
+  const tpsNum = parseFloat(newTPS) || 0;
+  const tvqNum = parseFloat(newTVQ) || 0;
+  const totalTTC = amountHTNum + tpsNum + tvqNum;
 
   const queryKey = ["diy-invoices", projectId, tradeId];
 
@@ -142,14 +150,15 @@ export function DIYPurchaseInvoices({
 
   const handleUpload = async () => {
     if (!pendingFile || !user) return;
-    if (!newAmount || parseFloat(newAmount) <= 0) {
-      toast.error("Veuillez entrer le montant de la facture");
+    if (!newAmountHT || amountHTNum <= 0) {
+      toast.error("Veuillez entrer le montant avant taxes de la facture");
       return;
     }
 
     setUploading(true);
     try {
-      const amount = parseFloat(newAmount) || 0;
+      // Only the pre-tax amount (HT) is tracked in the budget
+      const amount = amountHTNum;
       const sanitizedName = sanitizeFileName(pendingFile.name);
       const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${sanitizedName}`;
 
@@ -163,8 +172,14 @@ export function DIYPurchaseInvoices({
         .from("task-attachments")
         .getPublicUrl(storagePath);
 
-      // Store amount and notes in file_name with separator
-      const meta = JSON.stringify({ amount, notes: newDescription });
+      // Store amount (HT) and taxes in file_name metadata — only HT goes to budget
+      const meta = JSON.stringify({
+        amount,          // montant avant taxes, seul montant enregistré au budget
+        tps: tpsNum,
+        tvq: tvqNum,
+        totalTTC: totalTTC || amount,
+        notes: newDescription,
+      });
       const fileNameWithMeta = `${pendingFile.name}||META||${meta}`;
 
       const { error: dbError } = await supabase.from("task_attachments").insert({
@@ -185,11 +200,13 @@ export function DIYPurchaseInvoices({
       onSpentUpdate(newTotal);
 
       queryClient.invalidateQueries({ queryKey });
-      toast.success(`Facture ajoutée : ${formatCurrency(amount)}`);
+      toast.success(`Facture ajoutée : ${formatCurrency(amount)} (avant taxes)`);
 
       setShowAddDialog(false);
       setPendingFile(null);
-      setNewAmount("");
+      setNewAmountHT("");
+      setNewTPS("");
+      setNewTVQ("");
       setNewDescription("");
     } catch (error) {
       console.error("Upload error:", error);
@@ -282,10 +299,14 @@ export function DIYPurchaseInvoices({
       </div>
 
       {/* Info banner */}
-      <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30">
+      <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
         <p className="text-xs text-muted-foreground flex items-start gap-2">
           <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5 text-emerald-600" />
-          Les montants de vos factures sont automatiquement ajoutés au <strong>coût réel</strong> de cette catégorie dans votre budget, et enregistrés dans <strong>Mes Dossiers</strong>.
+          Les montants <strong>avant taxes</strong> sont automatiquement ajoutés au <strong>coût réel</strong> de cette catégorie dans votre budget.
+        </p>
+        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+          <span className="shrink-0">⚠️</span>
+          Le budget n'affiche pas les taxes (TPS/TVQ) — entrez toujours vos montants <strong>avant taxes</strong>.
         </p>
       </div>
 
@@ -406,7 +427,9 @@ export function DIYPurchaseInvoices({
         if (!open) {
           setShowAddDialog(false);
           setPendingFile(null);
-          setNewAmount("");
+          setNewAmountHT("");
+          setNewTPS("");
+          setNewTVQ("");
           setNewDescription("");
         }
       }}>
@@ -435,26 +458,69 @@ export function DIYPurchaseInvoices({
               </div>
             )}
 
-            {/* Amount - required */}
+            {/* Important tax notice */}
+            <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-medium flex items-start gap-1.5">
+                ⚠️ Entrez le montant <strong>avant taxes</strong> — le budget n'affiche pas les taxes (TPS/TVQ). Vous pouvez indiquer les taxes séparément pour référence uniquement.
+              </p>
+            </div>
+
+            {/* Amount before taxes - required */}
             <div className="space-y-2">
-              <Label htmlFor="invoice-amount" className="flex items-center gap-1">
+              <Label htmlFor="invoice-amount-ht" className="flex items-center gap-1 font-semibold">
                 <DollarSign className="h-3.5 w-3.5" />
-                Montant de la facture <span className="text-destructive">*</span>
+                Montant <strong>avant taxes</strong> <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="invoice-amount"
+                id="invoice-amount-ht"
                 type="number"
                 step="0.01"
                 min="0"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
+                value={newAmountHT}
+                onChange={(e) => setNewAmountHT(e.target.value)}
                 placeholder="0.00"
                 className="max-w-[200px]"
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Ce montant sera ajouté à votre coût réel budgétaire.
+                Ce montant sera enregistré dans votre budget (coût réel).
               </p>
+            </div>
+
+            {/* Taxes - optional, for reference only */}
+            <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/20">
+              <p className="text-xs font-medium text-muted-foreground">Taxes (pour référence, non comptabilisées au budget)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="invoice-tps" className="text-xs">TPS (5%)</Label>
+                  <Input
+                    id="invoice-tps"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newTPS}
+                    onChange={(e) => setNewTPS(e.target.value)}
+                    placeholder={amountHTNum > 0 ? (amountHTNum * 0.05).toFixed(2) : "0.00"}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="invoice-tvq" className="text-xs">TVQ (9.975%)</Label>
+                  <Input
+                    id="invoice-tvq"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newTVQ}
+                    onChange={(e) => setNewTVQ(e.target.value)}
+                    placeholder={amountHTNum > 0 ? (amountHTNum * 0.09975).toFixed(2) : "0.00"}
+                  />
+                </div>
+              </div>
+              {totalTTC > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Total avec taxes : <span className="font-semibold">{formatCurrency(totalTTC)}</span>
+                </p>
+              )}
             </div>
 
             {/* Description - optional */}
@@ -482,14 +548,16 @@ export function DIYPurchaseInvoices({
             <Button variant="outline" onClick={() => {
               setShowAddDialog(false);
               setPendingFile(null);
-              setNewAmount("");
+              setNewAmountHT("");
+              setNewTPS("");
+              setNewTVQ("");
               setNewDescription("");
             }}>
               Annuler
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={uploading || !newAmount || parseFloat(newAmount) <= 0}
+              disabled={uploading || !newAmountHT || amountHTNum <= 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {uploading ? (

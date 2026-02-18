@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { format, parseISO } from "date-fns";
-import { Calendar } from "lucide-react";
+import { Calendar, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,8 +9,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { TaskDatePicker } from "./TaskDatePicker";
 import { useTaskDates } from "@/hooks/useTaskDates";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { getDateLocale } from "@/lib/i18n";
 
 interface TaskSubcontractorDatesButtonProps {
@@ -27,6 +34,7 @@ export function TaskSubcontractorDatesButton({
   const { t } = useTranslation();
   const dateLocale = getDateLocale();
   const [isOpen, setIsOpen] = useState(false);
+  const { canUseBudgetAndSchedule } = usePlanLimits();
   
   const { getTaskDate, upsertTaskDate } = useTaskDates(projectId);
   
@@ -34,6 +42,7 @@ export function TaskSubcontractorDatesButton({
   const hasAnyDate = taskDate?.start_date || taskDate?.end_date;
   
   const handleDateChange = (field: 'start_date' | 'end_date', value: string | null) => {
+    if (!canUseBudgetAndSchedule) return;
     upsertTaskDate({
       stepId,
       taskId,
@@ -54,22 +63,40 @@ export function TaskSubcontractorDatesButton({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant={hasAnyDate ? "default" : "outline"}
-          size="sm"
-          className="shrink-0 gap-1.5"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          {hasAnyDate ? (
-            <span className="text-xs hidden sm:inline">{formatDateRange()}</span>
-          ) : (
-            <span className="text-xs hidden sm:inline">{t("taskDates.addDates")}</span>
+    <Popover open={isOpen} onOpenChange={(open) => canUseBudgetAndSchedule && setIsOpen(open)}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={!canUseBudgetAndSchedule ? "inline-flex" : undefined}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={hasAnyDate ? "default" : "outline"}
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  disabled={!canUseBudgetAndSchedule}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {!canUseBudgetAndSchedule ? (
+                    <Lock className="h-3.5 w-3.5" />
+                  ) : (
+                    <Calendar className="h-3.5 w-3.5" />
+                  )}
+                  {hasAnyDate ? (
+                    <span className="text-xs hidden sm:inline">{formatDateRange()}</span>
+                  ) : (
+                    <span className="text-xs hidden sm:inline">{t("taskDates.addDates")}</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+            </span>
+          </TooltipTrigger>
+          {!canUseBudgetAndSchedule && (
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>{t("plans.budgetScheduleLockedMessage")}</p>
+            </TooltipContent>
           )}
-        </Button>
-      </PopoverTrigger>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent 
         className="w-auto p-4" 
         align="end"

@@ -3348,6 +3348,9 @@
       }
     },
     "excavation": {
+      "title": "Excavation",
+      "description": "Site preparation and digging for foundations.",
+      "duration": "3-5 days",
       "tasks": {
         "implantation": {
           "title": "House staking",

@@ -91,13 +91,19 @@ const ConstructionGuide = () => {
     ? constructionSteps.find(s => s.id === selectedStepId) 
     : null;
 
-  const filteredSteps = activePhase 
-    ? constructionSteps.filter(s => s.phase === activePhase)
-    : constructionSteps;
+  // Filter steps: demolition-prep only visible for agrandissement projects
+  const isAgrandissement = project?.project_type?.toLowerCase()?.includes("agrandissement");
+  const visibleSteps = constructionSteps.filter(s => 
+    s.id !== "demolition-prep" || isAgrandissement
+  );
 
-  const totalSteps = constructionSteps.length;
+  const filteredSteps = activePhase 
+    ? visibleSteps.filter(s => s.phase === activePhase)
+    : visibleSteps;
+
+  const totalSteps = visibleSteps.length;
   const currentStepIndex = selectedStep 
-    ? constructionSteps.findIndex(s => s.id === selectedStepId) + 1
+    ? visibleSteps.findIndex(s => s.id === selectedStepId) + 1
     : 0;
 
   if (selectedStep) {
@@ -130,15 +136,15 @@ const ConstructionGuide = () => {
               projectId={projectId || undefined}
               projectType={project?.project_type}
               onNext={() => {
-                const nextIndex = constructionSteps.findIndex(s => s.id === selectedStepId) + 1;
-                if (nextIndex < constructionSteps.length) {
-                  setSelectedStepId(constructionSteps[nextIndex].id);
+                const nextIndex = visibleSteps.findIndex(s => s.id === selectedStepId) + 1;
+                if (nextIndex < visibleSteps.length) {
+                  setSelectedStepId(visibleSteps[nextIndex].id);
                 }
               }}
               onPrevious={() => {
-                const prevIndex = constructionSteps.findIndex(s => s.id === selectedStepId) - 1;
+                const prevIndex = visibleSteps.findIndex(s => s.id === selectedStepId) - 1;
                 if (prevIndex >= 0) {
-                  setSelectedStepId(constructionSteps[prevIndex].id);
+                  setSelectedStepId(visibleSteps[prevIndex].id);
                 }
               }}
               hasNext={currentStepIndex < totalSteps}
@@ -286,7 +292,7 @@ const ConstructionGuide = () => {
               <StepCard
                 key={step.id}
                 step={step}
-                stepNumber={constructionSteps.findIndex(s => s.id === step.id) + 1}
+                stepNumber={visibleSteps.findIndex(s => s.id === step.id) + 1}
                 onClick={() => setSelectedStepId(step.id)}
               />
             ))}

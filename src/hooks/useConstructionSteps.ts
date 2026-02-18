@@ -26,12 +26,13 @@ export interface Phase {
   color: string;
 }
 
-// Step IDs for reference
+// Step IDs for reference (demolition-prep is only for agrandissement projects)
 export const stepIds = [
   "planification",
   "plans-permis",
   "soumissions",
   "financement",
+  "demolition-prep",
   "excavation",
   "fondation",
   "structure",
@@ -64,12 +65,16 @@ const phaseLabels = {
   "finitions": "steps.phases.finitions",
 } as const;
 
+// Steps only visible for certain project types
+export const agrandissementOnlySteps = ["demolition-prep"] as const;
+
 // Step metadata (non-translatable)
 const stepMeta: Record<StepId, { phase: Step["phase"]; icon: string }> = {
   planification: { phase: "pre-construction", icon: "ClipboardList" },
   "plans-permis": { phase: "pre-construction", icon: "FileText" },
   soumissions: { phase: "pre-construction", icon: "FileCheck" },
   financement: { phase: "pre-construction", icon: "DollarSign" },
+  "demolition-prep": { phase: "gros-oeuvre", icon: "Hammer" },
   excavation: { phase: "gros-oeuvre", icon: "Shovel" },
   fondation: { phase: "gros-oeuvre", icon: "Layers" },
   structure: { phase: "gros-oeuvre", icon: "Home" },
@@ -98,6 +103,7 @@ const stepTaskIds: Record<StepId, string[]> = {
   "plans-permis": ["plans-architecture", "test-sol", "services-publics", "permis-construction"],
   soumissions: ["obtenir-soumissions", "assurance-chantier"],
   financement: ["pret-construction"],
+  "demolition-prep": ["protection-existant", "demolition-int", "demolition-ext", "nettoyage-debris"],
   excavation: ["implantation", "deboisement", "excavation-creusage"],
   fondation: ["coulage-fondation", "drain-remblai"],
   structure: ["plancher", "murs", "etage", "fermes-toit", "pontage", "etancheite"],

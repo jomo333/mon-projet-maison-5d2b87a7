@@ -26,6 +26,7 @@ const stepTradeMapping: Record<string, string> = {
   financement: "autre",
   "plans-permis": "autre",
   soumissions: "autre",
+  "demolition-prep": "demolition",
   excavation: "excavation",
   fondation: "fondation",
   structure: "charpente",
@@ -54,6 +55,7 @@ const defaultDurations: Record<string, number> = {
   "plans-permis": 40,
   soumissions: 15,
   financement: 15,
+  "demolition-prep": 5,
   excavation: 5,
   fondation: 5,
   structure: 8,
@@ -170,17 +172,25 @@ function calculateAdjustedDuration(
 }
 
 /**
- * Récupère la superficie d'un projet
+ * Récupère la superficie et le type d'un projet
  */
-async function getProjectSquareFootage(projectId: string): Promise<number | null> {
+async function getProjectInfo(projectId: string): Promise<{ squareFootage: number | null; projectType: string | null }> {
   const { data, error } = await supabase
     .from("projects")
-    .select("square_footage")
+    .select("square_footage, project_type")
     .eq("id", projectId)
     .single();
 
-  if (error || !data) return null;
-  return data.square_footage;
+  if (error || !data) return { squareFootage: null, projectType: null };
+  return { squareFootage: data.square_footage, projectType: data.project_type };
+}
+
+/**
+ * Récupère la superficie d'un projet (kept for backwards compat)
+ */
+async function getProjectSquareFootage(projectId: string): Promise<number | null> {
+  const info = await getProjectInfo(projectId);
+  return info.squareFootage;
 }
 
 /**
@@ -265,22 +275,29 @@ export async function generateProjectSchedule(
   
   try {
     // Récupérer les durées de référence et la superficie du projet
-    console.log("[generateProjectSchedule] Fetching reference durations and project square footage...");
-    const [referenceDurations, projectSquareFootage] = await Promise.all([
+    console.log("[generateProjectSchedule] Fetching reference durations and project info...");
+    const [referenceDurations, projectInfo] = await Promise.all([
       getReferenceDurations(),
-      getProjectSquareFootage(projectId),
+      getProjectInfo(projectId),
     ]);
+    const projectSquareFootage = projectInfo.squareFootage;
+    const isAgrandissement = projectInfo.projectType?.toLowerCase()?.includes("agrandissement") ?? false;
     
-    console.log(`[generateProjectSchedule] Reference durations: ${referenceDurations.size} entries, Project square footage: ${projectSquareFootage || 'N/A'} pi²`);
+    console.log(`[generateProjectSchedule] Reference durations: ${referenceDurations.size} entries, Project square footage: ${projectSquareFootage || 'N/A'} pi², Type: ${projectInfo.projectType || 'N/A'}`);
 
     // Trouver l'index de départ dans constructionSteps
     // Si startingStepId est fourni, l'utiliser directement
     // Sinon, commencer à "planification"
     const startFromStep = startingStepId || "planification";
     const startIndex = constructionSteps.findIndex(s => s.id === startFromStep);
-    const stepsToSchedule = startIndex >= 0 
+    const allStepsToSchedule = startIndex >= 0 
       ? constructionSteps.slice(startIndex) 
       : constructionSteps;
+
+    // Filter demolition-prep: only include for agrandissement projects
+    const stepsToSchedule = allStepsToSchedule.filter(s => 
+      s.id !== "demolition-prep" || isAgrandissement
+    );
 
     // Séparer les étapes de préparation et les étapes de construction
     const prepSteps = stepsToSchedule.filter(s => preparationSteps.includes(s.id));

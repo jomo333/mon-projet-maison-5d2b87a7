@@ -56,6 +56,7 @@ export const categoryColors = [
 const physicalWorkSteps = constructionSteps.filter(
   step => (step.phase === "gros-oeuvre" || step.phase === "second-oeuvre" || step.phase === "finitions") 
     && step.id !== "inspections-finales"
+    && step.id !== "demolition-prep" // handled separately via project type
 );
 
 // IDs to merge (ONLY plumbing and electrical rough-in + finition phases)
@@ -90,10 +91,15 @@ const normalizeKey = (s: unknown) =>
 
 type MappingTarget = { target: string; weight: number };
 
-// Analysis (12 catégories) -> Postes (17 étapes)
+// Analysis (12 catégories) -> Postes (17+ étapes)
 // IMPORTANT: les `target` doivent correspondre EXACTEMENT aux titres des étapes (constructionSteps)
 // sinon le poste reste à 0$.
 const analysisToStepMap: Record<string, MappingTarget[]> = {
+  // Agrandissement - démolition
+  "demolition": [{ target: "Démolition et préparation", weight: 1 }],
+  "demolition et preparation": [{ target: "Démolition et préparation", weight: 1 }],
+  "preparation": [{ target: "Démolition et préparation", weight: 1 }],
+
   // Gros œuvre
   "excavation": [{ target: "Excavation", weight: 1 }],
 
@@ -167,10 +173,23 @@ const analysisToStepMap: Record<string, MappingTarget[]> = {
 };
 
 // Build merged categories
-export const buildDefaultCategories = (): BudgetCategory[] => {
+export const buildDefaultCategories = (projectType?: string): BudgetCategory[] => {
   const result: BudgetCategory[] = [];
   const mergedCategories: Record<string, { tasks: string[]; color: string }> = {};
   let colorIndex = 0;
+
+  // For agrandissement, add "Démolition et préparation" as first gros-oeuvre category
+  const isAgrandissement = projectType?.toLowerCase()?.includes("agrandissement");
+  if (isAgrandissement) {
+    result.push({
+      name: "Démolition et préparation",
+      budget: 0,
+      spent: 0,
+      color: categoryColors[colorIndex % categoryColors.length],
+      description: "Protection de l'existant, démolition intérieure/extérieure, nettoyage des débris",
+    });
+    colorIndex++;
+  }
 
   for (const step of physicalWorkSteps) {
     const mergedName = mergeMap[step.id];
@@ -223,8 +242,8 @@ export const buildDefaultCategories = (): BudgetCategory[] => {
 export const defaultCategories: BudgetCategory[] = buildDefaultCategories();
 
 // Get the ordered category names (for consistent display order)
-export const getOrderedCategoryNames = (): string[] => {
-  return defaultCategories.map(cat => cat.name);
+export const getOrderedCategoryNames = (projectType?: string): string[] => {
+  return buildDefaultCategories(projectType).map(cat => cat.name);
 };
 
 // Result type that includes separate taxes and contingency
@@ -255,10 +274,14 @@ export const mapAnalysisToStepCategoriesWithExtras = (
   defaults: BudgetCategory[] = defaultCategories,
   projectConfig?: ProjectConfig
 ): MappedBudgetResult => {
-  // First filter defaults based on project type (e.g., remove basement-related categories for garage with monolithic slab)
-  const filteredDefaults = projectConfig 
-    ? filterCategoriesForProjectType(defaults, projectConfig)
+  // Build categories with project type support (e.g., adds demolition for agrandissement)
+  const projectTypeDefaults = projectConfig?.projectType
+    ? buildDefaultCategories(projectConfig.projectType)
     : defaults;
+  // Then filter based on project configuration (e.g., remove basement for garage with monolithic slab)
+  const filteredDefaults = projectConfig 
+    ? filterCategoriesForProjectType(projectTypeDefaults, projectConfig)
+    : projectTypeDefaults;
     
   const mapped: BudgetCategory[] = filteredDefaults.map((d) => ({
     ...d,

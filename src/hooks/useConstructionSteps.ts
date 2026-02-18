@@ -107,7 +107,7 @@ const stepTaskIds: Record<StepId, string[]> = {
   "plomberie-sous-dalle": ["plomberie-sous-dalle-visite"],
   "dalle-sous-sol": ["preparation-dalle", "coulage-dalle"],
   "murs-division": ["construire-escalier", "ossature-murs", "cadrage-portes"],
-  "plomberie-roughin": ["plomberie-brute", "chauffe-eau", "conduite-gaz", "branchements"],
+  "plomberie-roughin": ["plomberie-brute", "chauffe-eau", "conduite-gaz", "balayeuse-centrale", "branchements"],
   "electricite-roughin": ["entree-electrique", "filage", "inspection-electrique"],
   hvac: ["chauffage", "vrc", "conduits"],
   exterieur: ["revetement", "fascia-soffite", "balcons-terrasses", "amenagement"],

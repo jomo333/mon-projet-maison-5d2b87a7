@@ -2364,6 +2364,15 @@
             "Plan appliance locations before installation"
           ]
         },
+        "balayeuse-centrale": {
+          "title": "Central vacuum conduit",
+          "description": "Installation of PVC conduits for the built-in central vacuum system.",
+          "tips": [
+            "Plan wall inlet locations before closing walls",
+            "Use 2-inch diameter conduits for proper suction airflow",
+            "Install the main unit outlet near the electrical panel or in the garage"
+          ]
+        },
         "branchements": {
           "title": "Municipal connections",
           "description": "Connection to water and sewer systems.",

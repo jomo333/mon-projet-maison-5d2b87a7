@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.sync-plan-to-stripe]
 verify_jwt = false
+
+[functions.extract-invoice-price]
+verify_jwt = false

@@ -690,6 +690,14 @@
       "placeholder": "Ex: 14 jours",
       "tooltip": "Exemple : 14 jours – contacter le fournisseur 2 semaines avant le début de l'étape."
     },
+    "orderNotice": {
+      "title": "Préavis de commande",
+      "description": "Indique le délai requis pour commander les matériaux avant le début de cette étape. Le système créera une alerte pour te rappeler de passer la commande à temps.",
+      "label": "jours avant le début des travaux",
+      "placeholder": "Ex: 14",
+      "save": "Enregistrer le préavis",
+      "daysOnly": "La valeur est en jours (pas en semaines ni en mois)."
+    },
     "taskSubmissions": {
       "title": "Soumissions par tâche",
       "noSupplier": "Aucun fournisseur assigné pour cette tâche",
@@ -3904,6 +3912,7 @@
     "supplierPhone": "Téléphone",
     "supplierPhonePlaceholder": "Ex: 450-123-4567",
     "orderLeadDays": "Préavis de commande",
+    "orderLeadDaysHint": "Valeur en jours, pas en semaines ni en mois.",
     "orderLeadHint": "Une alerte sera créée X jours avant le début de l'étape pour commander vos matériaux."
   }
 }

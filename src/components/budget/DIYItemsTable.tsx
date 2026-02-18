@@ -490,11 +490,16 @@ export function DIYItemsTable({
 
                               {/* Order lead days per item */}
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-amber-600" />
-                                  <span className="text-sm font-medium">
-                                    {t("diyItems.orderLeadDays", "Préavis de commande")}
-                                  </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-amber-600" />
+                                    <span className="text-sm font-medium">
+                                      {t("diyItems.orderLeadDays", "Préavis de commande")} (jours)
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground italic">
+                                    {t("diyItems.orderLeadDaysHint", "Valeur en jours, pas en semaines ni en mois.")}
+                                  </p>
                                 </div>
                                 <Input
                                   type="number"

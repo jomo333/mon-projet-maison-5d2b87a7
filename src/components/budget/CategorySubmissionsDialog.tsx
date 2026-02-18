@@ -2618,7 +2618,7 @@ export function CategorySubmissionsDialog({
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
                             <h5 className="font-medium text-amber-700 dark:text-amber-400 text-sm">
-                              {t("categorySubmissions.orderNotice.title", "Préavis de commande")}
+                              {t("categorySubmissions.orderNotice.title", "Préavis de commande")} (jours)
                             </h5>
                             <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">
                               Important
@@ -2645,6 +2645,9 @@ export function CategorySubmissionsDialog({
                             />
                             <span className="text-xs text-muted-foreground">{t("categorySubmissions.orderNotice.label", "jours avant le début des travaux")}</span>
                           </div>
+                          <p className="text-xs text-muted-foreground/90 italic">
+                            {t("categorySubmissions.orderNotice.daysOnly", "La valeur est en jours (pas en semaines ni en mois).")}
+                          </p>
                           <Button
                             variant="outline"
                             size="sm"

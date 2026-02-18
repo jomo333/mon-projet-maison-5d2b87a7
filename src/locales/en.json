@@ -690,6 +690,14 @@
       "placeholder": "E.g. 14 days",
       "tooltip": "Example: 14 days – contact the supplier 2 weeks before the step starts."
     },
+    "orderNotice": {
+      "title": "Order lead time",
+      "description": "Specify the lead time required to order materials before this step begins. The system will create an alert to remind you to place the order on time.",
+      "label": "days before work starts",
+      "placeholder": "E.g. 14",
+      "save": "Save lead time",
+      "daysOnly": "Value is in days (not weeks or months)."
+    },
     "taskSubmissions": {
       "title": "Submissions by task",
       "noSupplier": "No supplier assigned for this task",
@@ -3882,6 +3890,7 @@
     "supplierPhone": "Phone",
     "supplierPhonePlaceholder": "E.g., 450-123-4567",
     "orderLeadDays": "Order lead time",
+    "orderLeadDaysHint": "Value in days, not weeks or months.",
     "orderLeadHint": "An alert will be created X days before the step start to order your materials."
   }
 }

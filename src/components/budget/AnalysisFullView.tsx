@@ -137,9 +137,9 @@ export function AnalysisFullView({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
           {/* Left Panel - Analysis Result */}
-          <div className="flex-1 border-r overflow-hidden flex flex-col">
+          <div className="flex-1 border-r overflow-hidden flex flex-col min-w-0">
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
@@ -172,7 +172,7 @@ export function AnalysisFullView({
           </div>
 
           {/* Right Panel - Supplier Selection */}
-          <div className="w-[350px] min-w-[350px] flex flex-col bg-muted/20">
+          <div className="w-full md:w-[350px] md:min-w-[300px] flex flex-col bg-muted/20 shrink-0">
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />

@@ -512,9 +512,9 @@ export function DIYAnalysisView({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
           {/* Main Panel - Analysis Result */}
-          <div className="flex-1 border-r overflow-hidden flex flex-col">
+          <div className="flex-1 border-r overflow-hidden flex flex-col min-w-0">
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -550,7 +550,7 @@ export function DIYAnalysisView({
           </div>
 
           {/* Right Panel - Supplier Selection */}
-          <div className="w-[380px] min-w-[380px] flex flex-col bg-amber-50/30 dark:bg-amber-950/10">
+          <div className="w-full md:w-[380px] md:min-w-[300px] flex flex-col bg-amber-50/30 dark:bg-amber-950/10 shrink-0">
             <div className="p-4 border-b bg-background">
               <h3 className="font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
                 <ShoppingCart className="h-5 w-5" />

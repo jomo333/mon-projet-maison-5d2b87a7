@@ -7,6 +7,7 @@ const PLAN_NAME_TO_TIER_KEY: Record<string, string> = {
   "Découverte": "decouverte",
   "Essentiel": "essentiel",
   "Gestion complète": "gestionComplete",
+  "Pro": "gestionComplete", // rétrocompatibilité : ancien nom remplacé par "Gestion complète"
 };
 
 /**

@@ -28,7 +28,7 @@ export interface PlanLimitsHook {
 }
 
 export function usePlanLimits(): PlanLimitsHook {
-  const { plan, limits, usage, loading, refetch } = useSubscription();
+  const { plan, limits, usage, loading, refetch, subscription } = useSubscription();
   const { isAdmin } = useAdmin();
 
   const checkLimit = useCallback(
@@ -132,6 +132,9 @@ export function usePlanLimits(): PlanLimitsHook {
   const canUseBudgetAndSchedule = useMemo(() => {
     if (isAdmin) return true;
     if (loading) return true; // Ne pas verrouiller pendant le chargement
+    // 0) Si abonnement actif avec plan_id = forfait payant (même si le plan n'est pas chargé correctement)
+    const paidStatuses = ["active", "trial", "paused", "past_due"];
+    if (subscription?.plan_id && paidStatuses.includes(subscription?.status || "")) return true;
     const rawName = plan?.name || "Découverte";
     const name = rawName.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""); // "essentiel" même avec accents
     // 1) Forfaits payants par nom : Essentiel et Gestion complète uniquement (inclut variantes)
@@ -139,11 +142,10 @@ export function usePlanLimits(): PlanLimitsHook {
     if (paidNames.some((paid) => name.includes(paid))) return true;
     // 2) Nom brut contient "Essentiel" (casse/unicode éventuel)
     if (/essentiel|essential/i.test(rawName)) return true;
-    // 3) Secours par limites : Essentiel = 3 projets, 5 IA ; Gratuit = 1, 0 ou 1
-    const essentielMin = { projects: 3, ai_analyses: 5 };
+    // 3) Secours par limites : Essentiel = 1 projet, 10 IA ; Gratuit = 1 projet, 0 IA
     const hasEssentielLimits =
-      (limits.projects >= essentielMin.projects && limits.projects !== -1) ||
-      (limits.ai_analyses >= essentielMin.ai_analyses && limits.ai_analyses !== -1);
+      (limits.ai_analyses >= 10 && limits.ai_analyses !== -1) ||
+      (limits.projects === -1);
     if (hasEssentielLimits) return true;
     const freeTier = { projects: 1, ai_analyses: 1 };
     const hasPaidLimits =
@@ -155,7 +157,7 @@ export function usePlanLimits(): PlanLimitsHook {
     const isFreePlanName = name === "gratuit" || name === "découverte" || name === "decouverte";
     if (!isFreePlanName) return true; // Plans inconnus = accès par défaut
     return false;
-  }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading]);
+  }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading, subscription?.plan_id, subscription?.status]);
 
   return {
     limits,

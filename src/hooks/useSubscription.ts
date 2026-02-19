@@ -172,6 +172,15 @@ export function useSubscription(): SubscriptionData {
     fetchData();
   }, [user?.id]);
 
+  // Recharger l'abonnement quand l'utilisateur revient sur l'onglet (ex: admin a changé le forfait)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && user) fetchData();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [user?.id]);
+
   const limits = plan?.limits || DEFAULT_LIMITS;
 
   return {

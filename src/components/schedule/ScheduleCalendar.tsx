@@ -30,11 +30,14 @@ import { getDateLocale } from "@/lib/i18n";
 interface ScheduleCalendarProps {
   schedules: ScheduleItem[];
   conflicts: { date: string; trades: string[] }[];
+  /** Appelé au clic sur un jour (pour ajouter une tâche manuelle avec cette date) */
+  onDayClick?: (date: Date) => void;
 }
 
 export const ScheduleCalendar = ({
   schedules,
   conflicts,
+  onDayClick,
 }: ScheduleCalendarProps) => {
   const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
@@ -84,7 +87,13 @@ export const ScheduleCalendar = ({
   return (
     <div className="bg-card rounded-lg border p-4">
       {/* Header avec navigation */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        {onDayClick && (
+          <p className="text-xs text-muted-foreground">
+            {t("schedule.clickDayToAddTask", "Cliquez sur un jour pour ajouter une tâche manuelle")}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -156,11 +165,13 @@ export const ScheduleCalendar = ({
           return (
             <div
               key={day.toISOString()}
+              onClick={() => onDayClick?.(day)}
               className={cn(
                 "h-24 border rounded-md p-1 overflow-hidden",
                 isWeekendDay && "bg-muted/50",
                 isConflict && "border-destructive border-2",
-                isToday && "ring-2 ring-primary"
+                isToday && "ring-2 ring-primary",
+                onDayClick && "cursor-pointer hover:bg-muted/80 transition-colors"
               )}
             >
               <div className="flex justify-between items-start">

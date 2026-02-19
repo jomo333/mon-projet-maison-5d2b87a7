@@ -35,6 +35,7 @@ import { ScheduleCalendar } from "@/components/schedule/ScheduleCalendar";
 import { ScheduleGantt } from "@/components/schedule/ScheduleGantt";
 import { AlertsPanel } from "@/components/schedule/AlertsPanel";
 import { AddScheduleDialog } from "@/components/schedule/AddScheduleDialog";
+import { AddManualTaskDialog } from "@/components/schedule/AddManualTaskDialog";
 import { getDateLocale } from "@/lib/i18n";
 import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 
@@ -46,6 +47,8 @@ const Schedule = () => {
   const selectedProjectId = searchParams.get("project");
   const [activeTab, setActiveTab] = useState("gantt");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [manualTaskDialogOpen, setManualTaskDialogOpen] = useState(false);
+  const [manualTaskPreselectedDate, setManualTaskPreselectedDate] = useState<string | null>(null);
 
   // Fetch user projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -76,6 +79,7 @@ const Schedule = () => {
     alerts,
     isLoading,
     createSchedule,
+    createManualTask,
     updateSchedule,
     deleteSchedule,
     dismissAlert,
@@ -231,13 +235,34 @@ const Schedule = () => {
               </Select>
 
               {selectedProjectId && (
-                <AddScheduleDialog
-                  projectId={selectedProjectId}
-                  onAdd={(schedule) => {
-                    createSchedule(schedule as any);
-                  }}
-                  calculateEndDate={calculateEndDate}
-                />
+                <div className="flex items-center gap-2">
+                  <AddManualTaskDialog
+                    projectId={selectedProjectId}
+                    onAdd={async (task) => {
+                      await createManualTask(task);
+                    }}
+                    calculateEndDate={calculateEndDate}
+                    preselectedDate={manualTaskPreselectedDate}
+                    open={manualTaskDialogOpen}
+                    onOpenChange={(open) => {
+                      setManualTaskDialogOpen(open);
+                      if (!open) setManualTaskPreselectedDate(null);
+                    }}
+                    trigger={
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        {t("schedule.addManualTask", "Tâche manuelle")}
+                      </Button>
+                    }
+                  />
+                  <AddScheduleDialog
+                    projectId={selectedProjectId}
+                    onAdd={(schedule) => {
+                      createSchedule(schedule as any);
+                    }}
+                    calculateEndDate={calculateEndDate}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -350,6 +375,10 @@ const Schedule = () => {
                   <ScheduleCalendar
                     schedules={schedules}
                     conflicts={conflicts}
+                    onDayClick={(date) => {
+                      setManualTaskPreselectedDate(format(date, "yyyy-MM-dd"));
+                      setManualTaskDialogOpen(true);
+                    }}
                   />
                 )}
                 {activeTab === "gantt" && (

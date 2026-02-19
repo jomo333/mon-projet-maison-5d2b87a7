@@ -64,6 +64,18 @@ const minimumDelayAfterStep: Record<string, { afterStep: string; days: number; r
 // Ces étapes commencent après leur étape prérequise mais n'affectent pas la séquence des travaux intérieurs
 const parallelSteps: Set<string> = new Set(["exterieur"]);
 
+/** Tâche manuelle "travaux en simultané" - ne déplace pas l'échéancier */
+const isOverlayTask = (s: ScheduleItem): boolean => {
+  if (s.step_id !== "manual") return false;
+  if (!s.notes) return false;
+  try {
+    const parsed = JSON.parse(s.notes) as { isOverlay?: boolean };
+    return !!parsed.isOverlay;
+  } catch {
+    return false;
+  }
+};
+
 // Mapping soumission trade ID -> schedule step_id
 const soumissionTradeToStepId: Record<string, string> = {
   "chauffage-et-ventilation": "hvac",
@@ -624,6 +636,9 @@ export const useProjectSchedule = (projectId: string | null) => {
       const s = sorted[i];
       const duration = (s.actual_days ?? s.estimated_days ?? 1) || 1;
 
+      // Tâches overlay (travaux en simultané) - ne pas modifier, ne pas participer au recalcul
+      if (isOverlayTask(s)) continue;
+
       // Étapes terminées = ne pas toucher (sauf normalisation)
       if (s.status === "completed") {
         const norm = normalizeCompletedDates(s);
@@ -1002,6 +1017,8 @@ export const useProjectSchedule = (projectId: string | null) => {
       if (!schedule.start_date || !schedule.end_date) continue;
       // Ignorer les trades administratifs
       if (ignoredTrades.includes(schedule.trade_type)) continue;
+      // Ignorer les tâches "travaux en simultané" - elles peuvent chevaucher volontairement
+      if (isOverlayTask(schedule)) continue;
 
       const start = parseISO(schedule.start_date);
       const end = parseISO(schedule.end_date);
@@ -1653,6 +1670,69 @@ export const useProjectSchedule = (projectId: string | null) => {
     return result;
   };
 
+  type ManualTaskInput = {
+    description: string;
+    start_date: string;
+    estimated_days: number;
+    linked_step_id: string | null;
+    is_overlay: boolean;
+    trade_type: string;
+  };
+
+  const createManualTask = async (task: ManualTaskInput) => {
+    if (!projectId) return;
+
+    const endDate = calculateEndDate(task.start_date, task.estimated_days);
+    const tradeColor = getTradeColor(task.trade_type);
+    const notes = JSON.stringify({
+      isOverlay: task.is_overlay,
+      linkedStepId: task.linked_step_id || undefined,
+    });
+
+    const schedule: Omit<ScheduleItem, "id" | "created_at" | "updated_at"> = {
+      project_id: projectId,
+      step_id: "manual",
+      step_name: task.description.trim(),
+      trade_type: task.trade_type,
+      trade_color: tradeColor,
+      estimated_days: task.estimated_days,
+      actual_days: null,
+      start_date: task.start_date,
+      end_date: endDate,
+      supplier_name: null,
+      supplier_phone: null,
+      supplier_schedule_lead_days: 0,
+      fabrication_lead_days: 0,
+      fabrication_start_date: null,
+      measurement_required: false,
+      measurement_after_step_id: task.linked_step_id,
+      measurement_notes: null,
+      status: "scheduled",
+      notes,
+      is_manual_date: true,
+    };
+
+    const { error } = await supabase
+      .from("project_schedules")
+      .insert([schedule as any])
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+
+    if (task.is_overlay) {
+      toast({ title: "Tâche ajoutée (travaux en simultané)" });
+    } else {
+      await fetchAndRegenerateSchedule();
+      toast({ title: "Tâche ajoutée - Échéancier mis à jour" });
+    }
+  };
+
   return {
     schedules: schedulesQuery.data || [],
     alerts: alertsQuery.data || [],
@@ -1660,6 +1740,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     isLoadingAlerts: alertsQuery.isLoading,
     createSchedule: createScheduleMutation.mutate,
     createScheduleAsync: createScheduleMutation.mutateAsync,
+    createManualTask,
     updateSchedule: updateScheduleMutation.mutate,
     updateScheduleAsync: updateScheduleMutation.mutateAsync,
     deleteSchedule: deleteScheduleMutation.mutate,

@@ -27,12 +27,12 @@ export const tradeTypes: TradeType[] = [
   { id: "inspecteur", name: "Inspecteur", color: "#DC2626" },
   { id: "arpenteur", name: "Arpenteur", color: "#7C3AED" },
   { id: "entrepreneur-general", name: "Entrepreneur général", color: "#1E3A5F" },
-  { id: "autre", name: "Autre", color: "#6B7280" },
+  { id: "autre", name: "Autre", color: "#DC2626" },
 ];
 
 export const getTradeColor = (tradeId: string): string => {
   const trade = tradeTypes.find(t => t.id === tradeId);
-  return trade?.color || "#6B7280";
+  return trade?.color || "#DC2626";
 };
 
 export const getTradeName = (tradeId: string): string => {

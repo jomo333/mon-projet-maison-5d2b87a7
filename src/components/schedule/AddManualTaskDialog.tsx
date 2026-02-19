@@ -31,7 +31,6 @@ import { CalendarPlus, CalendarIcon, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { constructionSteps } from "@/data/constructionSteps";
-import { tradeTypes, getTradeColor } from "@/data/tradeTypes";
 
 export interface ManualTaskData {
   description: string;
@@ -171,34 +170,6 @@ export const AddManualTaskDialog = ({
                 {constructionSteps.map((step) => (
                   <SelectItem key={step.id} value={step.id}>
                     {step.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Métier / catégorie */}
-          <div className="space-y-2">
-            <Label>{t("scheduleDialog.trade", "Métier")}</Label>
-            <Select
-              value={formData.trade_type}
-              onValueChange={(v) =>
-                setFormData({ ...formData, trade_type: v })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {tradeTypes.map((trade) => (
-                  <SelectItem key={trade.id} value={trade.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: trade.color }}
-                      />
-                      {trade.name}
-                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

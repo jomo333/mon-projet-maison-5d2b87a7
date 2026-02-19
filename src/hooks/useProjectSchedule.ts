@@ -1724,6 +1724,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     }
 
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+    await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
 
     if (task.is_overlay) {
       toast({ title: "Tâche ajoutée (travaux en simultané)" });

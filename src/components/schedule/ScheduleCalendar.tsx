@@ -94,23 +94,24 @@ export const ScheduleCalendar = ({
           </p>
         )}
         <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h3 className="font-semibold text-lg">
-          {format(currentMonth, "MMMM yyyy", { locale: dateLocale })}
-        </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h3 className="font-semibold text-lg">
+            {format(currentMonth, "MMMM yyyy", { locale: dateLocale })}
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Légende des métiers */}

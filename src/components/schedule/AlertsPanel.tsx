@@ -89,7 +89,7 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
     return { level: "upcoming", labelKey: "upcoming", variant: "secondary" as const };
   };
 
-  // Show upgrade prompt for non-premium users
+  // Alertes : Gestion complète uniquement (pas Essentiel)
   if (!planLoading && !hasFullManagement) {
     return (
       <Card>

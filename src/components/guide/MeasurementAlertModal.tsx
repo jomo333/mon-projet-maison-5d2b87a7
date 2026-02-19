@@ -95,7 +95,7 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   const dateLocale = getDateLocale();
   const [isOpen, setIsOpen] = useState(false);
   
-  // Check if user has premium plan for alerts
+  // Alertes : Gestion complète uniquement (pas Essentiel)
   const { hasFullManagement, loading: planLoading } = usePlanLimits();
   
   // Initialize acknowledged alerts synchronously from localStorage
@@ -131,7 +131,7 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
   // Check if we should show the modal - only for premium users
   useEffect(() => {
     if (planLoading) return;
-    if (!hasFullManagement) return; // Don't show modal for non-premium users
+    if (!hasFullManagement) return; // Gestion complète only
     
     if (visibleAlerts.length > 0 && projectId) {
       // Check localStorage to see if we've snoozed
@@ -160,7 +160,7 @@ export const MeasurementAlertModal = ({ alerts, projectId }: MeasurementAlertMod
     return { level: "upcoming", labelKey: "upcoming", variant: "secondary" as const };
   };
 
-  // Don't render anything for non-premium users or if no alerts
+  // Ne rien afficher si pas Gestion complète ou pas d'alertes
   if (!hasFullManagement || visibleAlerts.length === 0) {
     return null;
   }

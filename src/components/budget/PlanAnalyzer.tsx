@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { getSignedUrl } from "@/hooks/useSignedUrl";
 import { 
   Sparkles, 
@@ -160,6 +161,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { canUseAI } = usePlanLimits();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BudgetAnalysis | null>(null);
   const [analysisMode, setAnalysisMode] = useState<"manual" | "plan">(
@@ -674,6 +676,16 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; completed: number } | null>(null);
 
   const handleAnalyze = async () => {
+    const aiCheck = canUseAI();
+    if (!aiCheck.allowed) {
+      toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+        action: {
+          label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+          onClick: () => navigate("/forfaits"),
+        },
+      });
+      return;
+    }
     if (analysisMode === "plan" && selectedPlanUrls.length === 0) {
       toast.error(t("toasts.selectOrUploadPlan"));
       return;
@@ -1018,7 +1030,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
           action: {
             label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-            onClick: () => navigate("/dashboard"),
+            onClick: () => navigate("/forfaits"),
           },
         });
       } else {
@@ -1806,7 +1818,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           </div>
           <Button 
             onClick={handleAnalyze} 
-            disabled={isAnalyzing || (analysisMode === "plan" && selectedPlanUrls.length === 0)}
+            disabled={isAnalyzing || !canUseAI().allowed || (analysisMode === "plan" && selectedPlanUrls.length === 0)}
             className="w-full sm:w-auto gap-2"
             variant="accent"
           >

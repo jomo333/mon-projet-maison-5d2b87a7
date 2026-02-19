@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { PlanUsageCard } from "@/components/subscription/PlanUsageCard";
 import { formatCurrency } from "@/lib/i18n";
 import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
 import { toast } from "sonner";
@@ -143,10 +144,17 @@ export default function Plans() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="py-16 lg:py-20 bg-gradient-to-b from-muted/50 to-background">
-          <div className="container max-w-4xl text-center">
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-6">
-              {t("plans.heroTitle")}
-            </h1>
+          <div className="container max-w-4xl">
+            <div className="text-center mb-10">
+              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-6">
+                {t("plans.heroTitle")}
+              </h1>
+            </div>
+            {user && (
+              <div className="max-w-md mx-auto">
+                <PlanUsageCard />
+              </div>
+            )}
           </div>
         </section>
 

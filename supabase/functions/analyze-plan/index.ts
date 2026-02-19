@@ -2427,7 +2427,12 @@ serve(async (req) => {
     });
     if (limitError) {
       console.error('check_ai_analysis_limit error:', limitError);
-    } else if (limitCheck && typeof limitCheck === 'object' && limitCheck.allowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Impossible de vérifier la limite d'analyses. Veuillez réessayer." }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (limitCheck && typeof limitCheck === 'object' && limitCheck.allowed === false) {
       return new Response(
         JSON.stringify({
           error: `Limite d'analyses IA atteinte (${limitCheck.current}/${limitCheck.limit} ce mois-ci). Passez à un forfait supérieur pour continuer.`,

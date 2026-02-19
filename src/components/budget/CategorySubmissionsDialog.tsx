@@ -1185,7 +1185,7 @@ export function CategorySubmissionsDialog({
           toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
             action: {
               label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-              onClick: () => navigate("/dashboard"),
+              onClick: () => navigate("/forfaits"),
             },
           });
           return;
@@ -1391,7 +1391,7 @@ export function CategorySubmissionsDialog({
           toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
             action: {
               label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-              onClick: () => navigate("/dashboard"),
+              onClick: () => navigate("/forfaits"),
             },
           });
           return;
@@ -1521,7 +1521,7 @@ export function CategorySubmissionsDialog({
           toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
             action: {
               label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-              onClick: () => navigate("/dashboard"),
+              onClick: () => navigate("/forfaits"),
             },
           });
           return;

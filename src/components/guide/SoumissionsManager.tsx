@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/i18n";
 import ReactMarkdown from "react-markdown";
@@ -6,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { tradeTypes } from "@/data/tradeTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ import {
   Save
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -106,9 +109,11 @@ interface SupplierFormData {
 }
 
 export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const { canUseAI } = usePlanLimits();
   const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
   const [uploadingTrade, setUploadingTrade] = useState<string | null>(null);
   const [supplierInputs, setSupplierInputs] = useState<Record<string, SupplierFormData>>({});
@@ -359,6 +364,17 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       return;
     }
 
+    const limitCheck = canUseAI();
+    if (!limitCheck.allowed) {
+      sonnerToast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+        action: {
+          label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+          onClick: () => navigate("/forfaits"),
+        },
+      });
+      return;
+    }
+
     setAnalysisStates(prev => ({
       ...prev,
       [tradeId]: { tradeId, isAnalyzing: true, result: null }
@@ -390,7 +406,17 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 402) {
+          sonnerToast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+            action: {
+              label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+              onClick: () => navigate("/forfaits"),
+            },
+          });
+          setAnalysisStates(prev => ({ ...prev, [tradeId]: { tradeId, isAnalyzing: false, result: null } }));
+          return;
+        }
         throw new Error(errorData.error || "Erreur lors de l'analyse");
       }
 
@@ -1001,7 +1027,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
                         variant="default"
                         size="sm"
                         onClick={() => analyzeSoumissions(trade.id, trade.name, trade.description)}
-                        disabled={docs.length === 0 || analysisStates[trade.id]?.isAnalyzing}
+                        disabled={docs.length === 0 || analysisStates[trade.id]?.isAnalyzing || !canUseAI().allowed}
                         className="w-full gap-2"
                       >
                         {analysisStates[trade.id]?.isAnalyzing ? (

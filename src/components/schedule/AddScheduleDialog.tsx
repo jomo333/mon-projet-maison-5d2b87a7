@@ -159,6 +159,8 @@ export const AddScheduleDialog = ({
       ? calculateEndDate(formData.start_date, formData.estimated_days)
       : null;
 
+    const hasStartDate = !!formData.start_date;
+
     onAdd({
       project_id: projectId,
       step_id: formData.step_id,
@@ -168,6 +170,7 @@ export const AddScheduleDialog = ({
       estimated_days: formData.estimated_days,
       start_date: formData.start_date || null,
       end_date: endDate,
+      is_manual_date: hasStartDate,
       supplier_name: formData.supplier_name || null,
       supplier_phone: formData.supplier_phone || null,
       supplier_schedule_lead_days: formData.supplier_schedule_lead_days,
@@ -176,7 +179,7 @@ export const AddScheduleDialog = ({
       measurement_after_step_id: formData.measurement_after_step_id || null,
       measurement_notes: formData.measurement_notes || null,
       notes: formData.notes || null,
-      status: formData.start_date ? "scheduled" : "pending",
+      status: hasStartDate ? "scheduled" : "pending",
     });
 
     setOpen(false);

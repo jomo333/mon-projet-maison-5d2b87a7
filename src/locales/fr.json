@@ -1763,6 +1763,8 @@
     "selectSubcategory": "Veuillez sélectionner une sous-catégorie",
     "rateLimit": "Limite de requêtes atteinte, veuillez réessayer plus tard.",
     "insufficientCredits": "Crédits insuffisants. Veuillez recharger votre compte.",
+    "freePlanLimitReached": "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA.",
+    "analysisServiceUnavailable": "Le service d'analyse est temporairement indisponible. Veuillez réessayer plus tard.",
     "analysisDone": "Analyse terminée avec succès",
     "uploadPlansFirst": "Veuillez d'abord télécharger des soumissions",
     "materialsCostSaved": "Coût des matériaux enregistré",

@@ -131,17 +131,21 @@ export const ScheduleTable = ({
     try {
       const original = schedules.find((s) => s.id === editingId);
 
-      // IMPORTANT:
-      // - end_date est une valeur DÉRIVÉE (calculée) et ne doit pas être envoyée à onUpdate,
-      //   sinon on persiste une date "planifiée" et la complétion ne décale pas les étapes suivantes.
-      // - on laisse le hook recalculer et persister les nouvelles dates.
       const update: Partial<ScheduleItem> & { id: string } = {
         id: editingId,
         ...editData,
       };
 
-      // Ne jamais envoyer end_date depuis ce formulaire (champ calculé/readonly)
-      delete (update as any).end_date;
+      // Quand l'utilisateur change la date de début manuellement :
+      // - inclure end_date recalculée pour garder cohérence (surtout pour tâches terminées)
+      // - verrouiller avec is_manual_date pour éviter qu'une régénération n'écrase la date
+      if (update.start_date) {
+        const days = update.actual_days ?? update.estimated_days ?? original?.estimated_days ?? 1;
+        (update as any).end_date = calculateEndDate(update.start_date, days);
+        (update as any).is_manual_date = true;
+      } else {
+        delete (update as any).end_date;
+      }
 
       // Si l'utilisateur repasse une étape de "Terminé" à un autre statut via le Select,
       // on imite le comportement de "Annuler Terminé" (on revient aux durées estimées).

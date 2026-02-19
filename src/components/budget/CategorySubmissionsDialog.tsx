@@ -1182,7 +1182,13 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(errorData?.error || t("toasts.insufficientCredits", "Limite d'analyses IA atteinte. Passez à un forfait supérieur."));
+          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          return;
+        }
+        if (response.status === 500) {
+          const errMsg = errorData?.error || "";
+          const isApiError = /Claude API failed|API failed|400|limit|quota|rate limit/i.test(errMsg);
+          toast.error(isApiError ? t("toasts.analysisServiceUnavailable", "Le service d'analyse est temporairement indisponible. Veuillez réessayer plus tard.") : (errorData?.error || t("toasts.analysisError")));
           return;
         }
         throw new Error(errorData?.error || "Erreur lors de l'analyse");
@@ -1377,7 +1383,13 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(errorData?.error || t("toasts.insufficientCredits", "Limite d'analyses IA atteinte. Passez à un forfait supérieur."));
+          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          return;
+        }
+        if (response.status === 500) {
+          const errMsg = errorData?.error || "";
+          const isApiError = /Claude API failed|API failed|400|limit|quota|rate limit/i.test(errMsg);
+          toast.error(isApiError ? t("toasts.analysisServiceUnavailable", "Le service d'analyse est temporairement indisponible. Veuillez réessayer plus tard.") : (errorData?.error || t("toasts.analysisError")));
           return;
         }
         throw new Error(errorData?.error || "Erreur lors de l'analyse");
@@ -1495,6 +1507,16 @@ export function CategorySubmissionsDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 402) {
+          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          return;
+        }
+        if (response.status === 500) {
+          const errMsg = errorData?.error || "";
+          const isApiError = /Claude API failed|API failed|400|limit|quota|rate limit/i.test(errMsg);
+          toast.error(isApiError ? t("toasts.analysisServiceUnavailable", "Le service d'analyse est temporairement indisponible. Veuillez réessayer plus tard.") : (errorData?.error || t("toasts.analysisError")));
+          return;
+        }
         throw new Error(errorData.error || "Erreur lors de l'analyse");
       }
 

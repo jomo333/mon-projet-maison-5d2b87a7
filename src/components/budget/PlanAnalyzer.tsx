@@ -51,10 +51,15 @@ async function invokeAnalyzePlan(body: any): Promise<{ data: any; error: any }> 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Analyze-plan error:', response.status, errorText);
-      return { 
-        data: null, 
-        error: { message: `Erreur serveur ${response.status}: ${errorText.slice(0, 200)}` } 
-      };
+      let message: string;
+      if (response.status === 402) {
+        message = "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA.";
+      } else if (response.status === 500 && /Claude API failed|API failed|400|limit|quota|rate limit/i.test(errorText)) {
+        message = "Le service d'analyse est temporairement indisponible. Veuillez réessayer plus tard.";
+      } else {
+        message = `Erreur serveur ${response.status}: ${errorText.slice(0, 200)}`;
+      }
+      return { data: null, error: { message } };
     }
 
     const responseText = await response.text();

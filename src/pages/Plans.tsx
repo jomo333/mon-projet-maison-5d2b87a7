@@ -80,6 +80,8 @@ export default function Plans() {
         setPlans(
           data.map((plan) => ({
             ...plan,
+            price_monthly: Number(plan.price_monthly) || 0,
+            price_yearly: plan.price_yearly != null ? Number(plan.price_yearly) : null,
             features: Array.isArray(plan.features) ? plan.features as string[] : [],
             limits: (plan.limits as Plan["limits"]) || {},
           }))
@@ -96,38 +98,40 @@ export default function Plans() {
       navigate("/auth");
       return;
     }
-    // Forfait gratuit : rediriger vers mes projets
-    if (plan.price_monthly === 0) {
-      navigate("/mes-projets");
+    const price = Number(plan.price_monthly) || 0;
+    const isPaidByName = /essentiel|essential|gestion\s*complète/i.test(plan.name?.trim() || "");
+    // Forfait payant (par nom ou prix) : Stripe Checkout uniquement
+    if (price > 0 || isPaidByName) {
+      setCheckoutLoading(plan.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) {
+          toast.error(t("common.error"));
+          navigate("/auth");
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+          body: { plan_id: plan.id, billing_cycle: "monthly" },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (error) throw error;
+        const url = data?.url;
+        if (url) {
+          window.location.href = url;
+        } else {
+          toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement.");
+        }
+      } catch (err) {
+        console.error("Checkout error:", err);
+        toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement. Vérifiez la configuration Stripe.");
+      } finally {
+        setCheckoutLoading(null);
+      }
       return;
     }
-    // Forfait payant : créer session Stripe Checkout
-    setCheckoutLoading(plan.id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) {
-        toast.error(t("common.error"));
-        navigate("/auth");
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { plan_id: plan.id, billing_cycle: "monthly" },
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (error) throw error;
-      const url = data?.url;
-      if (url) {
-        window.location.href = url;
-      } else {
-        toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement.");
-      }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement. Vérifiez la configuration Stripe.");
-    } finally {
-      setCheckoutLoading(null);
-    }
+    // Forfait gratuit uniquement : mes projets
+    navigate("/mes-projets");
   };
 
   const formatPrice = (price: number) => formatCurrency(price);

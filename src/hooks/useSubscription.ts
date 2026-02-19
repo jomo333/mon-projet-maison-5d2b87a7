@@ -172,7 +172,14 @@ export function useSubscription(): SubscriptionData {
     fetchData();
   }, [user?.id]);
 
-  // Recharger l'abonnement au retour sur l'onglet et toutes les 30s (admin peut changer le forfait)
+  // Re-refetch 2s après le premier chargement (admin peut d’assigner un forfait juste après le login)
+  useEffect(() => {
+    if (!user) return;
+    const t = setTimeout(() => fetchData(), 2000);
+    return () => clearTimeout(t);
+  }, [user?.id]);
+
+  // Recharger au retour sur l’onglet et toutes les 30s
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible" && user) fetchData();

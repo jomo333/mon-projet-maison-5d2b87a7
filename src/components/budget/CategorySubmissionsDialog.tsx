@@ -384,9 +384,9 @@ export function CategorySubmissionsDialog({
     enabled: !!projectId && open && categoryTasks.length > 0,
   });
   
-  // Sync saved sub-categories to state
+  // Sync saved sub-categories to state - avoid overwriting while user is editing a DIY card
   useEffect(() => {
-    if (savedSubCategories.length > 0) {
+    if (savedSubCategories.length > 0 && !viewingSubCategory) {
       setSubCategories(savedSubCategories);
       
       // Also sync to DIY items format with quotes from saved data
@@ -407,7 +407,7 @@ export function CategorySubmissionsDialog({
         });
       setDiyItems(diyItemsFromDb);
     }
-  }, [savedSubCategories]);
+  }, [savedSubCategories, viewingSubCategory]);
   
   // Check documents for sub-categories (DIY items)
   const { data: subCategoryDocs = [] } = useQuery({
@@ -2616,13 +2616,28 @@ export function CategorySubmissionsDialog({
                             toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
                             return;
                           }
+                          const orderLeadDays = currentSubCat.orderLeadDays ?? null;
                           setSubCategories(prev => prev.map(sc =>
-                            sc.id === activeSubCategoryId ? { ...sc, amount: materialCost } : sc
+                            sc.id === activeSubCategoryId
+                              ? { ...sc, amount: materialCost, materialCostOnly: materialCost, orderLeadDays }
+                              : sc
                           ));
+                          if (orderLeadDays && orderLeadDays > 0) {
+                            try {
+                              await syncAlertsFromSoumissions();
+                            } catch (e) {
+                              console.error("Error syncing alerts:", e);
+                            }
+                          }
                           const newTotalSpent = subCategories
                             .map(sc => sc.id === activeSubCategoryId ? materialCost : sc.amount)
                             .reduce((sum, amt) => sum + (amt || 0), 0);
                           setSpent(newTotalSpent.toString());
+                          setDiyItems(prev => prev.map(item =>
+                            item.id === activeSubCategoryId
+                              ? { ...item, totalAmount: materialCost, orderLeadDays: orderLeadDays ?? undefined }
+                              : item
+                          ));
                           queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                           queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
                           toast.success(t("toasts.materialsCostSaved"));
@@ -2713,6 +2728,12 @@ export function CategorySubmissionsDialog({
                                 toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
                                 return;
                               }
+                              setSubCategories(prev => prev.map(sc =>
+                                sc.id === activeSubCategoryId ? { ...sc, orderLeadDays, amount: materialCost, materialCostOnly: materialCost } : sc
+                              ));
+                              setDiyItems(prev => prev.map(item =>
+                                item.id === activeSubCategoryId ? { ...item, orderLeadDays: orderLeadDays ?? undefined } : item
+                              ));
                               queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                               queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
                               if (orderLeadDays && orderLeadDays > 0) {

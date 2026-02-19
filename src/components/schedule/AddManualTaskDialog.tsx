@@ -90,6 +90,8 @@ export const AddManualTaskDialog = ({
   useEffect(() => {
     if (open && preselectedDate) {
       setFormData((prev) => ({ ...prev, start_date: preselectedDate }));
+    } else if (open && !preselectedDate) {
+      setFormData((prev) => ({ ...prev, start_date: format(new Date(), "yyyy-MM-dd") }));
     }
   }, [open, preselectedDate]);
 

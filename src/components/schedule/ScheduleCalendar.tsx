@@ -14,11 +14,16 @@ import {
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeColor } from "@/data/tradeTypes";
@@ -29,18 +34,20 @@ import { getDateLocale } from "@/lib/i18n";
 interface ScheduleCalendarProps {
   schedules: ScheduleItem[];
   conflicts: { date: string; trades: string[] }[];
-  /** Appelé au clic sur un jour (pour ajouter une tâche manuelle avec cette date) */
-  onDayClick?: (date: Date) => void;
+  /** Appelé quand l'utilisateur clique "Ajouter une tâche" pour une date donnée */
+  onAddTaskForDay?: (date: Date) => void;
 }
 
 export const ScheduleCalendar = ({
   schedules,
   conflicts,
-  onDayClick,
+  onAddTaskForDay,
 }: ScheduleCalendarProps) => {
   const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -87,9 +94,9 @@ export const ScheduleCalendar = ({
     <div className="bg-card rounded-lg border p-4">
       {/* Header avec navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-        {onDayClick && (
+        {onAddTaskForDay && (
           <p className="text-xs text-muted-foreground">
-            {t("schedule.clickDayToAddTask", "Cliquez sur un jour pour ajouter une tâche manuelle")}
+            {t("schedule.clickDayToAddTask", "Cliquez sur un jour pour voir les tâches et ajouter une tâche manuelle")}
           </p>
         )}
         <div className="flex items-center gap-2">
@@ -137,19 +144,31 @@ export const ScheduleCalendar = ({
           const isConflict = hasConflict(day);
           const conflictTrades = getConflictTrades(day);
           const isToday = isSameDay(day, new Date());
+          const isSelected = selectedDay && isSameDay(day, selectedDay);
 
           return (
-            <div
+            <Popover
               key={day.toISOString()}
-              onClick={() => onDayClick?.(day)}
-              className={cn(
-                "h-24 border rounded-md p-1 overflow-hidden",
-                isWeekendDay && "bg-muted/50",
-                isConflict && "border-destructive border-2",
-                isToday && "ring-2 ring-primary",
-                onDayClick && "cursor-pointer hover:bg-muted/80 transition-colors"
-              )}
+              open={isSelected && popoverOpen}
+              onOpenChange={(open) => {
+                setPopoverOpen(open);
+                if (!open) setSelectedDay(null);
+              }}
             >
+              <PopoverTrigger asChild>
+                <div
+                  onClick={() => {
+                    setSelectedDay(day);
+                    setPopoverOpen(true);
+                  }}
+                  className={cn(
+                    "h-24 border rounded-md p-1 overflow-hidden",
+                    isWeekendDay && "bg-muted/50",
+                    isConflict && "border-destructive border-2",
+                    isToday && "ring-2 ring-primary",
+                    onAddTaskForDay && "cursor-pointer hover:bg-muted/80 transition-colors"
+                  )}
+                >
               <div className="flex justify-between items-start">
                 <span
                   className={cn(
@@ -205,6 +224,64 @@ export const ScheduleCalendar = ({
                 )}
               </div>
             </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="start">
+                <div className="space-y-3">
+                  <div className="font-semibold">
+                    {selectedDay && format(selectedDay, "EEEE d MMMM yyyy", { locale: dateLocale })}
+                  </div>
+                  {selectedDay && (
+                    <>
+                      {getSchedulesForDay(selectedDay).length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            {t("schedule.tasksForDay", "Tâches ce jour-là")}:
+                          </p>
+                          {getSchedulesForDay(selectedDay).map((s) => (
+                            <div
+                              key={s.id}
+                              className="flex items-center gap-2 py-2 px-2 rounded-md bg-muted/50"
+                            >
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: getTradeColor(s.trade_type) }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{s.step_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {getTranslatedTradeName(t, s.trade_type)}
+                                  {s.start_date && s.end_date && (
+                                    <> · {s.start_date} → {s.end_date}</>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {t("schedule.noTasksForDay", "Aucune tâche ce jour-là")}
+                        </p>
+                      )}
+                      {onAddTaskForDay && (
+                        <Button
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={() => {
+                            onAddTaskForDay(selectedDay);
+                            setPopoverOpen(false);
+                            setSelectedDay(null);
+                          }}
+                        >
+                          <CalendarPlus className="h-4 w-4" />
+                          {t("schedule.addManualTask", "Ajouter une tâche manuelle")}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           );
         })}
       </div>

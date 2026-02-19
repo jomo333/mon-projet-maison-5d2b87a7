@@ -375,7 +375,7 @@ const Schedule = () => {
                   <ScheduleCalendar
                     schedules={schedules}
                     conflicts={conflicts}
-                    onDayClick={(date) => {
+                    onAddTaskForDay={(date) => {
                       setManualTaskPreselectedDate(format(date, "yyyy-MM-dd"));
                       setManualTaskDialogOpen(true);
                     }}

@@ -295,9 +295,9 @@ export default function AdminSubscribers() {
     setActionDialogOpen(true);
   };
 
-  const canAddCredits = (user: UserWithSubscription) => {
-    const planName = user.subscription?.plans?.name || "";
-    return ["Essentiel", "Gestion complète"].includes(planName);
+  const canAddCredits = (_user: UserWithSubscription) => {
+    // L'admin peut ajouter des crédits à tout utilisateur (avec ou sans abonnement)
+    return true;
   };
 
   const executeAction = async () => {
@@ -720,14 +720,14 @@ export default function AdminSubscribers() {
                                     Rendre admin
                                   </DropdownMenuItem>
                                 )}
-                                    {user.subscription ? (
-                                  <>
                                     {canAddCredits(user) && (
                                       <DropdownMenuItem onClick={() => handleAction(user, "add_credits")}>
                                         <Sparkles className="mr-2 h-4 w-4" />
                                         Ajouter crédits analyses
                                       </DropdownMenuItem>
                                     )}
+                                    {user.subscription ? (
+                                  <>
                                     <DropdownMenuItem onClick={() => handleAction(user, "change_plan")}>
                                       <UserCog className="mr-2 h-4 w-4" />
                                       Changer de forfait

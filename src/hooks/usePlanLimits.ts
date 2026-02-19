@@ -28,7 +28,7 @@ export interface PlanLimitsHook {
 }
 
 export function usePlanLimits(): PlanLimitsHook {
-  const { plan, limits, usage, loading, refetch, subscription } = useSubscription();
+  const { plan, limits, usage, loading, refetch } = useSubscription();
   const { isAdmin } = useAdmin();
 
   const checkLimit = useCallback(
@@ -128,13 +128,10 @@ export function usePlanLimits(): PlanLimitsHook {
     return currentPlan === "Gestion complète";
   }, [plan?.name, isAdmin]);
 
-  // Budget, échéancier, analyse IA soumissions : Essentiel et Gestion complète (pas de forfait "Pro")
+  // Budget, échéancier, analyse IA soumissions : Essentiel et Gestion complète uniquement (PAS Gratuit)
   const canUseBudgetAndSchedule = useMemo(() => {
     if (isAdmin) return true;
     if (loading) return true; // Ne pas verrouiller pendant le chargement
-    // 0) Si abonnement actif avec plan_id = forfait payant (même si le plan n'est pas chargé correctement)
-    const paidStatuses = ["active", "trial", "paused", "past_due"];
-    if (subscription?.plan_id && paidStatuses.includes(subscription?.status || "")) return true;
     const rawName = plan?.name || "Découverte";
     const name = rawName.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""); // "essentiel" même avec accents
     // 1) Forfaits payants par nom : Essentiel et Gestion complète uniquement (inclut variantes)
@@ -157,7 +154,7 @@ export function usePlanLimits(): PlanLimitsHook {
     const isFreePlanName = name === "gratuit" || name === "découverte" || name === "decouverte";
     if (!isFreePlanName) return true; // Plans inconnus = accès par défaut
     return false;
-  }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading, subscription?.plan_id, subscription?.status]);
+  }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading]);
 
   return {
     limits,

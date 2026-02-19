@@ -56,7 +56,7 @@ export function usePlanLimits(): PlanLimitsHook {
           break;
         case "ai_analyses":
           current = usage.ai_analyses;
-          limit = limits.ai_analyses;
+          limit = limits.ai_analyses + (usage.bonus_credits ?? 0);
           unitLabel = "analyse(s) IA ce mois-ci";
           break;
         case "storage":

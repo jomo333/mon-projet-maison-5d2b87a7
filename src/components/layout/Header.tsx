@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug, Menu, X } from "lucide-react";
+import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug, Menu, Sparkles } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
 import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
@@ -43,6 +50,7 @@ export function Header() {
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, loading } = useAuth();
   const { isAdmin } = useAdmin();
+  const { planName, limits, usage } = usePlanLimits();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const navItems = getNavItems(t);
@@ -62,6 +70,12 @@ export function Header() {
     await signOut();
     navigate("/");
   };
+
+  // Analyses restantes = quota mensuel restant + crédits bonus
+  const remainingAnalyses =
+    limits.ai_analyses === -1
+      ? -1
+      : Math.max(0, limits.ai_analyses - usage.ai_analyses) + (usage.bonus_credits ?? 0);
 
   const getInitials = () => {
     if (profile?.display_name) {
@@ -163,7 +177,41 @@ export function Header() {
           {!loading && (
             <>
               {user ? (
-                <DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+                            "bg-muted/80 text-muted-foreground border border-border/60"
+                          )}
+                        >
+                          <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[120px]" title={planName}>
+                            {planName}
+                          </span>
+                          <span className="text-foreground font-semibold tabular-nums">
+                            {remainingAnalyses === -1 ? "∞" : remainingAnalyses}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p className="font-medium">{planName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {remainingAnalyses === -1
+                            ? "Analyses IA illimitées"
+                            : `${remainingAnalyses} analyse${remainingAnalyses !== 1 ? "s" : ""} restante${remainingAnalyses !== 1 ? "s" : ""}`}
+                        </p>
+                        {(usage.bonus_credits ?? 0) > 0 && (
+                          <p className="text-xs text-primary mt-0.5">
+                            Dont {usage.bonus_credits} crédit{(usage.bonus_credits ?? 0) !== 1 ? "s" : ""} bonus
+                          </p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
@@ -217,6 +265,7 @@ export function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </div>
               ) : (
                 <>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>

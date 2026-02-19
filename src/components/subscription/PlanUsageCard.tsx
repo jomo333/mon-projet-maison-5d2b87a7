@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -5,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FolderOpen, Sparkles, HardDrive, ArrowRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { FolderOpen, Sparkles, HardDrive, ArrowRight, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getTranslatedPlanName } from "@/lib/planTiersI18n";
 
 export function PlanUsageCard() {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { planName, limits, usage, loading } = usePlanLimits();
+  const [buyingCredits, setBuyingCredits] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -94,16 +97,94 @@ export function PlanUsageCard() {
               <span>{t("planUsage.aiAnalyses")}</span>
             </div>
             <span className="text-muted-foreground">
-              {formatLimit(usage.ai_analyses, limits.ai_analyses)}
+              {formatLimit(usage.ai_analyses, limits.ai_analyses + (usage.bonus_credits ?? 0))}
+              {(usage.bonus_credits ?? 0) > 0 && (
+                <span className="text-xs ml-1 text-primary">(+{usage.bonus_credits} bonus)</span>
+              )}
             </span>
           </div>
           {limits.ai_analyses !== -1 && (
             <Progress
-              value={getProgressValue(usage.ai_analyses, limits.ai_analyses)}
+              value={getProgressValue(usage.ai_analyses, limits.ai_analyses + (usage.bonus_credits ?? 0))}
               className="h-2"
             />
           )}
         </div>
+
+        {/* Acheter des analyses (Essentiel et Gestion complète uniquement) */}
+        {planName !== "Gratuit" && planName !== "Découverte" && limits.ai_analyses !== -1 && (
+          <div className="pt-2 border-t space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">
+              {t("planUsage.buyCredits", "Acheter des analyses supplémentaires")}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                disabled={!!buyingCredits}
+                onClick={async () => {
+                  setBuyingCredits(10);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(
+                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-credits`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${session?.access_token}`,
+                        },
+                        body: JSON.stringify({ credits_amount: 10 }),
+                      }
+                    );
+                    const json = await res.json();
+                    if (json.url) window.location.href = json.url;
+                    else throw new Error(json.error || "Erreur");
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setBuyingCredits(null);
+                  }
+                }}
+              >
+                {buyingCredits === 10 ? <Loader2 className="h-4 w-4 animate-spin" /> : "10 analyses — 10 $"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                disabled={!!buyingCredits}
+                onClick={async () => {
+                  setBuyingCredits(20);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(
+                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-credits`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${session?.access_token}`,
+                        },
+                        body: JSON.stringify({ credits_amount: 20 }),
+                      }
+                    );
+                    const json = await res.json();
+                    if (json.url) window.location.href = json.url;
+                    else throw new Error(json.error || "Erreur");
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setBuyingCredits(null);
+                  }
+                }}
+              >
+                {buyingCredits === 20 ? <Loader2 className="h-4 w-4 animate-spin" /> : "20 analyses — 15 $"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Storage */}
         <div className="space-y-2">

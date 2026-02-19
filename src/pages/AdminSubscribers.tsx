@@ -57,6 +57,7 @@ import {
   ShieldOff,
   FileCheck,
   FileX,
+  Sparkles,
 } from "lucide-react";
 
 interface UserSession {
@@ -117,6 +118,7 @@ export default function AdminSubscribers() {
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<string>("");
   const [newPlanId, setNewPlanId] = useState<string>("");
+  const [bonusCreditsAmount, setBonusCreditsAmount] = useState<number>(10);
   const { logAdminAction } = useAdmin();
   const { toast } = useToast();
 
@@ -289,7 +291,13 @@ export default function AdminSubscribers() {
     setSelectedUser(user);
     setActionType(action);
     setNewPlanId(user.subscription?.plans?.id || "");
+    if (action === "add_credits") setBonusCreditsAmount(10);
     setActionDialogOpen(true);
+  };
+
+  const canAddCredits = (user: UserWithSubscription) => {
+    const planName = user.subscription?.plans?.name || "";
+    return ["Essentiel", "Gestion complète"].includes(planName);
   };
 
   const executeAction = async () => {
@@ -317,6 +325,27 @@ export default function AdminSubscribers() {
           description: `${selectedUser.display_name || "L'utilisateur"} est maintenant administrateur.`,
         });
 
+        fetchUsers();
+        setActionDialogOpen(false);
+        setSelectedUser(null);
+        return;
+      }
+
+      if (actionType === "add_credits") {
+        const amount = Math.max(1, Math.min(999, bonusCreditsAmount));
+        const { data, error } = await supabase.rpc("admin_add_bonus_ai_credits", {
+          p_target_user_id: selectedUser.user_id,
+          p_amount: amount,
+        });
+        const result = data as { success?: boolean; error?: string; bonus_credits?: number } | null;
+        if (error || !result?.success) {
+          throw new Error(result?.error || error?.message || "Erreur");
+        }
+        await logAdminAction("bonus_credits_added", selectedUser.user_id, "user_ai_credits", undefined, { amount });
+        toast({
+          title: "Crédits ajoutés",
+          description: `${amount} analyse(s) IA supplémentaire(s) pour ${selectedUser.display_name || "l'utilisateur"}. Total: ${result.bonus_credits ?? "?"}`,
+        });
         fetchUsers();
         setActionDialogOpen(false);
         setSelectedUser(null);
@@ -691,8 +720,14 @@ export default function AdminSubscribers() {
                                     Rendre admin
                                   </DropdownMenuItem>
                                 )}
-                                {user.subscription ? (
+                                    {user.subscription ? (
                                   <>
+                                    {canAddCredits(user) && (
+                                      <DropdownMenuItem onClick={() => handleAction(user, "add_credits")}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Ajouter crédits analyses
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => handleAction(user, "change_plan")}>
                                       <UserCog className="mr-2 h-4 w-4" />
                                       Changer de forfait
@@ -756,6 +791,7 @@ export default function AdminSubscribers() {
                   {actionType === "view" && "Détails de l'utilisateur"}
                   {actionType === "make_admin" && "Rendre administrateur"}
                   {actionType === "remove_admin" && "Retirer le rôle admin"}
+                  {actionType === "add_credits" && "Ajouter des crédits analyses"}
                 </DialogTitle>
                 <DialogDescription>
                   {actionType === "cancel" &&
@@ -767,6 +803,8 @@ export default function AdminSubscribers() {
                     "Cet utilisateur aura accès à toutes les fonctionnalités d'administration."}
                   {actionType === "remove_admin" && 
                     "Cet utilisateur n'aura plus accès aux fonctionnalités d'administration."}
+                  {actionType === "add_credits" && 
+                    "Ajoutez des analyses IA supplémentaires (Essentiel / Gestion complète uniquement)."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -827,6 +865,20 @@ export default function AdminSubscribers() {
                 </div>
               )}
 
+              {actionType === "add_credits" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nombre d'analyses à ajouter</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={bonusCreditsAmount}
+                    onChange={(e) => setBonusCreditsAmount(parseInt(e.target.value) || 10)}
+                  />
+                  <p className="text-xs text-muted-foreground">Options rapides : 10, 20</p>
+                </div>
+              )}
+
               {(actionType === "change_plan" || actionType === "assign_plan") && (
                 <Select value={newPlanId} onValueChange={setNewPlanId}>
                   <SelectTrigger>
@@ -846,7 +898,7 @@ export default function AdminSubscribers() {
                 <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
                   {actionType === "view" ? "Fermer" : "Annuler"}
                 </Button>
-                {actionType !== "view" && (actionType === "make_admin" || actionType === "remove_admin" || actionType === "assign_plan" || selectedUser?.subscription) && (
+                {actionType !== "view" && (actionType === "make_admin" || actionType === "remove_admin" || actionType === "assign_plan" || actionType === "add_credits" || selectedUser?.subscription) && (
                   <Button
                     onClick={executeAction}
                     variant={actionType === "cancel" || actionType === "remove_admin" ? "destructive" : "default"}

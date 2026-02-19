@@ -93,7 +93,8 @@ serve(async (req) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userIdFromRef = (session.client_reference_id ?? "").trim() || null;
+    const metadata = (session.metadata || {}) as Record<string, string>;
+    const userIdFromRef = (session.client_reference_id ?? metadata.user_id ?? "").trim() || null;
     const email = (session.customer_details?.email ?? (session as { customer_email?: string }).customer_email ?? "").trim() || null;
 
     let user_id: string | null = userIdFromRef || null;
@@ -103,6 +104,27 @@ serve(async (req) => {
     if (!user_id) {
       console.error("checkout.session.completed: no user_id (client_reference_id or email)", { email });
       return new Response(JSON.stringify({ received: true, warning: "user not found" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Achat de crédits analyses IA (mode payment)
+    if (session.mode === "payment" && metadata.type === "ai_credits") {
+      const creditsStr = metadata.credits_amount || "0";
+      const creditsAmount = parseInt(creditsStr, 10) || 0;
+      if (creditsAmount > 0) {
+        const { data, error } = await supabaseAdmin.rpc("add_bonus_ai_credits", {
+          p_user_id: user_id,
+          p_amount: creditsAmount,
+        });
+        if (error) {
+          console.error("add_bonus_ai_credits error:", error);
+        } else {
+          console.log("Credits added:", creditsAmount, "for user", user_id, "-> total", data);
+        }
+      }
+      return new Response(JSON.stringify({ received: true, type: "ai_credits", user_id }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

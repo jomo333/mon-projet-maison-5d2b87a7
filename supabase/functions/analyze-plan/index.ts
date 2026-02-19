@@ -36,8 +36,8 @@ async function validateAuth(authHeader: string | null): Promise<{ userId: string
   }
 }
 
-// Helper to increment AI usage for a user
-async function incrementAiUsage(authHeader: string | null): Promise<void> {
+// Consomme 1 analyse IA (quota mensuel d'abord, puis crédits bonus)
+async function consumeAiAnalysis(authHeader: string | null): Promise<void> {
   if (!authHeader) return;
   
   try {
@@ -55,15 +55,16 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
       return;
     }
     
-    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: user.id });
+    const { data, error } = await supabase.rpc('consume_ai_analysis', { p_user_id: user.id });
     
     if (error) {
-      console.error('Failed to increment AI usage:', error);
+      console.error('Failed to consume AI analysis:', error);
     } else {
-      console.log('AI usage incremented for user:', user.id);
+      const res = data as { success?: boolean; source?: string } | null;
+      console.log('AI analysis consumed for user:', user.id, 'source:', res?.source || 'unknown');
     }
   } catch (err) {
-    console.error('Error tracking AI usage:', err);
+    console.error('Error consuming AI analysis:', err);
   }
 }
 
@@ -2416,6 +2417,28 @@ serve(async (req) => {
     );
   }
 
+  // Vérifier la limite d'analyses IA AVANT d'exécuter (côté serveur)
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: limitCheck, error: limitError } = await serviceSupabase.rpc('check_ai_analysis_limit', {
+      p_user_id: authResult.userId,
+    });
+    if (limitError) {
+      console.error('check_ai_analysis_limit error:', limitError);
+    } else if (limitCheck && typeof limitCheck === 'object' && limitCheck.allowed === false) {
+      return new Response(
+        JSON.stringify({
+          error: `Limite d'analyses IA atteinte (${limitCheck.current}/${limitCheck.limit} ce mois-ci). Passez à un forfait supérieur pour continuer.`,
+        }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (limitErr) {
+    console.error('Limit check failed:', limitErr);
+  }
+
   try {
     const body = await req.json();
     const { mode, finishQuality = "standard", stylePhotoUrls = [], imageUrls: bodyImageUrls, imageUrl: singleImageUrl, lang = "fr", detailed: bodyDetailed = false } = body;
@@ -2520,7 +2543,7 @@ serve(async (req) => {
       console.log('Merge complete - categories:', transformedMerged.categories?.length || 0);
       
       // Increment AI usage for the user (merge mode also counts as AI usage)
-      await incrementAiUsage(authHeader);
+      await consumeAiAnalysis(authHeader);
       await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
       
       return new Response(
@@ -3142,7 +3165,7 @@ Retourne le JSON structuré COMPLET.`;
     console.log('Response size:', Math.round(responseJson.length / 1024), 'KB');
 
     // Increment AI usage for the user
-    await incrementAiUsage(authHeader);
+    await consumeAiAnalysis(authHeader);
     await trackAiAnalysisUsage(authHeader, 'analyze-plan', null);
 
     return new Response(

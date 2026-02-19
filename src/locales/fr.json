@@ -520,7 +520,8 @@
     "storage": "Stockage",
     "unlimited": "Illimité",
     "upgrade": "Passer à un forfait supérieur",
-    "gb": "Go"
+    "gb": "Go",
+    "buyCredits": "Acheter des analyses supplémentaires"
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "L'analyse IA des soumissions est disponible à partir du forfait Essentiel",

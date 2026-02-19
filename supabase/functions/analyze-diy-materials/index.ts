@@ -36,8 +36,8 @@ async function validateAuth(authHeader: string | null): Promise<{ userId: string
   }
 }
 
-// Helper to increment AI usage for a user
-async function incrementAiUsage(authHeader: string | null): Promise<void> {
+// Consomme 1 analyse IA (quota mensuel d'abord, puis crédits bonus)
+async function consumeAiAnalysis(authHeader: string | null): Promise<void> {
   if (!authHeader) return;
   
   try {
@@ -50,20 +50,11 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !user) {
-      console.log('Could not get user for AI usage tracking');
-      return;
-    }
+    if (userError || !user) return;
     
-    const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: user.id });
-    
-    if (error) {
-      console.error('Failed to increment AI usage:', error);
-    } else {
-      console.log('AI usage incremented for user:', user.id);
-    }
+    await supabase.rpc('consume_ai_analysis', { p_user_id: user.id });
   } catch (err) {
-    console.error('Error tracking AI usage:', err);
+    console.error('Error consuming AI analysis:', err);
   }
 }
 
@@ -434,7 +425,7 @@ serve(async (req) => {
       );
     }
 
-    await incrementAiUsage(authHeader);
+    await consumeAiAnalysis(authHeader);
     await trackAiAnalysisUsage(authHeader, "analyze-diy-materials", null);
 
     const reader = geminiRes.body?.getReader();

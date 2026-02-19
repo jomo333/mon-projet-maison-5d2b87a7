@@ -75,7 +75,9 @@ supabase link --project-ref lqxbwqndxjdxqzftihic
 supabase functions deploy analyze-soumissions
 supabase functions deploy chat-assistant
 supabase functions deploy analyze-diy-materials
+supabase functions deploy analyze-plan
 supabase functions deploy stripe-webhook
+supabase functions deploy create-checkout-credits
 ```
 
 Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’URL du dashboard Supabase).
@@ -120,6 +122,27 @@ Pour que les achats Stripe (mode test ou live) créent ou mettent à jour l’ab
    Sans cette variable, le bouton d’achat sur la page Forfaits ne pourra pas rediriger vers Stripe.
 
 **Assignation manuelle par l’admin** : dans Admin → Abonnés, utiliser « Assigner un forfait » pour donner un forfait sans passer par Stripe. L’utilisateur devra éventuellement rafraîchir la page pour voir les options déverrouillées.
+
+### Quotas d'analyses IA (verrouillage selon le forfait)
+
+Les analyses IA (plans, soumissions, DIY) sont limitées selon le forfait. Pour que le verrouillage fonctionne : (1) Migrations `20260219140000_check_ai_analysis_limit.sql` et `20260219150000_user_ai_credits.sql` appliquées ; (2) Table `plans` avec `limits.ai_analyses` correct ; (3) `subscriptions` remplie via Stripe webhook ou admin (configurer `STRIPE_PRICE_TO_PLAN_JSON`) ; (4) Les Edge Functions vérifient le quota et retournent 402 si limite atteinte.
+
+### Achats d'analyses supplémentaires (10$/10 analyses, 15$/20 analyses)
+
+Disponible pour les forfaits Essentiel et Gestion complète.
+
+**1. Créer les produits dans Stripe** (Dashboard → Products) :
+- Produit "10 analyses IA" → Prix unique 10,00 $ CAD → noter le `price_id` (ex. `price_xxx`)
+- Produit "20 analyses IA" → Prix unique 15,00 $ CAD → noter le `price_id` (ex. `price_yyy`)
+
+**2. Variable d'environnement** (Supabase → Edge Functions → Secrets) :
+- `STRIPE_CREDITS_PRICE_JSON` : `{"10": "price_xxx", "20": "price_yyy"}`
+
+**3. Déployer** : `supabase functions deploy create-checkout-credits`
+
+**4. Webhook Stripe** : le webhook existant gère déjà `checkout.session.completed` en mode `payment` pour les crédits (metadata.type = "ai_credits"). Aucune modification nécessaire si le webhook est déjà configuré pour `checkout.session.completed`.
+
+**5. Admin** : Admin → Abonnés → menu Actions d'un utilisateur Essentiel/Gestion complète → "Ajouter crédits analyses" pour ajouter manuellement des analyses.
 
 ## Can I connect a custom domain to my Lovable project?
 

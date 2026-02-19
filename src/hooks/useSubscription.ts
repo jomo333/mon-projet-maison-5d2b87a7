@@ -33,6 +33,7 @@ export interface Usage {
   projects: number;
   ai_analyses: number;
   storage_gb: number;
+  bonus_credits: number;
 }
 
 export interface SubscriptionData {
@@ -58,7 +59,7 @@ export function useSubscription(): SubscriptionData {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [usage, setUsage] = useState<Usage>({ projects: 0, ai_analyses: 0, storage_gb: 0 });
+  const [usage, setUsage] = useState<Usage>({ projects: 0, ai_analyses: 0, storage_gb: 0, bonus_credits: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -154,10 +155,18 @@ export function useSubscription(): SubscriptionData {
 
       if (storageError) throw storageError;
 
+      // 4. Bonus AI credits (achats supplémentaires)
+      const { data: creditsData } = await supabase
+        .from("user_ai_credits")
+        .select("bonus_credits")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       setUsage({
         projects: projectCount || 0,
         ai_analyses: aiUsageData?.count || 0,
         storage_gb: (storageData?.bytes_used || 0) / (1024 * 1024 * 1024),
+        bonus_credits: creditsData?.bonus_credits || 0,
       });
 
     } catch (err) {

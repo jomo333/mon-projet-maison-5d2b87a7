@@ -520,7 +520,8 @@
     "storage": "Storage",
     "unlimited": "Unlimited",
     "upgrade": "Upgrade to a higher plan",
-    "gb": "GB"
+    "gb": "GB",
+    "buyCredits": "Buy additional analyses"
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "AI quote analysis is available from the Essential plan",

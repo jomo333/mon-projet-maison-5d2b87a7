@@ -1816,6 +1816,22 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               </label>
             </div>
           </div>
+          {!canUseAI().allowed && !isAnalyzing && (
+            <div className="rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/40 p-3 mb-3">
+              <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                {canUseAI().message || t("toasts.freePlanLimitReached")}
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate("/forfaits")}
+                className="gap-2"
+              >
+                <ArrowRight className="h-4 w-4" />
+                {t("toasts.limitReachedAction", "Acheter ou améliorer")}
+              </Button>
+            </div>
+          )}
           <Button 
             onClick={handleAnalyze} 
             disabled={isAnalyzing || !canUseAI().allowed || (analysisMode === "plan" && selectedPlanUrls.length === 0)}

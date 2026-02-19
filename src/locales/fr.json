@@ -1409,6 +1409,7 @@
     "downloadSuccessCount": "{{count}} fichiers téléchargés !",
     "downloadError": "Erreur lors du téléchargement",
     "noFilesToDownload": "Aucun fichier à télécharger",
+    "downloadZipLocked": "Passez à un forfait supérieur pour télécharger vos documents en ZIP",
     "browserNotSupported": "Votre navigateur ne supporte pas cette fonctionnalité. Utilisez Chrome ou Edge.",
     "saveToGallery": "Enregistrer dans Mes Dossiers",
     "analysisSaved": "Analyse enregistrée",

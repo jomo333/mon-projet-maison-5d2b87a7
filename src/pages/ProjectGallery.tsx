@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { constructionSteps } from "@/data/constructionSteps";
 import { getSignedUrl, getSignedUrlFromPublicUrl } from "@/hooks/useSignedUrl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,6 +70,8 @@ import JSZip from "jszip";
 const ProjectGallery = () => {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const { planName } = usePlanLimits();
+  const isFreePlan = planName === "Gratuit" || planName === "Découverte";
 
   const documentCategories = [
     { value: "all", label: t("gallery.allDocuments") },
@@ -261,6 +264,10 @@ const ProjectGallery = () => {
 
   // Download all files as organized ZIP
   const downloadAllAsZip = async () => {
+    if (isFreePlan) {
+      toast.error(t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP"));
+      return;
+    }
     if (!project || (!photos.length && !documents.length)) {
       toast.error(t("gallery.noFilesToDownload"));
       return;
@@ -908,7 +915,8 @@ const ProjectGallery = () => {
                 variant="outline"
                 size="sm"
                 onClick={downloadAllAsZip}
-                disabled={isDownloadingAll || (!photos.length && !documents.length)}
+                disabled={isDownloadingAll || isFreePlan || (!photos.length && !documents.length)}
+                title={isFreePlan ? t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP") : undefined}
                 className="gap-2"
               >
                 {isDownloadingAll ? (

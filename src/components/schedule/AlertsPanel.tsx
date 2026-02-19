@@ -65,7 +65,7 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const dateLocale = getDateLocale();
-  const { hasFullManagement, loading: planLoading } = usePlanLimits();
+  const { hasFullManagement } = usePlanLimits();
   
   const sortedAlerts = [...alerts].sort((a, b) => {
     const dateA = parseISO(a.alert_date);
@@ -90,7 +90,9 @@ export const AlertsPanel = ({ alerts, onDismiss }: AlertsPanelProps) => {
   };
 
   // Alertes : Gestion complète uniquement (pas Essentiel)
-  if (!planLoading && !hasFullManagement) {
+  // Pas de planLoading ici : garder l'état verrouillé basé sur hasFullManagement pour éviter
+  // un flash de déverrouillage pendant le refetch périodique (~30s) de useSubscription
+  if (!hasFullManagement) {
     return (
       <Card>
         <CardHeader>

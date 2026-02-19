@@ -809,6 +809,34 @@ export function CategorySubmissionsDialog({
     setDiyAnalysisResult(null);
     setShowDIYAnalysis(false);
   };
+
+  /** Sauvegarde fiable des notes task_dates (évite les 400 de l'upsert) */
+  const saveTaskDateNotes = async (taskId: string, notes: string) => {
+    const { data: existing } = await supabase
+      .from('task_dates')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('step_id', 'soumissions')
+      .eq('task_id', taskId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('task_dates')
+        .update({ notes })
+        .eq('id', existing.id);
+      return { error };
+    }
+    const { error } = await supabase
+      .from('task_dates')
+      .insert({
+        project_id: projectId,
+        step_id: 'soumissions',
+        task_id: taskId,
+        notes,
+      });
+    return { error };
+  };
   
   // DIY Items handlers (new simplified table)
   const handleAddDIYItem = async (name: string) => {
@@ -887,14 +915,12 @@ export function CategorySubmissionsDialog({
       itemNotes: updatedItem.notes,
     });
     
-    await supabase
-      .from('task_dates')
-      .upsert({
-        project_id: projectId,
-        step_id: 'soumissions',
-        task_id: `soumission-${tradeId}-sub-${updatedItem.id}`,
-        notes,
-      }, { onConflict: 'project_id,step_id,task_id' });
+    const { error } = await saveTaskDateNotes(`soumission-${tradeId}-sub-${updatedItem.id}`, notes);
+    if (error) {
+      console.error("[DIY] saveDiyItem task_dates error:", error);
+      toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
+      return;
+    }
     
     // Update total spent
     const newTotalSpent = diyItems
@@ -927,14 +953,12 @@ export function CategorySubmissionsDialog({
       isDIYSupplier: true,
     });
     
-    await supabase
-      .from('task_dates')
-      .upsert({
-        project_id: projectId,
-        step_id: 'soumissions',
-        task_id: diySupplierTaskId,
-        notes,
-      }, { onConflict: 'project_id,step_id,task_id' });
+    const { error } = await saveTaskDateNotes(diySupplierTaskId, notes);
+    if (error) {
+      console.error("[DIY] handleUpdateDIYSupplier task_dates error:", error);
+      toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
+      return;
+    }
     
     // Sync alerts if order lead days set
     if (supplier.orderLeadDays && supplier.orderLeadDays > 0) {
@@ -2608,15 +2632,9 @@ export function CategorySubmissionsDialog({
                             quotes: existingNotes.quotes ?? currentWithQuotes.quotes ?? [],
                             itemNotes: existingNotes.itemNotes ?? currentWithQuotes.itemNotes ?? '',
                           });
-                          const { error } = await supabase
-                            .from('task_dates')
-                            .upsert({
-                              project_id: projectId,
-                              step_id: 'soumissions',
-                              task_id: currentTaskId,
-                              notes: updatedNotes,
-                            }, { onConflict: 'project_id,step_id,task_id' });
+                          const { error } = await saveTaskDateNotes(currentTaskId, updatedNotes);
                           if (error) {
+                            console.error("[DIY] Save task_dates error:", error);
                             toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
                             return;
                           }
@@ -2643,6 +2661,7 @@ export function CategorySubmissionsDialog({
                           ));
                           queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                           queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
+                          queryClient.invalidateQueries({ queryKey: ['schedule-alerts', projectId] });
                           toast.success(t("toasts.materialsCostSaved"));
                         }}
                       >
@@ -2722,15 +2741,9 @@ export function CategorySubmissionsDialog({
                                 quotes: existingNotes.quotes ?? currentWithQuotes.quotes ?? [],
                                 itemNotes: existingNotes.itemNotes ?? currentWithQuotes.itemNotes ?? '',
                               });
-                              const { error } = await supabase
-                                .from('task_dates')
-                                .upsert({
-                                  project_id: projectId,
-                                  step_id: 'soumissions',
-                                  task_id: currentTaskId,
-                                  notes: updatedNotes,
-                                }, { onConflict: 'project_id,step_id,task_id' });
+                              const { error } = await saveTaskDateNotes(currentTaskId, updatedNotes);
                               if (error) {
+                                console.error("[DIY] Save préavis task_dates error:", error);
                                 toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
                                 return;
                               }
@@ -2742,6 +2755,7 @@ export function CategorySubmissionsDialog({
                               ));
                               queryClient.invalidateQueries({ queryKey: ['sub-categories', projectId, tradeId] });
                               queryClient.invalidateQueries({ queryKey: ['supplier-status', projectId, currentTaskId] });
+                              queryClient.invalidateQueries({ queryKey: ['schedule-alerts', projectId] });
                               if (orderLeadDays && orderLeadDays > 0) {
                                 try {
                                   await syncAlertsFromSoumissions();

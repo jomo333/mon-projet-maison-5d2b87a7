@@ -869,7 +869,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     // Créer des alertes pour contacter les sous-traitants avec dates verrouillées
     // Exclure les tâches manuelles (manual-*) : pas de fournisseur à contacter
     const realSubcontractors = subcontractorsToContact.filter(
-      ({ schedule }) => !schedule.step_id.startsWith("manual")
+      ({ schedule }) => !schedule.step_id?.startsWith("manual")
     );
     if (realSubcontractors.length > 0) {
       const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -1736,8 +1736,10 @@ export const useProjectSchedule = (projectId: string | null) => {
     if (task.is_overlay) {
       toast({ title: "Tâche ajoutée (travaux en simultané)" });
     } else {
-      await fetchAndRegenerateSchedule();
-      toast({ title: "Tâche ajoutée - Échéancier mis à jour" });
+      // Ne pas régénérer ici : la régénération peut corrompre l'affichage du Gantt.
+      // La tâche manuelle est ajoutée avec ses dates ; elle s'affiche correctement.
+      // L'utilisateur peut cliquer "Régénérer" s'il souhaite réordonner la séquence.
+      toast({ title: "Tâche ajoutée", description: "Visible dans le tableau et le Gantt." });
     }
   };
 

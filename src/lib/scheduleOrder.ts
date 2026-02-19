@@ -13,10 +13,11 @@ export const getStepExecutionOrder = (stepId: string): number => {
  * Get effective order for a schedule (manual tasks with linked_step_id go after that step)
  */
 export const getScheduleExecutionOrder = (schedule: {
-  step_id: string;
+  step_id?: string | null;
   measurement_after_step_id?: string | null;
   notes?: string | null;
 }): number => {
+  if (!schedule?.step_id || typeof schedule.step_id !== "string") return 999;
   const baseOrder = getStepExecutionOrder(schedule.step_id);
   if (schedule.step_id.startsWith("manual-")) {
     const linkedId = schedule.measurement_after_step_id || parseLinkedStepFromNotes(schedule.notes);

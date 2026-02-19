@@ -1689,6 +1689,9 @@ export const useProjectSchedule = (projectId: string | null) => {
       linkedStepId: task.linked_step_id || undefined,
     });
 
+    // Sans "travaux en simultané": is_manual_date=false pour que la régénération place la tâche
+    // dans la séquence (après le cursor) et modifie l'échéancier. Avec "simultané": is_manual_date=true
+    // pour garder les dates choisies et ne pas déplacer les autres étapes.
     const schedule: Omit<ScheduleItem, "id" | "created_at" | "updated_at"> = {
       project_id: projectId,
       step_id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
@@ -1709,7 +1712,7 @@ export const useProjectSchedule = (projectId: string | null) => {
       measurement_notes: null,
       status: "scheduled",
       notes,
-      is_manual_date: true,
+      is_manual_date: task.is_overlay, // true = simultané (garder dates), false = intégré (recalculer)
     };
 
     const { error } = await supabase

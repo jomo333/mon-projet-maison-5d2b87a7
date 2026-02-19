@@ -291,6 +291,29 @@ serve(async (req) => {
     );
   }
 
+  // Vérifier la limite d'analyses IA AVANT d'exécuter (côté serveur)
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: limitCheck, error: limitError } = await serviceSupabase.rpc('check_ai_analysis_limit', {
+      p_user_id: authResult.userId,
+    });
+    if (limitError) {
+      console.error('check_ai_analysis_limit error:', limitError);
+    } else if (limitCheck && typeof limitCheck === 'object' && limitCheck.allowed === false) {
+      return new Response(
+        JSON.stringify({
+          error: `Limite d'analyses IA atteinte (${limitCheck.current}/${limitCheck.limit} ce mois-ci). Passez à un forfait supérieur pour continuer.`,
+        }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (limitErr) {
+    console.error('Limit check failed:', limitErr);
+    // En cas d'erreur, on continue (fail-open pour éviter de bloquer)
+  }
+
   try {
     const body = await req.json();
     const { categoryName, subCategoryName, planUrls, projectDetails } = body;

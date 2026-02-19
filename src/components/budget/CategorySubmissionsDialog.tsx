@@ -1182,10 +1182,10 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(t("toasts.insufficientCredits", "Crédits insuffisants"));
+          toast.error(errorData?.error || t("toasts.insufficientCredits", "Limite d'analyses IA atteinte. Passez à un forfait supérieur."));
           return;
         }
-        throw new Error(errorData.error || "Erreur lors de l'analyse");
+        throw new Error(errorData?.error || "Erreur lors de l'analyse");
       }
       
       if (!response.body) {
@@ -1377,10 +1377,10 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(t("toasts.insufficientCredits"));
+          toast.error(errorData?.error || t("toasts.insufficientCredits", "Limite d'analyses IA atteinte. Passez à un forfait supérieur."));
           return;
         }
-        throw new Error(errorData.error || "Erreur lors de l'analyse");
+        throw new Error(errorData?.error || "Erreur lors de l'analyse");
       }
 
       if (!response.body) {

@@ -303,9 +303,9 @@ export default function AdminAnalytics() {
 
   const fetchStorageStats = async () => {
     try {
+      // Compute from storage.objects (user_storage_usage is never populated by uploads)
       const { data: storage, error: storageError } = await supabase
-        .from("user_storage_usage")
-        .select("*");
+        .rpc("get_storage_usage_from_objects");
 
       if (storageError) throw storageError;
 
@@ -321,9 +321,9 @@ export default function AdminAnalytics() {
       const stats: StorageUsageStats[] = (storage || []).map(s => ({
         user_id: s.user_id,
         email: profilesMap.get(s.user_id) || s.user_id,
-        display_name: profilesMap.get(s.user_id) || null,
-        bytes_used: s.bytes_used,
-        gb_used: s.bytes_used / (1024 * 1024 * 1024),
+        display_name: profilesMap.get(s.user_id) ?? null,
+        bytes_used: Number(s.bytes_used || 0),
+        gb_used: Number(s.bytes_used || 0) / (1024 * 1024 * 1024),
       })).filter(s => s.bytes_used > 0).sort((a, b) => b.bytes_used - a.bytes_used);
 
       setStorageStats(stats);

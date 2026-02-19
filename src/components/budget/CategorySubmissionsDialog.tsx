@@ -1105,6 +1105,17 @@ export function CategorySubmissionsDialog({
   };
   
   const handleAnalyzeDIYItem = async (itemId: string) => {
+    if (!canUseBudgetAndSchedule) {
+      toast.error(t("premiumFeatures.quoteAnalysisRestricted"));
+      navigate("/forfaits");
+      return;
+    }
+    const limitCheck = canUseAI();
+    if (!limitCheck.allowed) {
+      toast.error(limitCheck.message);
+      refetchPlanLimits();
+      return;
+    }
     const item = diyItems.find(i => i.id === itemId);
     if (!item || !item.documents || item.documents.length === 0) {
       toast.error(t("diyItems.noDocumentsToAnalyze", "Téléchargez d'abord des soumissions à analyser"));
@@ -2509,6 +2520,8 @@ export function CategorySubmissionsDialog({
                           onAddQuote={handleAddQuote}
                           onRemoveQuote={handleRemoveQuote}
                           onAnalyzeItem={handleAnalyzeDIYItem}
+                          canAnalyze={canUseBudgetAndSchedule}
+                          onUpgradeClick={() => navigate("/forfaits")}
                           analyzingItemId={analyzingDIYItemId}
                           categoryName={categoryName}
                           selectedSupplier={diySupplier}

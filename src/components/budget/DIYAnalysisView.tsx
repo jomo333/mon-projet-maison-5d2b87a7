@@ -384,8 +384,37 @@ const extractSuppliers = (analysisResult: string): ExtractedContact[] => {
     }
   }
   
-  console.log(`[DIY Extract] Total suppliers extracted: ${contacts.length}`, contacts);
-  return contacts.filter(c => c.supplierName && c.supplierName.length > 1);
+  // Dédoublonnage par fournisseur : fusionner les entrées du même fournisseur (options = produits/montants distincts)
+  const mergedBySupplier: ExtractedContact[] = [];
+  const seenSupplier = new Set<string>();
+  for (const c of contacts) {
+    if (!c.supplierName || c.supplierName.length < 2) continue;
+    const key = normalizeName(c.supplierName);
+    if (seenSupplier.has(key)) {
+      const existing = mergedBySupplier.find(m => normalizeName(m.supplierName) === key);
+      if (existing) {
+        if (!existing.amount && c.amount) existing.amount = c.amount;
+        if (!existing.phone && c.phone) existing.phone = c.phone;
+        const optName = c.productName || c.documentRef || "Option";
+        const optAmount = c.amount || "";
+        const existingOptions = existing.options || [];
+        const alreadyHas = existingOptions.some(o =>
+          normalizeName(o.name) === normalizeName(optName) && normalizeName(o.amount) === normalizeName(optAmount)
+        );
+        if (!alreadyHas && (optName !== "Option" || optAmount)) {
+          existingOptions.push({ name: optName, amount: optAmount });
+          existing.options = existingOptions;
+        }
+      }
+    } else {
+      seenSupplier.add(key);
+      const opts = c.options?.length ? c.options : (c.productName && c.amount ? [{ name: c.productName, amount: c.amount }] : undefined);
+      mergedBySupplier.push({ ...c, options: opts });
+    }
+  }
+
+  console.log(`[DIY Extract] Total suppliers extracted (deduplicated): ${mergedBySupplier.length}`, mergedBySupplier);
+  return mergedBySupplier.filter(c => c.supplierName && c.supplierName.length > 1);
 };
 
 export function DIYAnalysisView({

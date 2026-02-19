@@ -145,7 +145,9 @@ export function usePlanLimits(): PlanLimitsHook {
     const paidNames = ["essentiel", "essential", "gestion complete"];
     if (paidNames.some((paid) => name.includes(paid))) return true;
     if (/essentiel|essential|gestion\s*complète/i.test(rawName)) return true;
-    // Secours par limites : Essentiel = 10+ IA ou projets illimités
+    // Secours par limites : uniquement si plan payant (évite faux positifs Gratuit)
+    const isPaidPlan = plan && typeof plan.price_monthly === "number" && plan.price_monthly > 0;
+    if (!isPaidPlan) return false;
     const hasEssentielLimits =
       (limits.ai_analyses >= 10 && limits.ai_analyses !== -1) ||
       limits.projects === -1;

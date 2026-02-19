@@ -42,6 +42,9 @@ import {
   Loader2,
   Upload,
   Download,
+  Lock,
+  Crown,
+  Info,
 } from "lucide-react";
 
 export interface DIYSupplierQuote {
@@ -83,6 +86,8 @@ interface DIYItemsTableProps {
   onAddQuote: (itemId: string, quote: Omit<DIYSupplierQuote, "id">) => void;
   onRemoveQuote: (itemId: string, quoteId: string) => void;
   onAnalyzeItem?: (itemId: string) => void;
+  canAnalyze?: boolean;
+  onUpgradeClick?: () => void;
   analyzingItemId?: string | null;
   categoryName: string;
   selectedSupplier?: DIYSelectedSupplier;
@@ -116,6 +121,8 @@ export function DIYItemsTable({
   onAddQuote,
   onRemoveQuote,
   onAnalyzeItem,
+  canAnalyze = true,
+  onUpgradeClick,
   analyzingItemId,
   categoryName,
   selectedSupplier,
@@ -365,20 +372,35 @@ export function DIYItemsTable({
                                         {t("diyItems.uploadDoc", "Télécharger")}
                                       </Button>
                                       {onAnalyzeItem && item.documents && item.documents.length > 0 && (
-                                        <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() => onAnalyzeItem(item.id)}
-                                          disabled={analyzingItemId === item.id}
-                                          className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
-                                        >
-                                          {analyzingItemId === item.id ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Sparkles className="h-3 w-3" />
-                                          )}
-                                          {t("diyItems.analyzeAI", "Analyser IA")}
-                                        </Button>
+                                        canAnalyze ? (
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => onAnalyzeItem(item.id)}
+                                            disabled={analyzingItemId === item.id}
+                                            className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+                                          >
+                                            {analyzingItemId === item.id ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Sparkles className="h-3 w-3" />
+                                            )}
+                                            {t("diyItems.analyzeAI", "Analyser IA")}
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={onUpgradeClick}
+                                            className="gap-1"
+                                            title={t("premiumFeatures.quoteAnalysisTooltip")}
+                                          >
+                                            <Lock className="h-3 w-3" />
+                                            <Crown className="h-3 w-3" />
+                                            {t("diyItems.analyzeAI", "Analyser IA")}
+                                            <Info className="h-3 w-3 opacity-70" />
+                                          </Button>
+                                        )
                                       )}
                                     </div>
                                   </div>

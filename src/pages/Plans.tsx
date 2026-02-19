@@ -145,16 +145,11 @@ export default function Plans() {
         {/* Hero Section */}
         <section className="py-16 lg:py-20 bg-gradient-to-b from-muted/50 to-background">
           <div className="container max-w-4xl">
-            <div className="text-center mb-10">
+            <div className="text-center">
               <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-6">
                 {t("plans.heroTitle")}
               </h1>
             </div>
-            {user && (
-              <div className="max-w-md mx-auto">
-                <PlanUsageCard />
-              </div>
-            )}
           </div>
         </section>
 
@@ -328,6 +323,15 @@ export default function Plans() {
             </div>
           </div>
         </section>
+
+        {/* Carte utilisation + achat analyses (utilisateur connecté) */}
+        {user && (
+          <section className="py-12 lg:py-16 border-t">
+            <div className="container max-w-md mx-auto">
+              <PlanUsageCard />
+            </div>
+          </section>
+        )}
 
         {/* Legal disclaimer */}
         <section className="py-12 bg-muted/30">

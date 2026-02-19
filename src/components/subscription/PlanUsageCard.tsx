@@ -127,22 +127,20 @@ export function PlanUsageCard() {
                 onClick={async () => {
                   setBuyingCredits(10);
                   try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch(
-                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-credits`,
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${session?.access_token}`,
-                        },
-                        body: JSON.stringify({ credits_amount: 10 }),
-                      }
-                    );
-                    const json = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(json.error || `Erreur ${res.status}`);
-                    if (json.url) window.location.href = json.url;
-                    else throw new Error(json.error || "Erreur");
+                    const { data: { session: sess } } = await supabase.auth.getSession();
+                    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+                    const token = refreshed?.access_token ?? sess?.access_token;
+                    if (!token) {
+                      toast.error("Veuillez vous reconnecter pour acheter des analyses.");
+                      return;
+                    }
+                    const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
+                      body: { credits_amount: 10 },
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (error) throw new Error(error.message || "Erreur");
+                    if (data?.url) window.location.href = data.url;
+                    else throw new Error(data?.error || "Erreur");
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
                     toast.error(msg);
@@ -162,22 +160,20 @@ export function PlanUsageCard() {
                 onClick={async () => {
                   setBuyingCredits(20);
                   try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const res = await fetch(
-                      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-credits`,
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${session?.access_token}`,
-                        },
-                        body: JSON.stringify({ credits_amount: 20 }),
-                      }
-                    );
-                    const json = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(json.error || `Erreur ${res.status}`);
-                    if (json.url) window.location.href = json.url;
-                    else throw new Error(json.error || "Erreur");
+                    const { data: { session: sess } } = await supabase.auth.getSession();
+                    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+                    const token = refreshed?.access_token ?? sess?.access_token;
+                    if (!token) {
+                      toast.error("Veuillez vous reconnecter pour acheter des analyses.");
+                      return;
+                    }
+                    const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
+                      body: { credits_amount: 20 },
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (error) throw new Error(error.message || "Erreur");
+                    if (data?.url) window.location.href = data.url;
+                    else throw new Error(data?.error || "Erreur");
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
                     toast.error(msg);

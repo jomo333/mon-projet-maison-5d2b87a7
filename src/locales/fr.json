@@ -1156,6 +1156,9 @@
     "concreteCuring": "Cure du béton",
     "dateLockedManually": "Date verrouillée manuellement",
     "andMoreConflicts": "Et {{count}} autres conflits...",
+    "deleteTaskTitle": "Supprimer cette tâche ?",
+    "deleteTaskConfirm": "Êtes-vous sûr de vouloir supprimer",
+    "deleteTaskIrreversible": " Cette action est irréversible.",
     "trades": {
       "excavation": "Excavation",
       "foundation": "Fondation/Béton",

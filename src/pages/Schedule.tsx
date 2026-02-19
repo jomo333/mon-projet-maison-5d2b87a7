@@ -27,6 +27,16 @@ import {
   Calendar,
   Flag,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -49,6 +59,8 @@ const Schedule = () => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [manualTaskDialogOpen, setManualTaskDialogOpen] = useState(false);
   const [manualTaskPreselectedDate, setManualTaskPreselectedDate] = useState<string | null>(null);
+  const [taskToEditId, setTaskToEditId] = useState<string | null>(null);
+  const [deleteConfirmSchedule, setDeleteConfirmSchedule] = useState<{ id: string; step_name: string } | null>(null);
 
   // Fetch user projects
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -354,6 +366,8 @@ const Schedule = () => {
                 {activeTab === "table" && (
                   <ScheduleTable
                     schedules={schedules}
+                    initialEditId={taskToEditId}
+                    onInitialEditHandled={() => setTaskToEditId(null)}
                     onUpdate={async (schedule) => {
                       // Utiliser updateScheduleAndRecalculate pour propager les changements
                       await updateScheduleAndRecalculate(schedule.id, schedule);
@@ -378,6 +392,13 @@ const Schedule = () => {
                     onAddTaskForDay={(date) => {
                       setManualTaskPreselectedDate(format(date, "yyyy-MM-dd"));
                       setManualTaskDialogOpen(true);
+                    }}
+                    onEditTask={(schedule) => {
+                      setTaskToEditId(schedule.id);
+                      setActiveTab("table");
+                    }}
+                    onDeleteTask={(schedule) => {
+                      setDeleteConfirmSchedule({ id: schedule.id, step_name: schedule.step_name });
                     }}
                   />
                 )}
@@ -439,6 +460,37 @@ const Schedule = () => {
         </div>
       </main>
       <Footer />
+
+      {/* Confirmation suppression tâche (depuis calendrier) */}
+      <AlertDialog open={!!deleteConfirmSchedule} onOpenChange={(open) => !open && setDeleteConfirmSchedule(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("schedule.deleteTaskTitle", "Supprimer cette tâche ?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteConfirmSchedule && (
+                <>
+                  {t("schedule.deleteTaskConfirm", "Êtes-vous sûr de vouloir supprimer")} &quot;{deleteConfirmSchedule.step_name}&quot; ?
+                  {t("schedule.deleteTaskIrreversible", " Cette action est irréversible.")}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel", "Annuler")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (deleteConfirmSchedule) {
+                  deleteSchedule(deleteConfirmSchedule.id);
+                  setDeleteConfirmSchedule(null);
+                }
+              }}
+            >
+              {t("common.delete", "Supprimer")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

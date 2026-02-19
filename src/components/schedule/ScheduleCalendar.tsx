@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, AlertTriangle, CalendarPlus } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, CalendarPlus, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { getTradeColor } from "@/data/tradeTypes";
@@ -36,12 +36,18 @@ interface ScheduleCalendarProps {
   conflicts: { date: string; trades: string[] }[];
   /** Appelé quand l'utilisateur clique "Ajouter une tâche" pour une date donnée */
   onAddTaskForDay?: (date: Date) => void;
+  /** Appelé pour modifier une tâche (ex: basculer vers la vue tableau) */
+  onEditTask?: (schedule: ScheduleItem) => void;
+  /** Appelé pour supprimer une tâche (avec confirmation côté parent) */
+  onDeleteTask?: (schedule: ScheduleItem) => void;
 }
 
 export const ScheduleCalendar = ({
   schedules,
   conflicts,
   onAddTaskForDay,
+  onEditTask,
+  onDeleteTask,
 }: ScheduleCalendarProps) => {
   const { t, i18n } = useTranslation();
   const dateLocale = getDateLocale();
@@ -255,6 +261,40 @@ export const ScheduleCalendar = ({
                                   )}
                                 </p>
                               </div>
+                              {(onEditTask || onDeleteTask) && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {onEditTask && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditTask(s);
+                                        setPopoverOpen(false);
+                                        setSelectedDay(null);
+                                      }}
+                                      title={t("common.edit", "Modifier")}
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {onDeleteTask && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteTask(s);
+                                      }}
+                                      title={t("common.delete", "Supprimer")}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

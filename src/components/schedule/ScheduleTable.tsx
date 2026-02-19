@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -60,6 +60,9 @@ import { constructionSteps } from "@/data/constructionSteps";
 
 interface ScheduleTableProps {
   schedules: ScheduleItem[];
+  /** ID de la tâche à ouvrir en édition (ex: depuis le calendrier) */
+  initialEditId?: string | null;
+  onInitialEditHandled?: () => void;
   onUpdate: (schedule: Partial<ScheduleItem> & { id: string }) => void | Promise<void>;
   onDelete: (id: string) => void;
   onComplete?: (
@@ -80,6 +83,8 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 
 export const ScheduleTable = ({
   schedules,
+  initialEditId,
+  onInitialEditHandled,
   onUpdate,
   onDelete,
   onComplete,
@@ -94,6 +99,19 @@ export const ScheduleTable = ({
   const [completeDays, setCompleteDays] = useState<number | undefined>(undefined);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Ouvrir l'édition quand initialEditId est fourni (depuis le calendrier)
+  useEffect(() => {
+    if (initialEditId && schedules.some((s) => s.id === initialEditId)) {
+      const schedule = schedules.find((s) => s.id === initialEditId);
+      if (schedule) {
+        setEditingId(schedule.id);
+        setEditData(schedule);
+        setExpandedRow(schedule.id);
+        onInitialEditHandled?.();
+      }
+    }
+  }, [initialEditId, schedules]);
 
   const hasConflict = (scheduleId: string) => {
     const schedule = schedules.find((s) => s.id === scheduleId);

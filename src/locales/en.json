@@ -1156,6 +1156,9 @@
     "concreteCuring": "Concrete curing",
     "dateLockedManually": "Date locked manually",
     "andMoreConflicts": "And {{count}} more conflicts...",
+    "deleteTaskTitle": "Delete this task?",
+    "deleteTaskConfirm": "Are you sure you want to delete",
+    "deleteTaskIrreversible": " This action cannot be undone.",
     "trades": {
       "excavation": "Excavation",
       "foundation": "Foundation/Concrete",

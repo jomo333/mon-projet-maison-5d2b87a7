@@ -369,7 +369,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
       sonnerToast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
         action: {
           label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-          onClick: () => navigate("/forfaits"),
+          onClick: () => navigate("/forfaits#acheter-analyses"),
         },
       });
       return;
@@ -411,7 +411,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
           sonnerToast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
             action: {
               label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-              onClick: () => navigate("/forfaits"),
+              onClick: () => navigate("/forfaits#acheter-analyses"),
             },
           });
           setAnalysisStates(prev => ({ ...prev, [tradeId]: { tradeId, isAnalyzing: false, result: null } }));
@@ -845,7 +845,7 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
           <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
             {canUseAI().message || "Limite d'analyses IA atteinte."}
           </p>
-          <Button variant="default" size="sm" onClick={() => navigate("/forfaits")} className="gap-2">
+          <Button variant="default" size="sm" onClick={() => navigate("/forfaits#acheter-analyses")} className="gap-2">
             <Sparkles className="h-4 w-4" />
             Acheter ou améliorer
           </Button>

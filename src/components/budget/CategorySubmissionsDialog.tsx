@@ -1113,7 +1113,7 @@ export function CategorySubmissionsDialog({
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
       toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
-        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits#acheter-analyses") },
       });
       refetchPlanLimits();
       return;
@@ -1343,7 +1343,7 @@ export function CategorySubmissionsDialog({
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
       toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
-        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits#acheter-analyses") },
       });
       refetchPlanLimits();
       return;
@@ -1482,7 +1482,7 @@ export function CategorySubmissionsDialog({
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
       toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
-        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits#acheter-analyses") },
       });
       refetchPlanLimits();
       return;
@@ -2437,7 +2437,7 @@ export function CategorySubmissionsDialog({
             <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
               {canUseAI().message || t("toasts.freePlanLimitReached")}
             </p>
-            <Button variant="default" size="sm" onClick={() => navigate("/forfaits")} className="gap-2">
+            <Button variant="default" size="sm" onClick={() => navigate("/forfaits#acheter-analyses")} className="gap-2">
               <Sparkles className="h-4 w-4" />
               {t("toasts.limitReachedAction", "Acheter ou améliorer")}
             </Button>

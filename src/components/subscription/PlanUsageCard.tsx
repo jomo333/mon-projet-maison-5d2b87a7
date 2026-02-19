@@ -48,6 +48,48 @@ export function PlanUsageCard() {
     return "bg-primary";
   };
 
+  async function extractInvokeError(error: unknown): Promise<string> {
+    const err = error as { context?: Response };
+    if (err?.context && typeof err.context?.json === "function") {
+      try {
+        const body = (await err.context.json()) as { error?: string };
+        if (body?.error) return body.error;
+      } catch {
+        /* fallback to message */
+      }
+    }
+    return error instanceof Error ? error.message : "Impossible de créer le checkout";
+  }
+
+  async function handleBuyCredits(creditsAmount: 10 | 20) {
+    setBuyingCredits(creditsAmount);
+    try {
+      const { data: { session: sess } } = await supabase.auth.getSession();
+      const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+      const token = refreshed?.access_token ?? sess?.access_token;
+      if (!token) {
+        toast.error("Veuillez vous reconnecter pour acheter des analyses.");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
+        body: { credits_amount: creditsAmount },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) {
+        const msg = await extractInvokeError(error);
+        throw new Error(msg);
+      }
+      if (data?.url) window.location.href = data.url;
+      else throw new Error((data as { error?: string })?.error || "Erreur");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : await extractInvokeError(e);
+      toast.error(msg);
+      console.error(e);
+    } finally {
+      setBuyingCredits(null);
+    }
+  }
+
   const storageUnit = t("planUsage.gb");
 
   const formatLimit = (current: number, limit: number, suffix: string = "") => {
@@ -124,31 +166,7 @@ export function PlanUsageCard() {
                 variant="outline"
                 className="flex-1 text-xs"
                 disabled={!!buyingCredits}
-                onClick={async () => {
-                  setBuyingCredits(10);
-                  try {
-                    const { data: { session: sess } } = await supabase.auth.getSession();
-                    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-                    const token = refreshed?.access_token ?? sess?.access_token;
-                    if (!token) {
-                      toast.error("Veuillez vous reconnecter pour acheter des analyses.");
-                      return;
-                    }
-                    const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
-                      body: { credits_amount: 10 },
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (error) throw new Error(error.message || "Erreur");
-                    if (data?.url) window.location.href = data.url;
-                    else throw new Error(data?.error || "Erreur");
-                  } catch (e) {
-                    const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
-                    toast.error(msg);
-                    console.error(e);
-                  } finally {
-                    setBuyingCredits(null);
-                  }
-                }}
+                onClick={() => handleBuyCredits(10)}
               >
                 {buyingCredits === 10 ? <Loader2 className="h-4 w-4 animate-spin" /> : "10 analyses — 10 $"}
               </Button>
@@ -157,31 +175,7 @@ export function PlanUsageCard() {
                 variant="outline"
                 className="flex-1 text-xs"
                 disabled={!!buyingCredits}
-                onClick={async () => {
-                  setBuyingCredits(20);
-                  try {
-                    const { data: { session: sess } } = await supabase.auth.getSession();
-                    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-                    const token = refreshed?.access_token ?? sess?.access_token;
-                    if (!token) {
-                      toast.error("Veuillez vous reconnecter pour acheter des analyses.");
-                      return;
-                    }
-                    const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
-                      body: { credits_amount: 20 },
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (error) throw new Error(error.message || "Erreur");
-                    if (data?.url) window.location.href = data.url;
-                    else throw new Error(data?.error || "Erreur");
-                  } catch (e) {
-                    const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
-                    toast.error(msg);
-                    console.error(e);
-                  } finally {
-                    setBuyingCredits(null);
-                  }
-                }}
+                onClick={() => handleBuyCredits(20)}
               >
                 {buyingCredits === 20 ? <Loader2 className="h-4 w-4 animate-spin" /> : "20 analyses — 15 $"}
               </Button>
@@ -213,7 +207,7 @@ export function PlanUsageCard() {
           <Button
             variant="outline"
             className="w-full mt-4"
-            onClick={() => navigate("/forfaits")}
+            onClick={() => navigate(planName === "Gratuit" || planName === "Découverte" ? "/forfaits#plans" : "/forfaits#acheter-analyses")}
           >
             {t("planUsage.upgrade")}
             <ArrowRight className="ml-2 h-4 w-4" />

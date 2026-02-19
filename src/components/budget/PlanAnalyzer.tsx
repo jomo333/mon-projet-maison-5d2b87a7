@@ -681,7 +681,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
       toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
         action: {
           label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-          onClick: () => navigate("/forfaits"),
+          onClick: () => navigate("/forfaits#acheter-analyses"),
         },
       });
       return;
@@ -1030,7 +1030,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
           action: {
             label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
-            onClick: () => navigate("/forfaits"),
+            onClick: () => navigate("/forfaits#acheter-analyses"),
           },
         });
       } else {

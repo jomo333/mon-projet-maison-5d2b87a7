@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -36,6 +36,7 @@ interface Plan {
 export default function Plans() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,20 @@ export default function Plans() {
 
     fetchPlans();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const hash = location.hash;
+    if (hash === "#acheter-analyses") {
+      setTimeout(() => {
+        document.getElementById("acheter-analyses")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } else if (hash === "#plans") {
+      setTimeout(() => {
+        document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [location.hash, user]);
 
   const handleChoosePlan = async (plan: Plan) => {
     if (!user) {
@@ -222,7 +237,7 @@ export default function Plans() {
         <Separator className="max-w-4xl mx-auto" />
 
         {/* Plans Section */}
-        <section className="py-16 lg:py-20">
+        <section id="plans" className="py-16 lg:py-20 scroll-mt-24">
           <div className="container">
             {loading ? (
               <div className="flex justify-center py-12">
@@ -326,7 +341,7 @@ export default function Plans() {
 
         {/* Carte utilisation + achat analyses (utilisateur connecté) */}
         {user && (
-          <section className="py-12 lg:py-16 border-t">
+          <section id="acheter-analyses" className="py-12 lg:py-16 border-t scroll-mt-24">
             <div className="container max-w-md mx-auto">
               <PlanUsageCard />
             </div>

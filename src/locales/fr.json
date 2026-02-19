@@ -1587,6 +1587,7 @@
     "benefit5Desc": "Prenez des décisions plus réfléchies, sans pression.",
     "choosePlan": "Choisir ce forfait",
     "redirectingToCheckout": "Redirection vers le paiement…",
+    "checkoutError": "Impossible de créer la session de paiement. Vérifiez la configuration Stripe.",
     "manageSubscription": "Gérer mon abonnement",
     "manageSubscriptionDesc": "Modifier le moyen de paiement, consulter les factures ou annuler l'abonnement.",
     "manageSubscriptionButton": "Ouvrir le portail de facturation",

@@ -111,6 +111,14 @@ Pour que les achats Stripe (mode test ou live) créent ou mettent à jour l’ab
 
 4. **Lors de la création du Checkout Stripe** (côté front ou backend), passe l’email du client (ou `client_reference_id` = `user_id` Supabase) pour que le webhook puisse associer l’abonnement au bon utilisateur.
 
+5. **Bouton « Acheter » / Checkout** : déploie aussi la fonction `create-checkout-session` et ajoute la variable :
+   - `supabase functions deploy create-checkout-session`
+   - `STRIPE_PLAN_TO_PRICE_JSON` : correspondance **UUID du plan (table plans) → Stripe price_id**. Exemple :
+     ```json
+     {"uuid-plan-essentiel": "price_xxxEssentiel", "uuid-plan-gestion-complete": "price_xxxGestion"}
+     ```
+   Sans cette variable, le bouton d’achat sur la page Forfaits ne pourra pas rediriger vers Stripe.
+
 **Assignation manuelle par l’admin** : dans Admin → Abonnés, utiliser « Assigner un forfait » pour donner un forfait sans passer par Stripe. L’utilisateur devra éventuellement rafraîchir la page pour voir les options déverrouillées.
 
 ## Can I connect a custom domain to my Lovable project?

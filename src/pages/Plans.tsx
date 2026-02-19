@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { Check, Home, ClipboardList, Shield, Heart, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency } from "@/lib/i18n";
 import { getTranslatedPlanName, getTranslatedPlanDescription, getTranslatedPlanFeatures } from "@/lib/planTiersI18n";
+import { toast } from "sonner";
 
 interface Plan {
   id: string;
@@ -37,6 +38,7 @@ export default function Plans() {
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const benefits = [
     {
@@ -89,11 +91,42 @@ export default function Plans() {
     fetchPlans();
   }, []);
 
-  const handleChoosePlan = (planId: string) => {
-    if (user) {
-      navigate("/mes-projets");
-    } else {
+  const handleChoosePlan = async (plan: Plan) => {
+    if (!user) {
       navigate("/auth");
+      return;
+    }
+    // Forfait gratuit : rediriger vers mes projets
+    if (plan.price_monthly === 0) {
+      navigate("/mes-projets");
+      return;
+    }
+    // Forfait payant : créer session Stripe Checkout
+    setCheckoutLoading(plan.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        toast.error(t("common.error"));
+        navigate("/auth");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: { plan_id: plan.id, billing_cycle: "monthly" },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      const url = data?.url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement.");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement. Vérifiez la configuration Stripe.");
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
@@ -252,13 +285,20 @@ export default function Plans() {
 
                     <CardFooter className="pt-4">
                       <Button
-                        onClick={() => handleChoosePlan(plan.id)}
+                        onClick={() => handleChoosePlan(plan)}
+                        disabled={!!checkoutLoading}
                         variant={plan.is_featured ? "accent" : "outline"}
                         className="w-full"
                         size="lg"
                       >
-                        {plan.price_monthly === 0 ? t("pricing.discovery.cta") : t("plans.choosePlan")}
-                        <ArrowRight className="h-4 w-4 ml-2" />
+                        {checkoutLoading === plan.id ? (
+                          <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                        ) : (
+                          <>
+                            {plan.price_monthly === 0 ? t("pricing.discovery.cta") : t("plans.choosePlan")}
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </>
+                        )}
                       </Button>
                     </CardFooter>
                   </Card>

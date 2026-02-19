@@ -172,13 +172,21 @@ export function useSubscription(): SubscriptionData {
     fetchData();
   }, [user?.id]);
 
-  // Recharger l'abonnement quand l'utilisateur revient sur l'onglet (ex: admin a changé le forfait)
+  // Recharger l'abonnement au retour sur l'onglet et toutes les 30s (admin peut changer le forfait)
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible" && user) fetchData();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    const interval = user
+      ? setInterval(() => {
+          if (document.visibilityState === "visible") fetchData();
+        }, 30_000)
+      : undefined;
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (interval) clearInterval(interval);
+    };
   }, [user?.id]);
 
   const limits = plan?.limits || DEFAULT_LIMITS;

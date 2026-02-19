@@ -1587,6 +1587,7 @@
     "benefit5Desc": "Make more thoughtful decisions, without pressure.",
     "choosePlan": "Choose this plan",
     "redirectingToCheckout": "Redirecting to checkout…",
+    "checkoutError": "Unable to create payment session. Check Stripe configuration.",
     "manageSubscription": "Manage my subscription",
     "manageSubscriptionDesc": "Update payment method, view invoices, or cancel your subscription.",
     "manageSubscriptionButton": "Open billing portal",

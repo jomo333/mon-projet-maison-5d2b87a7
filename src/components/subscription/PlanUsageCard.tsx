@@ -48,19 +48,6 @@ export function PlanUsageCard() {
     return "bg-primary";
   };
 
-  async function extractInvokeError(error: unknown): Promise<string> {
-    const err = error as { context?: Response };
-    if (err?.context && typeof err.context?.json === "function") {
-      try {
-        const body = (await err.context.json()) as { error?: string };
-        if (body?.error) return body.error;
-      } catch {
-        /* fallback to message */
-      }
-    }
-    return error instanceof Error ? error.message : "Impossible de créer le checkout";
-  }
-
   async function handleBuyCredits(creditsAmount: 10 | 20) {
     setBuyingCredits(creditsAmount);
     try {
@@ -71,18 +58,29 @@ export function PlanUsageCard() {
         toast.error("Veuillez vous reconnecter pour acheter des analyses.");
         return;
       }
-      const { data, error } = await supabase.functions.invoke("create-checkout-credits", {
-        body: { credits_amount: creditsAmount },
-        headers: { Authorization: `Bearer ${token}` },
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${baseUrl}/functions/v1/create-checkout-credits`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ credits_amount: creditsAmount }),
       });
-      if (error) {
-        const msg = await extractInvokeError(error);
-        throw new Error(msg);
+      const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!res.ok) {
+        const msg = body?.error || `Erreur ${res.status}`;
+        toast.error(msg);
+        console.error("create-checkout-credits:", res.status, body);
+        return;
       }
-      if (data?.url) window.location.href = data.url;
-      else throw new Error((data as { error?: string })?.error || "Erreur");
+      if (body?.url) {
+        window.location.href = body.url;
+      } else {
+        toast.error(body?.error || "Erreur lors de la création du checkout");
+      }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : await extractInvokeError(e);
+      const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
       toast.error(msg);
       console.error(e);
     } finally {

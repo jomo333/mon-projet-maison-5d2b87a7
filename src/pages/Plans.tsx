@@ -121,22 +121,32 @@ export default function Plans() {
       setCheckoutLoading(plan.id);
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
+        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+        const token = refreshed?.access_token ?? session?.access_token;
         if (!token) {
           toast.error(t("common.error"));
           navigate("/auth");
           return;
         }
-        const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-          body: { plan_id: plan.id, billing_cycle: "monthly" },
-          headers: { Authorization: `Bearer ${token}` },
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const res = await fetch(`${baseUrl}/functions/v1/create-checkout-session`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ plan_id: plan.id, billing_cycle: "monthly" }),
         });
-        if (error) throw error;
-        const url = data?.url;
-        if (url) {
-          window.location.href = url;
+        const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+        if (!res.ok) {
+          toast.error(body?.error || `Erreur ${res.status}`);
+          console.error("create-checkout-session:", res.status, body);
+          return;
+        }
+        if (body?.url) {
+          window.location.href = body.url;
         } else {
-          toast.error(t("plans.checkoutError") || "Impossible de créer la session de paiement.");
+          toast.error(body?.error || t("plans.checkoutError") || "Impossible de créer la session de paiement.");
         }
       } catch (err) {
         console.error("Checkout error:", err);

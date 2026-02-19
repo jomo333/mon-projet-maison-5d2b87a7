@@ -131,30 +131,32 @@ export function usePlanLimits(): PlanLimitsHook {
   // Budget, échéancier, analyse IA soumissions : Essentiel et Gestion complète uniquement (PAS Gratuit)
   const canUseBudgetAndSchedule = useMemo(() => {
     if (isAdmin) return true;
-    if (loading) return true; // Ne pas verrouiller pendant le chargement
-    const rawName = plan?.name || "Découverte";
-    const name = rawName.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""); // "essentiel" même avec accents
-    // 1) Forfaits payants par nom : Essentiel et Gestion complète uniquement (inclut variantes)
-    const paidNames = ["essentiel", "essential", "gestion complete", "gestion complète"];
+    // Plan gratuit (prix 0) = toujours verrouillé
+    if (plan && plan.price_monthly === 0) return false;
+    const rawName = (plan?.name || "Découverte").trim();
+    const name = rawName.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    // Gratuit/Découverte par nom = toujours verrouillé
+    const freePlanNames = ["gratuit", "decouverte", "free"];
+    if (freePlanNames.some((f) => name === f || name.includes(f))) return false;
+    if (/gratuit|découverte|decouverte|free/i.test(rawName)) return false;
+    // Pendant le chargement : verrouiller par défaut (évite accès indû)
+    if (loading) return false;
+    // Forfaits payants par nom
+    const paidNames = ["essentiel", "essential", "gestion complete"];
     if (paidNames.some((paid) => name.includes(paid))) return true;
-    // 2) Nom brut contient "Essentiel" (casse/unicode éventuel)
-    if (/essentiel|essential/i.test(rawName)) return true;
-    // 3) Secours par limites : Essentiel = 1 projet, 10 IA ; Gratuit = 1 projet, 0 IA
+    if (/essentiel|essential|gestion\s*complète/i.test(rawName)) return true;
+    // Secours par limites : Essentiel = 10+ IA ou projets illimités
     const hasEssentielLimits =
       (limits.ai_analyses >= 10 && limits.ai_analyses !== -1) ||
-      (limits.projects === -1);
+      limits.projects === -1;
     if (hasEssentielLimits) return true;
-    const freeTier = { projects: 1, ai_analyses: 1 };
     const hasPaidLimits =
-      (limits.projects > freeTier.projects && limits.projects !== -1) ||
+      limits.projects > 1 ||
       limits.projects === -1 ||
-      (limits.ai_analyses > freeTier.ai_analyses && limits.ai_analyses !== -1) ||
+      (limits.ai_analyses > 1 && limits.ai_analyses !== -1) ||
       limits.ai_analyses === -1;
-    if (hasPaidLimits) return true;
-    const isFreePlanName = name === "gratuit" || name === "découverte" || name === "decouverte";
-    if (!isFreePlanName) return true; // Plans inconnus = accès par défaut
-    return false;
-  }, [plan?.name, isAdmin, limits.projects, limits.ai_analyses, loading]);
+    return hasPaidLimits;
+  }, [plan?.name, plan?.price_monthly, isAdmin, limits.projects, limits.ai_analyses, loading]);
 
   return {
     limits,

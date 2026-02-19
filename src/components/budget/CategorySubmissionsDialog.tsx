@@ -2620,7 +2620,6 @@ export function CategorySubmissionsDialog({
                             toast.error(t("toasts.saveError", "Erreur lors de l'enregistrement"));
                             return;
                           }
-                          const orderLeadDays = currentSubCat.orderLeadDays ?? null;
                           setSubCategories(prev => prev.map(sc =>
                             sc.id === activeSubCategoryId
                               ? { ...sc, amount: materialCost, materialCostOnly: materialCost, orderLeadDays }

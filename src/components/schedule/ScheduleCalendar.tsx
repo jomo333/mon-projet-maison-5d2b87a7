@@ -13,7 +13,6 @@ import {
   isWithinInterval,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -112,30 +111,6 @@ export const ScheduleCalendar = ({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-
-      {/* Légende des métiers */}
-      <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b">
-        {schedules
-          .reduce<ScheduleItem[]>((acc, s) => {
-            if (!acc.find((a) => a.trade_type === s.trade_type)) {
-              acc.push(s);
-            }
-            return acc;
-          }, [])
-          .map((schedule) => (
-            <Badge
-              key={schedule.trade_type}
-              variant="outline"
-              className="flex items-center gap-1"
-            >
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: getTradeColor(schedule.trade_type) }}
-              />
-              {getTranslatedTradeName(t, schedule.trade_type)}
-            </Badge>
-          ))}
       </div>
 
       {/* Grille du calendrier */}

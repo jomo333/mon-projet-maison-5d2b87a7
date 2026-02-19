@@ -66,7 +66,7 @@ const parallelSteps: Set<string> = new Set(["exterieur"]);
 
 /** Tâche manuelle "travaux en simultané" - ne déplace pas l'échéancier */
 const isOverlayTask = (s: ScheduleItem): boolean => {
-  if (s.step_id !== "manual") return false;
+  if (!s.step_id.startsWith("manual")) return false;
   if (!s.notes) return false;
   try {
     const parsed = JSON.parse(s.notes) as { isOverlay?: boolean };
@@ -1691,7 +1691,7 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     const schedule: Omit<ScheduleItem, "id" | "created_at" | "updated_at"> = {
       project_id: projectId,
-      step_id: "manual",
+      step_id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       step_name: task.description.trim(),
       trade_type: task.trade_type,
       trade_color: tradeColor,

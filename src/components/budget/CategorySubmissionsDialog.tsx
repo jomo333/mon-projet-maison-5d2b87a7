@@ -143,7 +143,7 @@ export function CategorySubmissionsDialog({
   const { syncAlertsFromSoumissions } = useProjectSchedule(projectId);
   
   // Analyse des soumissions : disponible à partir du forfait Essentiel
-  const { canUseBudgetAndSchedule } = usePlanLimits();
+  const { canUseBudgetAndSchedule, canUseAI, refetch: refetchPlanLimits } = usePlanLimits();
   
   // Helper function to translate budget category names
   const translateCategoryName = (name: string): string => {
@@ -1311,9 +1311,25 @@ export function CategorySubmissionsDialog({
 
   // DIY AI Material Analysis
   const analyzeDIYMaterials = async () => {
+    if (!canUseBudgetAndSchedule) {
+      toast.error(t("premiumFeatures.quoteAnalysisRestricted"));
+      navigate("/forfaits");
+      return;
+    }
+    const limitCheck = canUseAI();
+    if (!limitCheck.allowed) {
+      toast.error(limitCheck.message);
+      refetchPlanLimits();
+      return;
+    }
     const currentSubCat = subCategories.find(sc => sc.id === activeSubCategoryId);
     if (!currentSubCat) {
       toast.error(t("toasts.selectSubcategory"));
+      return;
+    }
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Session invalide. Veuillez vous reconnecter.");
       return;
     }
 
@@ -1327,7 +1343,7 @@ export function CategorySubmissionsDialog({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             categoryName,
@@ -1399,6 +1415,7 @@ export function CategorySubmissionsDialog({
       setDiyAnalysisResult(result);
       setShowDIYAnalysis(true);
       toast.success(t("toasts.diyAnalysisDone"));
+      refetchPlanLimits();
       
       // Try to extract estimated cost from analysis
       const costMatch = result.match(/\*\*TOTAL ESTIMÉ\*\*[^$]*\*?\*?([0-9\s,]+(?:\.[0-9]+)?)\s*\$/i);
@@ -1420,6 +1437,17 @@ export function CategorySubmissionsDialog({
 
   // AI Analysis
   const analyzeDocuments = async () => {
+    if (!canUseBudgetAndSchedule) {
+      toast.error(t("premiumFeatures.quoteAnalysisRestricted"));
+      navigate("/forfaits");
+      return;
+    }
+    const limitCheck = canUseAI();
+    if (!limitCheck.allowed) {
+      toast.error(limitCheck.message);
+      refetchPlanLimits();
+      return;
+    }
     if (documents.length === 0) {
       toast.error(t("toasts.uploadPlansFirst"));
       return;
@@ -1501,6 +1529,7 @@ export function CategorySubmissionsDialog({
 
       setAnalysisResult(result);
       toast.success(t("toasts.analysisDone"));
+      refetchPlanLimits();
       
       // Try to extract contacts from analysis
       const contacts = parseExtractedContacts(result);
@@ -2530,7 +2559,7 @@ export function CategorySubmissionsDialog({
                     Analysez automatiquement les coûts des matériaux basés sur vos plans ou entrez manuellement le montant.
                   </p>
 
-                  {/* AI Analysis Button for DIY */}
+                  {/* AI Analysis Button for DIY - Verrouillé plan gratuit */}
                   <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-100/50 dark:bg-amber-900/30 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1">
@@ -2545,20 +2574,44 @@ export function CategorySubmissionsDialog({
                           }
                         </p>
                       </div>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={analyzeDIYMaterials}
-                        disabled={analyzingDIY}
-                        className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-                      >
-                        {analyzingDIY ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-4 w-4" />
-                        )}
-                        {analyzingDIY ? "Analyse..." : "Analyser"}
-                      </Button>
+                      {canUseBudgetAndSchedule ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={analyzeDIYMaterials}
+                          disabled={analyzingDIY}
+                          className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          {analyzingDIY ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                          {analyzingDIY ? "Analyse..." : "Analyser"}
+                        </Button>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate("/forfaits")}
+                                className="gap-2"
+                              >
+                                <Lock className="h-4 w-4" />
+                                <Crown className="h-4 w-4" />
+                                <span>Analyser</span>
+                                <Info className="h-3 w-3 opacity-70" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-xs">
+                              <p className="text-xs font-medium mb-1">{t("premiumFeatures.quoteAnalysisTooltip")}</p>
+                              <p className="text-xs text-muted-foreground">{t("premiumFeatures.quoteAnalysisRestricted")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </div>
 

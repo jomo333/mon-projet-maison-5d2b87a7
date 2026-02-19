@@ -358,13 +358,15 @@ const ProjectGallery = () => {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["projects", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!user,
   });

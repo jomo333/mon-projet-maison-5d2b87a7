@@ -375,24 +375,36 @@ const ProjectGallery = () => {
     setSearchParams({ project: newProjectId });
   };
 
-  // Fetch project info
+  // Vérifier que projectId appartient à l'utilisateur (sécurité + évite données d'un autre projet)
+  const projectBelongsToUser = !!projectId && projects.some((p) => p.id === projectId);
+
+  // Corriger l'URL si projectId invalide (ex: ancien lien, projet supprimé) ou absent
+  useEffect(() => {
+    if (projects.length === 0) return;
+    if (!projectId || !projectBelongsToUser) {
+      setSearchParams({ project: projects[0].id });
+    }
+  }, [projects, projectId, projectBelongsToUser, setSearchParams]);
+
+  // Fetch project info (RLS Supabase vérifie aussi user_id)
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
-      if (!projectId) return null;
+      if (!projectId || !user) return null;
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .eq("id", projectId)
+        .eq("user_id", user.id)
         .single();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
-  // Fetch all photos for project
+  // Fetch all photos for project (RLS vérifie la propriété via projects)
   const { data: photos = [], isLoading: photosLoading } = useQuery({
     queryKey: ["all-project-photos", projectId],
     queryFn: async () => {
@@ -406,10 +418,10 @@ const ProjectGallery = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
-  // Fetch all documents (task_attachments)
+  // Fetch all documents (task_attachments) - RLS vérifie la propriété via projects
   const { data: documents = [], isLoading: documentsLoading } = useQuery({
     queryKey: ["project-documents", projectId],
     queryFn: async () => {
@@ -423,7 +435,7 @@ const ProjectGallery = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
   // Delete photo mutation
@@ -497,7 +509,7 @@ const ProjectGallery = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
   // Fetch soumission documents
@@ -516,7 +528,7 @@ const ProjectGallery = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
   // Factures matériaux DIY state
@@ -538,7 +550,7 @@ const ProjectGallery = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!projectId && !!user,
+    enabled: !!projectId && !!user && projectBelongsToUser,
   });
 
   // Upload facture matériaux

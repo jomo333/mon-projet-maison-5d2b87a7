@@ -217,7 +217,10 @@ export function CategorySubmissionsDialog({
 
   // Get the current task ID (main category, sub-category, or task-based)
   const getCurrentTaskId = () => {
-    // In 'single' mode, always use the main category task ID
+    // Sub-category (DIY) takes priority - when viewing a sub-category, always use its task_id
+    if (activeSubCategoryId) {
+      return `soumission-${tradeId}-sub-${activeSubCategoryId}`;
+    }
     if (viewMode === 'single') {
       return `soumission-${tradeId}`;
     }
@@ -231,9 +234,6 @@ export function CategorySubmissionsDialog({
         .replace(/-+/g, '-')
         .substring(0, 50);
       return `soumission-${tradeId}-task-${sanitizedTaskTitle}`;
-    }
-    if (activeSubCategoryId) {
-      return `soumission-${tradeId}-sub-${activeSubCategoryId}`;
     }
     return `soumission-${tradeId}`;
   };
@@ -2595,6 +2595,8 @@ export function CategorySubmissionsDialog({
                           if (!currentSubCat) return;
                           const materialCost = currentSubCat.materialCostOnly || 0;
                           const existingNotes = supplierStatus || {};
+                          const orderLeadDays = currentSubCat.orderLeadDays ?? null;
+                          const currentWithQuotes = currentSubCat as SubCategory & { quotes?: unknown[]; itemNotes?: string };
                           const updatedNotes = JSON.stringify({
                             ...existingNotes,
                             subCategoryName: currentSubCat.name,
@@ -2602,7 +2604,9 @@ export function CategorySubmissionsDialog({
                             materialCostOnly: materialCost,
                             isDIY: true,
                             hasDIYAnalysis: !!diyAnalysisResult,
-                            orderLeadDays: currentSubCat.orderLeadDays ?? null,
+                            orderLeadDays,
+                            quotes: existingNotes.quotes ?? currentWithQuotes.quotes ?? [],
+                            itemNotes: existingNotes.itemNotes ?? currentWithQuotes.itemNotes ?? '',
                           });
                           const { error } = await supabase
                             .from('task_dates')
@@ -2707,6 +2711,7 @@ export function CategorySubmissionsDialog({
                               const orderLeadDays = currentSubCat.orderLeadDays ?? null;
                               const materialCost = currentSubCat.materialCostOnly || 0;
                               const existingNotes = supplierStatus || {};
+                              const currentWithQuotes = currentSubCat as SubCategory & { quotes?: unknown[]; itemNotes?: string };
                               const updatedNotes = JSON.stringify({
                                 ...existingNotes,
                                 subCategoryName: currentSubCat.name,
@@ -2715,6 +2720,8 @@ export function CategorySubmissionsDialog({
                                 isDIY: true,
                                 hasDIYAnalysis: !!diyAnalysisResult,
                                 orderLeadDays,
+                                quotes: existingNotes.quotes ?? currentWithQuotes.quotes ?? [],
+                                itemNotes: existingNotes.itemNotes ?? currentWithQuotes.itemNotes ?? '',
                               });
                               const { error } = await supabase
                                 .from('task_dates')

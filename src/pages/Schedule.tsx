@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { ScheduleTable } from "@/components/schedule/ScheduleTable";
@@ -52,6 +53,7 @@ import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 const Schedule = () => {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
+  const { hasFullManagement } = usePlanLimits();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
@@ -220,7 +222,7 @@ const Schedule = () => {
                   {conflicts.length} {t("schedule.conflicts").toLowerCase()}{conflicts.length > 1 ? "" : ""}
                 </Badge>
               )}
-              {alerts.length > 0 && (
+              {hasFullManagement && alerts.length > 0 && (
                 <Badge
                   variant="secondary"
                   className="flex items-center gap-1 bg-orange-500/10 text-orange-600 border-orange-500/20"
@@ -345,13 +347,15 @@ const Schedule = () => {
             </div>
             <p className="text-xs text-muted-foreground">{t("schedule.conflicts")}</p>
           </div>
-          <div className={`bg-card rounded-lg border p-3 text-center ${alerts.length > 0 ? "border-orange-500" : ""}`}>
-            <div className="flex items-center justify-center gap-1">
-              <CalendarDays className={`h-4 w-4 ${alerts.length > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
-              <span className="text-2xl font-bold">{stats.alerts}</span>
+          {hasFullManagement && (
+            <div className={`bg-card rounded-lg border p-3 text-center ${alerts.length > 0 ? "border-orange-500" : ""}`}>
+              <div className="flex items-center justify-center gap-1">
+                <CalendarDays className={`h-4 w-4 ${alerts.length > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
+                <span className="text-2xl font-bold">{stats.alerts}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{t("schedule.alerts")}</p>
             </div>
-            <p className="text-xs text-muted-foreground">{t("schedule.alerts")}</p>
-          </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">

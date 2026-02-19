@@ -867,10 +867,14 @@ export const useProjectSchedule = (projectId: string | null) => {
     queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
 
     // Créer des alertes pour contacter les sous-traitants avec dates verrouillées
-    if (subcontractorsToContact.length > 0) {
+    // Exclure les tâches manuelles (manual-*) : pas de fournisseur à contacter
+    const realSubcontractors = subcontractorsToContact.filter(
+      ({ schedule }) => !schedule.step_id.startsWith("manual")
+    );
+    if (realSubcontractors.length > 0) {
       const todayStr = format(new Date(), "yyyy-MM-dd");
       
-      for (const { schedule, reason, daysDiff } of subcontractorsToContact) {
+      for (const { schedule, reason, daysDiff } of realSubcontractors) {
         const supplierName = schedule.supplier_name || "le sous-traitant";
         const supplierPhone = schedule.supplier_phone ? ` (${schedule.supplier_phone})` : "";
         
@@ -903,8 +907,8 @@ export const useProjectSchedule = (projectId: string | null) => {
       }
 
       // Notifier l'utilisateur
-      const urgentCount = subcontractorsToContact.filter(s => s.reason === "delay").length;
-      const advanceCount = subcontractorsToContact.filter(s => s.reason === "advance").length;
+      const urgentCount = realSubcontractors.filter(s => s.reason === "delay").length;
+      const advanceCount = realSubcontractors.filter(s => s.reason === "advance").length;
       
       if (urgentCount > 0 || advanceCount > 0) {
         const parts: string[] = [];

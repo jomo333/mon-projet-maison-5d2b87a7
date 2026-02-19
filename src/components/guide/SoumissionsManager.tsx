@@ -840,6 +840,18 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         Obtenez au moins 3 soumissions par spécialité et téléchargez-les pour les comparer.
       </p>
 
+      {!canUseAI().allowed && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/40 p-3">
+          <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+            {canUseAI().message || "Limite d'analyses IA atteinte."}
+          </p>
+          <Button variant="default" size="sm" onClick={() => navigate("/forfaits")} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Acheter ou améliorer
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-2">
         {soumissionTrades.map((trade) => {
           const status = getTradeStatus(trade.id);

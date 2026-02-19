@@ -63,15 +63,17 @@ export function useSubscription(): SubscriptionData {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     if (!user) {
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       // Fetch subscription (incl. paused/past_due pour garder le plan et les limites)
       const { data: subData, error: subError } = await supabase
@@ -184,19 +186,19 @@ export function useSubscription(): SubscriptionData {
   // Re-refetch 2s après le premier chargement (admin peut d’assigner un forfait juste après le login)
   useEffect(() => {
     if (!user) return;
-    const t = setTimeout(() => fetchData(), 2000);
+    const t = setTimeout(() => fetchData(true), 2000);
     return () => clearTimeout(t);
   }, [user?.id]);
 
   // Recharger au retour sur l’onglet et toutes les 30s
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && user) fetchData();
+      if (document.visibilityState === "visible" && user) fetchData(true);
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     const interval = user
       ? setInterval(() => {
-          if (document.visibilityState === "visible") fetchData();
+          if (document.visibilityState === "visible") fetchData(true);
         }, 30_000)
       : undefined;
     return () => {

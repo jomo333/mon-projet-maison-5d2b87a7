@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { FolderOpen, Sparkles, HardDrive, ArrowRight, Loader2 } from "lucide-react";
@@ -138,10 +139,13 @@ export function PlanUsageCard() {
                         body: JSON.stringify({ credits_amount: 10 }),
                       }
                     );
-                    const json = await res.json();
+                    const json = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(json.error || `Erreur ${res.status}`);
                     if (json.url) window.location.href = json.url;
                     else throw new Error(json.error || "Erreur");
                   } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
+                    toast.error(msg);
                     console.error(e);
                   } finally {
                     setBuyingCredits(null);
@@ -170,10 +174,13 @@ export function PlanUsageCard() {
                         body: JSON.stringify({ credits_amount: 20 }),
                       }
                     );
-                    const json = await res.json();
+                    const json = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(json.error || `Erreur ${res.status}`);
                     if (json.url) window.location.href = json.url;
                     else throw new Error(json.error || "Erreur");
                   } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Impossible de créer le checkout";
+                    toast.error(msg);
                     console.error(e);
                   } finally {
                     setBuyingCredits(null);

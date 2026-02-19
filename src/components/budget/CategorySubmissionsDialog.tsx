@@ -1112,7 +1112,9 @@ export function CategorySubmissionsDialog({
     }
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
-      toast.error(limitCheck.message);
+      toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+      });
       refetchPlanLimits();
       return;
     }
@@ -1340,7 +1342,9 @@ export function CategorySubmissionsDialog({
     }
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
-      toast.error(limitCheck.message);
+      toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+      });
       refetchPlanLimits();
       return;
     }
@@ -1477,7 +1481,9 @@ export function CategorySubmissionsDialog({
     }
     const limitCheck = canUseAI();
     if (!limitCheck.allowed) {
-      toast.error(limitCheck.message);
+      toast.error(limitCheck.message || t("toasts.freePlanLimitReached"), {
+        action: { label: t("toasts.limitReachedAction", "Acheter ou améliorer"), onClick: () => navigate("/forfaits") },
+      });
       refetchPlanLimits();
       return;
     }
@@ -2425,6 +2431,18 @@ export function CategorySubmissionsDialog({
             }
           </DialogDescription>
         </DialogHeader>
+
+        {!canUseAI().allowed && (
+          <div className="rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/40 p-3 mb-3">
+            <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+              {canUseAI().message || t("toasts.freePlanLimitReached")}
+            </p>
+            <Button variant="default" size="sm" onClick={() => navigate("/forfaits")} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              {t("toasts.limitReachedAction", "Acheter ou améliorer")}
+            </Button>
+          </div>
+        )}
 
         <div className="relative flex-1 min-h-0 flex flex-col">
           <ScrollArea className="flex-1 pr-4">

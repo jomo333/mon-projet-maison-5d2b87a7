@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -156,6 +157,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
   prefillFloors,
   prefillSquareFootage
 }, ref) {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1011,7 +1013,17 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     } catch (error) {
       console.error("Analysis error:", error);
       const message = error instanceof Error ? error.message : t("toasts.analysisError");
-      toast.error(message);
+      const isLimitError = /limite|limit|crédit|credit|402/i.test(message);
+      if (isLimitError) {
+        toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+          action: {
+            label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+            onClick: () => navigate("/dashboard"),
+          },
+        });
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsAnalyzing(false);
       setBatchProgress(null);

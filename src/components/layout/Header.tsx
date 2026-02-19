@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { LayoutDashboard, Calculator, BookOpen, User, LogOut, FolderOpen, Scale, FolderDown, CalendarDays, Shield, CreditCard, Bug, Menu, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -19,14 +21,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/useAdmin";
 import { LanguageSelector } from "./LanguageSelector";
 import { ReportBugDialog } from "@/components/bug/ReportBugDialog";
@@ -51,6 +48,7 @@ export function Header() {
   const { user, profile, signOut, loading } = useAuth();
   const { isAdmin } = useAdmin();
   const { planName, limits, usage } = usePlanLimits();
+  const { subscription } = useSubscription();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const navItems = getNavItems(t);
@@ -177,41 +175,7 @@ export function Header() {
           {!loading && (
             <>
               {user ? (
-                <div className="flex items-center gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-                            "bg-muted/80 text-muted-foreground border border-border/60"
-                          )}
-                        >
-                          <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate max-w-[120px]" title={planName}>
-                            {planName}
-                          </span>
-                          <span className="text-foreground font-semibold tabular-nums">
-                            {remainingAnalyses === -1 ? "∞" : remainingAnalyses}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-xs">
-                        <p className="font-medium">{planName}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {remainingAnalyses === -1
-                            ? "Analyses IA illimitées"
-                            : `${remainingAnalyses} analyse${remainingAnalyses !== 1 ? "s" : ""} restante${remainingAnalyses !== 1 ? "s" : ""}`}
-                        </p>
-                        {(usage.bonus_credits ?? 0) > 0 && (
-                          <p className="text-xs text-primary mt-0.5">
-                            Dont {usage.bonus_credits} crédit{(usage.bonus_credits ?? 0) !== 1 ? "s" : ""} bonus
-                          </p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <DropdownMenu>
+                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
@@ -224,11 +188,26 @@ export function Header() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <div className="flex items-center justify-start gap-2 p-2">
-                      <div className="flex flex-col space-y-1 leading-none">
+                      <div className="flex flex-col space-y-1 leading-none w-full">
                         {profile?.display_name && (
                           <p className="font-medium">{profile.display_name}</p>
                         )}
                         <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <div className="pt-2 mt-2 border-t border-border/60 space-y-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="text-muted-foreground">{planName}</span>
+                            <span className="font-semibold tabular-nums ml-auto">
+                              {remainingAnalyses === -1 ? "∞" : remainingAnalyses} IA
+                            </span>
+                          </div>
+                          {subscription?.current_period_end && ["active", "trial"].includes(subscription?.status) && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                              <span>Fin : {format(new Date(subscription.current_period_end), "d MMM yyyy", { locale: fr })}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
@@ -265,7 +244,6 @@ export function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                </div>
               ) : (
                 <>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>

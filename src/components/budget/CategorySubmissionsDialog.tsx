@@ -1182,7 +1182,12 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+            action: {
+              label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+              onClick: () => navigate("/dashboard"),
+            },
+          });
           return;
         }
         if (response.status === 500) {
@@ -1383,7 +1388,12 @@ export function CategorySubmissionsDialog({
           return;
         }
         if (response.status === 402) {
-          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+            action: {
+              label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+              onClick: () => navigate("/dashboard"),
+            },
+          });
           return;
         }
         if (response.status === 500) {
@@ -1508,7 +1518,12 @@ export function CategorySubmissionsDialog({
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 402) {
-          toast.error(t("toasts.freePlanLimitReached", "Limite du forfait gratuit atteinte. Passez à un plan supérieur pour débloquer des analyses IA."));
+          toast.error(t("toasts.freePlanLimitReached", "Limite d'analyses IA atteinte."), {
+            action: {
+              label: t("toasts.limitReachedAction", "Acheter ou améliorer"),
+              onClick: () => navigate("/dashboard"),
+            },
+          });
           return;
         }
         if (response.status === 500) {

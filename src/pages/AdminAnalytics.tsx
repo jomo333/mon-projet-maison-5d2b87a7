@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { format, formatDistanceToNow, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, formatDistanceToNow, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   BarChart3, 
@@ -20,6 +20,8 @@ import {
   Users, 
   Brain, 
   Search,
+  Activity,
+  Zap,
   CheckCircle,
   XCircle,
   AlertTriangle,
@@ -31,6 +33,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface UserSessionStats {
   user_id: string;
@@ -95,6 +98,12 @@ interface MonthlyAIBreakdown {
   total: number;
 }
 
+interface HourlyDataPoint {
+  heure: string;
+  count: number;
+  heureNum: number;
+}
+
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [sessionStats, setSessionStats] = useState<UserSessionStats[]>([]);
@@ -103,6 +112,9 @@ export default function AdminAnalytics() {
   const [aiTypeBreakdown, setAiTypeBreakdown] = useState<AIAnalysisTypeBreakdown[]>([]);
   const [storageStats, setStorageStats] = useState<StorageUsageStats[]>([]);
   const [monthlyAIStats, setMonthlyAIStats] = useState<MonthlyAIBreakdown[]>([]);
+  const [peakHoursData, setPeakHoursData] = useState<HourlyDataPoint[]>([]);
+  const [aiByHourData, setAiByHourData] = useState<HourlyDataPoint[]>([]);
+  const [peakPeriodFilter, setPeakPeriodFilter] = useState<string>("30");
   
   // Filters
   const [bugFilter, setBugFilter] = useState<string>("all");
@@ -116,7 +128,7 @@ export default function AdminAnalytics() {
 
   useEffect(() => {
     fetchAllData();
-  }, [aiMonthFilter]);
+  }, [aiMonthFilter, peakPeriodFilter]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -126,8 +138,58 @@ export default function AdminAnalytics() {
       fetchAIUsageStats(),
       fetchStorageStats(),
       fetchMonthlyAIStats(),
+      fetchPeakHoursData(),
+      fetchAIByHourData(),
     ]);
     setLoading(false);
+  };
+
+  const fetchPeakHoursData = async () => {
+    try {
+      const days = peakPeriodFilter === "all" ? 3650 : parseInt(peakPeriodFilter, 10) || 30;
+      const startDate = subDays(new Date(), days);
+
+      const { data: sessions, error } = await supabase
+        .from("user_sessions")
+        .select("session_start")
+        .gte("session_start", startDate.toISOString());
+
+      if (error) throw error;
+
+      const byHour = new Array(24).fill(0).map((_, i) => ({ heure: `${i}h`, count: 0, heureNum: i }));
+      for (const s of sessions || []) {
+        const hour = new Date(s.session_start).getHours();
+        byHour[hour].count++;
+      }
+      setPeakHoursData(byHour);
+    } catch (error) {
+      console.error("Error fetching peak hours:", error);
+      toast.error("Erreur lors du chargement des heures de pointe");
+    }
+  };
+
+  const fetchAIByHourData = async () => {
+    try {
+      const days = peakPeriodFilter === "all" ? 3650 : parseInt(peakPeriodFilter, 10) || 30;
+      const startDate = subDays(new Date(), days);
+
+      const { data: usage, error } = await supabase
+        .from("ai_analysis_usage")
+        .select("created_at")
+        .gte("created_at", startDate.toISOString());
+
+      if (error) throw error;
+
+      const byHour = new Array(24).fill(0).map((_, i) => ({ heure: `${i}h`, count: 0, heureNum: i }));
+      for (const u of usage || []) {
+        const hour = new Date(u.created_at).getHours();
+        byHour[hour].count++;
+      }
+      setAiByHourData(byHour);
+    } catch (error) {
+      console.error("Error fetching AI by hour:", error);
+      toast.error("Erreur lors du chargement des analyses IA par heure");
+    }
   };
 
   const fetchSessionStats = async () => {
@@ -596,6 +658,10 @@ export default function AdminAnalytics() {
                 <Calendar className="h-4 w-4" />
                 Mensuel
               </TabsTrigger>
+              <TabsTrigger value="pics" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Heures de pointe
+              </TabsTrigger>
             </TabsList>
 
             {/* Sessions Tab */}
@@ -1029,6 +1095,120 @@ export default function AdminAnalytics() {
                         </TableRow>
                       </TableBody>
                     </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Heures de pointe Tab */}
+            <TabsContent value="pics" className="space-y-6">
+              <div className="flex justify-end">
+                <Select value={peakPeriodFilter} onValueChange={setPeakPeriodFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Période" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 derniers jours</SelectItem>
+                    <SelectItem value="30">30 derniers jours</SelectItem>
+                    <SelectItem value="all">Tout le temps</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Graphique heures de pointe utilisateurs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Heures de pointe – Utilisateurs connectés
+                  </CardTitle>
+                  <CardDescription>
+                    Nombre de sessions démarrées par heure (0h–23h) pour identifier quand vous avez le plus d'utilisateurs en même temps. Heures en fuseau local du navigateur.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p className="text-muted-foreground">Chargement...</p>
+                  ) : (
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={peakHoursData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis 
+                            dataKey="heure" 
+                            tick={{ fill: "hsl(var(--muted-foreground))" }}
+                            tickLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <YAxis 
+                            tick={{ fill: "hsl(var(--muted-foreground))" }}
+                            tickLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                            formatter={(value: number) => [value, "Sessions"]}
+                          />
+                          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                            {peakHoursData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.count === Math.max(...peakHoursData.map(d => d.count)) && entry.count > 0 
+                                  ? "hsl(142, 76%, 36%)" 
+                                  : "hsl(var(--primary))"} 
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Graphique analyses IA par heure */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Analyses IA par heure – Pics de charge
+                  </CardTitle>
+                  <CardDescription>
+                    Nombre d'analyses IA déclenchées par heure pour contrôler vos forfaits IA (analyses/minutes) et ajuster vos offres en conséquence.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p className="text-muted-foreground">Chargement...</p>
+                  ) : (
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={aiByHourData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis 
+                            dataKey="heure" 
+                            tick={{ fill: "hsl(var(--muted-foreground))" }}
+                            tickLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <YAxis 
+                            tick={{ fill: "hsl(var(--muted-foreground))" }}
+                            tickLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                            formatter={(value: number) => [value, "Analyses IA"]}
+                          />
+                          <Bar dataKey="count" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]}>
+                            {aiByHourData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.count === Math.max(...aiByHourData.map(d => d.count)) && entry.count > 0 
+                                  ? "hsl(142, 76%, 36%)" 
+                                  : "hsl(217, 91%, 60%)"} 
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   )}
                 </CardContent>
               </Card>

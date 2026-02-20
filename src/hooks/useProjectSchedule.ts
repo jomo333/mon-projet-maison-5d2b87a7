@@ -1094,12 +1094,14 @@ export const useProjectSchedule = (projectId: string | null) => {
       await supabase.from("project_schedules").insert([c as never]);
     }
 
-    await shiftStepsAfterManualTask(newManualTask);
+    const truncatedIds = new Set(updates.map((u) => u.id));
+    await shiftStepsAfterManualTask(newManualTask, truncatedIds);
   };
 
-  /** Décaler les étapes après une nouvelle tâche manuelle (logique simplifiée et fiable) */
+  /** Décaler les étapes après une nouvelle tâche manuelle (sauf celles déjà tronquées) */
   const shiftStepsAfterManualTask = async (
-    newManualTask: ScheduleItem
+    newManualTask: ScheduleItem,
+    skipScheduleIds: Set<string> = new Set()
   ): Promise<void> => {
     if (!projectId) return;
 
@@ -1138,6 +1140,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     const delayConfig = minimumDelayAfterStep;
     for (let i = taskIndex + 1; i < sorted.length; i++) {
       const s = sorted[i];
+      if (skipScheduleIds.has(s.id)) continue;
       if (isOverlayTask(s) || s.status === "completed") continue;
 
       if (s.is_manual_date && s.start_date && s.end_date) {

@@ -1723,13 +1723,14 @@ export const useProjectSchedule = (projectId: string | null) => {
     linked_step_id: string | null;
     is_overlay: boolean;
     trade_type: string;
+    trade_color?: string;
   };
 
   const createManualTask = async (task: ManualTaskInput): Promise<void> => {
     if (!projectId) return;
 
     const endDate = calculateEndDate(task.start_date, task.estimated_days);
-    const tradeColor = getTradeColor(task.trade_type);
+    const tradeColor = task.trade_color ?? getTradeColor(task.trade_type);
     const notes = JSON.stringify({
       isOverlay: task.is_overlay,
       linkedStepId: task.linked_step_id || undefined,
@@ -1787,12 +1788,13 @@ export const useProjectSchedule = (projectId: string | null) => {
       });
       toast({ title: "Tâche ajoutée (travaux en simultané)", description: "Une alerte vous rappelle de vérifier avec vos sous-traitants." });
     } else {
-      // Sans "simultané" : régénérer en conservant la date demandée (ou la corriger si avant l'étape liée)
+      // Sans "simultané" : régénérer en conservant la date demandée et décaler les étapes suivantes
       const newItem = newSchedule as ScheduleItem;
       await fetchAndRegenerateSchedule(newItem.id, {
         start_date: task.start_date,
         end_date,
       });
+      await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
       toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }
   };

@@ -29,9 +29,14 @@ import {
 } from "@/components/ui/popover";
 import { CalendarPlus, CalendarIcon, Layers, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { constructionSteps } from "@/data/constructionSteps";
-import { tradeTypes } from "@/data/tradeTypes";
+
+/** Palette de couleurs pour les tâches manuelles (sans noms d'étapes) */
+const TASK_COLOR_PALETTE = [
+  "#6366F1", "#0EA5E9", "#F59E0B", "#10B981", "#EC4899",
+  "#8B4513", "#3B82F6", "#DC2626", "#A855F7", "#14B8A6",
+  "#475569", "#059669", "#0284C7", "#D97706", "#7C3AED",
+];
 
 export interface ManualTaskData {
   description: string;
@@ -40,6 +45,8 @@ export interface ManualTaskData {
   linked_step_id: string | null;
   is_overlay: boolean;
   trade_type: string;
+  /** Couleur choisie (hex). Si fournie, remplace getTradeColor(trade_type). */
+  trade_color?: string;
 }
 
 interface AddManualTaskDialogProps {
@@ -77,6 +84,7 @@ export const AddManualTaskDialog = ({
     linked_step_id: null,
     is_overlay: false,
     trade_type: "autre",
+    trade_color: TASK_COLOR_PALETTE[0],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -87,6 +95,7 @@ export const AddManualTaskDialog = ({
     linked_step_id: null,
     is_overlay: false,
     trade_type: "autre",
+    trade_color: TASK_COLOR_PALETTE[0],
   };
 
   // Réinitialiser le formulaire et la date présélectionnée quand le dialogue s'ouvre
@@ -116,12 +125,12 @@ export const AddManualTaskDialog = ({
     if (!formData.description.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    setOpen(false); // Fermer immédiatement pour un retour visuel rapide
     try {
       await onAdd(formData);
       setFormData(defaultFormData);
-      setOpen(false);
     } catch (err) {
-      // Erreur gérée par onAdd/toast
+      setOpen(true); // Rouvrir en cas d'erreur
     } finally {
       setIsSubmitting(false);
     }
@@ -165,48 +174,32 @@ export const AddManualTaskDialog = ({
             />
           </div>
 
-          {/* Couleur de l'étape */}
+          {/* Couleur de l'étape (pastilles uniquement, pas de nom) */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               {t("schedule.taskColor", "Couleur de l'étape")}
             </Label>
-            <Select
-              value={formData.trade_type}
-              onValueChange={(v) =>
-                setFormData({ ...formData, trade_type: v })
-              }
-            >
-              <SelectTrigger className="flex items-center gap-2">
-                {(() => {
-                  const trade = tradeTypes.find((tr) => tr.id === formData.trade_type);
-                  return trade ? (
-                    <>
-                      <div
-                        className="w-4 h-4 rounded-full shrink-0 border border-border"
-                        style={{ backgroundColor: trade.color }}
-                      />
-                      <SelectValue />
-                    </>
-                  ) : (
-                    <SelectValue />
-                  );
-                })()}
-              </SelectTrigger>
-              <SelectContent>
-                {tradeTypes.map((trade) => (
-                  <SelectItem key={trade.id} value={trade.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full shrink-0 border border-border"
-                        style={{ backgroundColor: trade.color }}
-                      />
-                      <span>{trade.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {TASK_COLOR_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, trade_color: color })
+                  }
+                  className={cn(
+                    "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                    formData.trade_color === color
+                      ? "border-foreground ring-2 ring-offset-2 ring-primary"
+                      : "border-border hover:border-muted-foreground"
+                  )}
+                  style={{ backgroundColor: color }}
+                  aria-label={t("schedule.selectColor", "Choisir cette couleur")}
+                  title={color}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Lien optionnel vers une étape */}

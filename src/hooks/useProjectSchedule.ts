@@ -1016,6 +1016,89 @@ export const useProjectSchedule = (projectId: string | null) => {
     await regenerateScheduleFromSchedules(schedules, focusScheduleId, focusUpdates);
   };
 
+  /** Décaler les étapes après une nouvelle tâche manuelle (logique simplifiée et fiable) */
+  const shiftStepsAfterManualTask = async (
+    newManualTask: ScheduleItem
+  ): Promise<void> => {
+    if (!projectId) return;
+
+    const { data, error } = await supabase
+      .from("project_schedules")
+      .select("*")
+      .eq("project_id", projectId);
+
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      throw new Error(error.message);
+    }
+
+    let allSchedules = (data || []) as ScheduleItem[];
+    if (!allSchedules.some((s) => s.id === newManualTask.id)) {
+      allSchedules = [...allSchedules, newManualTask];
+    }
+
+    const sorted = sortSchedulesByExecutionOrder(allSchedules);
+    const taskIndex = sorted.findIndex((s) => s.id === newManualTask.id);
+    if (taskIndex < 0) return;
+
+    const taskEndDate = newManualTask.end_date || newManualTask.start_date;
+    if (!taskEndDate) return;
+
+    const updates: Array<{ id: string; patch: Partial<ScheduleItem> }> = [];
+    const stepEndDates: Record<string, string> = {};
+
+    for (let i = 0; i <= taskIndex; i++) {
+      const s = sorted[i];
+      if (s.end_date) stepEndDates[s.step_id] = s.end_date;
+    }
+
+    let cursor = addBusinessDays(parseISO(taskEndDate), 1);
+
+    const delayConfig = minimumDelayAfterStep;
+    for (let i = taskIndex + 1; i < sorted.length; i++) {
+      const s = sorted[i];
+      if (isOverlayTask(s) || s.status === "completed") continue;
+
+      if (s.is_manual_date && s.start_date && s.end_date) {
+        stepEndDates[s.step_id] = s.end_date;
+        if (!parallelSteps.has(s.step_id)) {
+          cursor = addBusinessDays(parseISO(s.end_date), 1);
+        }
+        continue;
+      }
+
+      const duration = (s.actual_days ?? s.estimated_days ?? 1) || 1;
+      const config = delayConfig[s.step_id];
+      let newStart = cursor;
+      if (config && stepEndDates[config.afterStep]) {
+        const required = addDays(parseISO(stepEndDates[config.afterStep]), config.days);
+        if (required > newStart) newStart = required;
+      }
+
+      const newStartStr = format(newStart, "yyyy-MM-dd");
+      const newEndStr = format(addBusinessDays(newStart, duration - 1), "yyyy-MM-dd");
+      stepEndDates[s.step_id] = newEndStr;
+      if (!parallelSteps.has(s.step_id)) {
+        cursor = addBusinessDays(parseISO(newEndStr), 1);
+      }
+      updates.push({ id: s.id, patch: { start_date: newStartStr, end_date: newEndStr } });
+    }
+
+    if (updates.length > 0) {
+      const results = await Promise.all(
+        updates.map((u) => supabase.from("project_schedules").update(u.patch).eq("id", u.id))
+      );
+      const err = results.find((r) => r.error);
+      if (err?.error) {
+        toast({ title: "Erreur", description: err.error.message, variant: "destructive" });
+        throw new Error(err.error.message);
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["schedule-alerts", projectId] });
+  };
+
   // Force un recalcul complet (utile quand des étapes "terminées" avaient des dates futures)
   const regenerateSchedule = async () => {
     await fetchAndRegenerateSchedule();
@@ -1782,14 +1865,9 @@ export const useProjectSchedule = (projectId: string | null) => {
       });
       toast({ title: "Tâche ajoutée (travaux en simultané)", description: "Une alerte vous rappelle de vérifier avec vos sous-traitants." });
     } else {
-      // Sans "simultané" : régénérer en conservant la date demandée et décaler les étapes suivantes
+      // Sans "simultané" : décaler les étapes après la nouvelle tâche
       const newItem = newSchedule as ScheduleItem;
-      await fetchAndRegenerateSchedule(newItem.id, {
-        start_date: task.start_date,
-        end_date,
-      }, newItem);
-      // Forcer un rafraîchissement immédiat (invalidate + refetch)
-      queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
+      await shiftStepsAfterManualTask(newItem);
       await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
       toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }

@@ -1736,10 +1736,10 @@ export const useProjectSchedule = (projectId: string | null) => {
     if (task.is_overlay) {
       toast({ title: "Tâche ajoutée (travaux en simultané)" });
     } else {
-      // Ne pas régénérer ici : la régénération peut corrompre l'affichage du Gantt.
-      // La tâche manuelle est ajoutée avec ses dates ; elle s'affiche correctement.
-      // L'utilisateur peut cliquer "Régénérer" s'il souhaite réordonner la séquence.
-      toast({ title: "Tâche ajoutée", description: "Visible dans le tableau et le Gantt." });
+      // Sans "simultané", la tâche doit être intégrée dans la séquence : régénérer l'échéancier
+      // pour placer la tâche au bon endroit et décaler les étapes suivantes.
+      await fetchAndRegenerateSchedule();
+      toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }
   };
 

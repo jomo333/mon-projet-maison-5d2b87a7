@@ -45,7 +45,6 @@ import { ScheduleTable } from "@/components/schedule/ScheduleTable";
 import { ScheduleCalendar } from "@/components/schedule/ScheduleCalendar";
 import { ScheduleGantt } from "@/components/schedule/ScheduleGantt";
 import { AlertsPanel } from "@/components/schedule/AlertsPanel";
-import { AddScheduleDialog } from "@/components/schedule/AddScheduleDialog";
 import { AddManualTaskDialog } from "@/components/schedule/AddManualTaskDialog";
 import { getDateLocale } from "@/lib/i18n";
 import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
@@ -268,13 +267,6 @@ const Schedule = () => {
                         {t("schedule.addManualTask", "Tâche manuelle")}
                       </Button>
                     }
-                  />
-                  <AddScheduleDialog
-                    projectId={selectedProjectId}
-                    onAdd={(schedule) => {
-                      createSchedule(schedule as any);
-                    }}
-                    calculateEndDate={calculateEndDate}
                   />
                 </div>
               )}

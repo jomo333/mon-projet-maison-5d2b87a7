@@ -1016,6 +1016,87 @@ export const useProjectSchedule = (projectId: string | null) => {
     await regenerateScheduleFromSchedules(schedules, focusScheduleId, focusUpdates);
   };
 
+  /** Interrompre les travaux qui chevauchent, insérer la tâche, reprendre après (ex: Finitions 18-28, tâche 20-21 → Finitions 18-19, tâche 20-21, Finitions 22-30) */
+  const interruptAndResumeAroundManualTask = async (
+    newManualTask: ScheduleItem
+  ): Promise<void> => {
+    if (!projectId) return;
+
+    const taskStart = newManualTask.start_date ? parseISO(newManualTask.start_date) : null;
+    const taskEnd = newManualTask.end_date ? parseISO(newManualTask.end_date) : null;
+    if (!taskStart || !taskEnd) return;
+
+    const { data, error } = await supabase
+      .from("project_schedules")
+      .select("*")
+      .eq("project_id", projectId);
+
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      throw new Error(error.message);
+    }
+
+    let allSchedules = (data || []) as ScheduleItem[];
+    if (!allSchedules.some((s) => s.id === newManualTask.id)) {
+      allSchedules = [...allSchedules, newManualTask];
+    }
+
+    const updates: Array<{ id: string; patch: Partial<ScheduleItem> }> = [];
+    const continuations: Omit<ScheduleItem, "id" | "created_at" | "updated_at">[] = [];
+
+    for (const s of allSchedules) {
+      if (s.id === newManualTask.id) continue;
+      if (isOverlayTask(s) || s.status === "completed") continue;
+      if (!s.start_date || !s.end_date) continue;
+
+      const stepStart = parseISO(s.start_date);
+      const stepEnd = parseISO(s.end_date);
+
+      // Chevauchement : la tâche démarre pendant l'étape (stepStart <= taskStart <= stepEnd)
+      const overlaps = taskStart <= stepEnd && taskEnd >= stepStart;
+      if (!overlaps) continue;
+
+      const dayBeforeTask = subBusinessDays(taskStart, 1);
+      const dayAfterTask = addBusinessDays(taskEnd, 1);
+
+      const daysBeforeOverlap = dayBeforeTask >= stepStart
+        ? differenceInBusinessDays(dayBeforeTask, stepStart) + 1
+        : 0;
+      const totalDuration = differenceInBusinessDays(stepEnd, stepStart) + 1;
+      const remainingDays = Math.max(1, totalDuration - daysBeforeOverlap);
+
+      const contStartStr = format(dayAfterTask, "yyyy-MM-dd");
+      const contEndStr = format(addBusinessDays(dayAfterTask, remainingDays - 1), "yyyy-MM-dd");
+
+      if (daysBeforeOverlap > 0) {
+        const newEndStr = format(dayBeforeTask, "yyyy-MM-dd");
+        updates.push({ id: s.id, patch: { end_date: newEndStr } });
+        const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = s;
+        continuations.push({
+          ...rest,
+          project_id: projectId,
+          step_id: `continuation-${s.step_id}-${Date.now()}`,
+          step_name: `${s.step_name} (suite)`,
+          start_date: contStartStr,
+          end_date: contEndStr,
+          estimated_days: remainingDays,
+          measurement_after_step_id: newManualTask.step_id,
+        } as Omit<ScheduleItem, "id" | "created_at" | "updated_at">);
+      } else {
+        updates.push({ id: s.id, patch: { start_date: contStartStr, end_date: contEndStr } });
+      }
+    }
+
+    for (const u of updates) {
+      await supabase.from("project_schedules").update(u.patch).eq("id", u.id);
+    }
+    for (const c of continuations) {
+      await supabase.from("project_schedules").insert([c as never]);
+    }
+
+    await shiftStepsAfterManualTask(newManualTask);
+  };
+
   /** Décaler les étapes après une nouvelle tâche manuelle (logique simplifiée et fiable) */
   const shiftStepsAfterManualTask = async (
     newManualTask: ScheduleItem
@@ -1865,11 +1946,11 @@ export const useProjectSchedule = (projectId: string | null) => {
       });
       toast({ title: "Tâche ajoutée (travaux en simultané)", description: "Une alerte vous rappelle de vérifier avec vos sous-traitants." });
     } else {
-      // Sans "simultané" : décaler les étapes après la nouvelle tâche
+      // Sans "simultané" : interrompre les travaux en cours, insérer la tâche, reprendre après
       const newItem = newSchedule as ScheduleItem;
-      await shiftStepsAfterManualTask(newItem);
+      await interruptAndResumeAroundManualTask(newItem);
       await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
-      toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
+      toast({ title: "Tâche ajoutée", description: "L'échéancier a été ajusté : travaux interrompus puis repris après la nouvelle tâche." });
     }
   };
 

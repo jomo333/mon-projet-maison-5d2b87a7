@@ -30,6 +30,16 @@ export const getScheduleExecutionOrder = (
 ): number => {
   if (!schedule?.step_id || typeof schedule.step_id !== "string") return 999;
   const baseOrder = getStepExecutionOrder(schedule.step_id);
+  if (schedule.step_id.startsWith("continuation-")) {
+    const afterId = schedule.measurement_after_step_id;
+    if (afterId) {
+      const afterStep = allSchedules?.find((x) => x.step_id === afterId);
+      if (afterStep) {
+        return getScheduleExecutionOrder(afterStep, allSchedules) + 0.5;
+      }
+    }
+    return 999;
+  }
   if (schedule.step_id.startsWith("manual-")) {
     const linkedId = schedule.measurement_after_step_id || parseLinkedStepFromNotes(schedule.notes);
     if (linkedId) {
@@ -44,7 +54,7 @@ export const getScheduleExecutionOrder = (
     const manualStartStr = schedule.start_date || "9999-12-31";
     let maxOrderBefore = -1;
     for (const s of allSchedules || []) {
-      if (!s.step_id || s.step_id.startsWith("manual-")) continue;
+      if (!s.step_id || s.step_id.startsWith("manual-") || s.step_id.startsWith("continuation-")) continue;
       const endStr = s.end_date || "0000-01-01";
       if (endStr <= manualStartStr) {
         const order = getStepExecutionOrder(s.step_id);

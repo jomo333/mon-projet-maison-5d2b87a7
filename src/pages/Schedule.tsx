@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import {
   CalendarDays,
-  Table as TableIcon,
   BarChart3,
   AlertTriangle,
   Clock,
@@ -41,7 +40,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
-import { ScheduleTable } from "@/components/schedule/ScheduleTable";
 import { ScheduleCalendar } from "@/components/schedule/ScheduleCalendar";
 import { ScheduleGantt } from "@/components/schedule/ScheduleGantt";
 import { AlertsPanel } from "@/components/schedule/AlertsPanel";
@@ -56,7 +54,7 @@ const Schedule = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedProjectId = searchParams.get("project");
-  const [activeTab, setActiveTab] = useState("gantt");
+  const [activeTab, setActiveTab] = useState<"calendar" | "gantt">("gantt");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [manualTaskDialogOpen, setManualTaskDialogOpen] = useState(false);
   const [manualTaskPreselectedDate, setManualTaskPreselectedDate] = useState<string | null>(null);
@@ -177,17 +175,6 @@ const Schedule = () => {
               
               {/* Onglets rapides */}
               <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
-                <button
-                  onClick={() => setActiveTab("table")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === "table"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <TableIcon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t("schedule.table")}</span>
-                </button>
                 <button
                   onClick={() => setActiveTab("calendar")}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -359,28 +346,6 @@ const Schedule = () => {
               </div>
             ) : (
               <>
-                {activeTab === "table" && (
-                  <ScheduleTable
-                    schedules={schedules}
-                    initialEditId={taskToEditId}
-                    onInitialEditHandled={() => setTaskToEditId(null)}
-                    onUpdate={async (schedule) => {
-                      // Utiliser updateScheduleAndRecalculate pour propager les changements
-                      await updateScheduleAndRecalculate(schedule.id, schedule);
-                      const fullSchedule = schedules.find(
-                        (s) => s.id === schedule.id
-                      );
-                      if (fullSchedule) {
-                        generateAlerts({ ...fullSchedule, ...schedule });
-                      }
-                    }}
-                    onDelete={deleteSchedule}
-                    onComplete={completeStep}
-                    onUncomplete={uncompleteStep}
-                    conflicts={conflicts}
-                    calculateEndDate={calculateEndDate}
-                  />
-                )}
                 {activeTab === "calendar" && (
                   <ScheduleCalendar
                     schedules={schedules}
@@ -391,7 +356,7 @@ const Schedule = () => {
                     }}
                     onEditTask={(schedule) => {
                       setTaskToEditId(schedule.id);
-                      setActiveTab("table");
+                      setActiveTab("gantt");
                     }}
                     onDeleteTask={(schedule) => {
                       setDeleteConfirmSchedule({ id: schedule.id, step_name: schedule.step_name });

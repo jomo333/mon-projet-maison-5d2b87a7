@@ -1725,7 +1725,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     trade_type: string;
   };
 
-  const createManualTask = async (task: ManualTaskInput) => {
+  const createManualTask = async (task: ManualTaskInput): Promise<void> => {
     if (!projectId) return;
 
     const endDate = calculateEndDate(task.start_date, task.estimated_days);
@@ -1769,7 +1769,7 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
-      return;
+      throw new Error(error.message);
     }
 
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });

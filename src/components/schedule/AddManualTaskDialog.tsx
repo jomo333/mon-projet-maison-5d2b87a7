@@ -27,10 +27,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarPlus, CalendarIcon, Layers } from "lucide-react";
+import { CalendarPlus, CalendarIcon, Layers, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
 import { constructionSteps } from "@/data/constructionSteps";
+import { tradeTypes } from "@/data/tradeTypes";
 
 export interface ManualTaskData {
   description: string;
@@ -77,11 +78,25 @@ export const AddManualTaskDialog = ({
     is_overlay: false,
     trade_type: "autre",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Réinitialiser la date présélectionnée quand le dialogue s'ouvre
+  const defaultFormData: ManualTaskData = {
+    description: "",
+    start_date: format(new Date(), "yyyy-MM-dd"),
+    estimated_days: 1,
+    linked_step_id: null,
+    is_overlay: false,
+    trade_type: "autre",
+  };
+
+  // Réinitialiser le formulaire et la date présélectionnée quand le dialogue s'ouvre
   const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen && preselectedDate) {
-      setFormData((prev) => ({ ...prev, start_date: preselectedDate }));
+    if (isSubmitting && !nextOpen) return; // Empêcher la fermeture pendant l'envoi
+    if (nextOpen) {
+      setFormData({
+        ...defaultFormData,
+        start_date: preselectedDate || format(new Date(), "yyyy-MM-dd"),
+      });
     }
     setOpen(nextOpen);
   };
@@ -95,19 +110,21 @@ export const AddManualTaskDialog = ({
     }
   }, [open, preselectedDate]);
 
-  const handleSubmit = async () => {
-    if (!formData.description.trim()) return;
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!formData.description.trim() || isSubmitting) return;
 
-    await onAdd(formData);
-    setOpen(false);
-    setFormData({
-      description: "",
-      start_date: format(new Date(), "yyyy-MM-dd"),
-      estimated_days: 1,
-      linked_step_id: null,
-      is_overlay: false,
-      trade_type: "autre",
-    });
+    setIsSubmitting(true);
+    try {
+      await onAdd(formData);
+      setFormData(defaultFormData);
+      setOpen(false);
+    } catch (err) {
+      // Erreur gérée par onAdd/toast
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -146,6 +163,50 @@ export const AddManualTaskDialog = ({
               )}
               rows={3}
             />
+          </div>
+
+          {/* Couleur de l'étape */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              {t("schedule.taskColor", "Couleur de l'étape")}
+            </Label>
+            <Select
+              value={formData.trade_type}
+              onValueChange={(v) =>
+                setFormData({ ...formData, trade_type: v })
+              }
+            >
+              <SelectTrigger className="flex items-center gap-2">
+                {(() => {
+                  const trade = tradeTypes.find((tr) => tr.id === formData.trade_type);
+                  return trade ? (
+                    <>
+                      <div
+                        className="w-4 h-4 rounded-full shrink-0 border border-border"
+                        style={{ backgroundColor: trade.color }}
+                      />
+                      <SelectValue />
+                    </>
+                  ) : (
+                    <SelectValue />
+                  );
+                })()}
+              </SelectTrigger>
+              <SelectContent>
+                {tradeTypes.map((trade) => (
+                  <SelectItem key={trade.id} value={trade.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full shrink-0 border border-border"
+                        style={{ backgroundColor: trade.color }}
+                      />
+                      <span>{trade.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Lien optionnel vers une étape */}
@@ -271,14 +332,15 @@ export const AddManualTaskDialog = ({
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" onClick={() => setOpen(false)} disabled={isSubmitting}>
             {t("common.cancel")}
           </Button>
           <Button
+            type="button"
             onClick={handleSubmit}
-            disabled={!formData.description.trim()}
+            disabled={!formData.description.trim() || isSubmitting}
           >
-            {t("common.add")}
+            {isSubmitting ? t("common.adding", "Ajout...") : t("common.add")}
           </Button>
         </div>
       </DialogContent>

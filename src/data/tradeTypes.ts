@@ -39,6 +39,18 @@ export const getTradeColor = (tradeId: string): string => {
   return trade?.color || "#DC2626";
 };
 
+/** Couleur par step_id pour les 4 étapes de préparation (override même si trade_type="autre") */
+const prepStepColors: Record<string, string> = {
+  planification: "#6366F1",
+  "plans-permis": "#0EA5E9",
+  soumissions: "#F59E0B",
+  financement: "#10B981",
+};
+
+export const getScheduleColor = (stepId: string, tradeType: string): string => {
+  return prepStepColors[stepId] ?? getTradeColor(tradeType);
+};
+
 export const getTradeName = (tradeId: string): string => {
   const trade = tradeTypes.find(t => t.id === tradeId);
   return trade?.name || "Autre";

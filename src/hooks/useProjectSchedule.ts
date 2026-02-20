@@ -1002,7 +1002,7 @@ export const useProjectSchedule = (projectId: string | null) => {
     focusScheduleId?: string,
     focusUpdates?: Partial<ScheduleItem>,
     injectSchedule?: ScheduleItem
-  ) => {
+  ): Promise<void> => {
     if (!projectId) return;
 
     const { data, error } = await supabase

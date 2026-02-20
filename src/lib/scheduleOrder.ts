@@ -41,12 +41,12 @@ export const getScheduleExecutionOrder = (
       return getStepExecutionOrder(linkedId) - 0.5; // étape non verrouillée : tâche avant
     }
     // Sans lien : placer par start_date (après la dernière étape qui se termine avant ou le jour du start)
-    const manualStart = schedule.start_date ? new Date(schedule.start_date).getTime() : Infinity;
+    const manualStartStr = schedule.start_date || "9999-12-31";
     let maxOrderBefore = -1;
     for (const s of allSchedules || []) {
       if (!s.step_id || s.step_id.startsWith("manual-")) continue;
-      const end = s.end_date ? new Date(s.end_date).getTime() : 0;
-      if (end <= manualStart) {
+      const endStr = s.end_date || "0000-01-01";
+      if (endStr <= manualStartStr) {
         const order = getStepExecutionOrder(s.step_id);
         if (order < 999 && order > maxOrderBefore) maxOrderBefore = order;
       }

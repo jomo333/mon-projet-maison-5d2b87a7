@@ -126,13 +126,12 @@ export const AddManualTaskDialog = ({
 
     const dataToSubmit = { ...formData };
     setIsSubmitting(true);
-    setOpen(false); // Fermer immédiatement
+    setOpen(false); // Fermer immédiatement (ne pas rouvrir même en cas d'erreur)
     setFormData(defaultFormData);
     try {
       await onAdd(dataToSubmit);
-    } catch (err) {
-      setOpen(true); // Rouvrir en cas d'erreur pour réessayer
-      setFormData(dataToSubmit); // Restaurer le formulaire
+    } catch {
+      // Toast d'erreur géré par onAdd
     } finally {
       setIsSubmitting(false);
     }

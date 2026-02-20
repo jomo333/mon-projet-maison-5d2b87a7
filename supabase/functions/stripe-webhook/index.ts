@@ -73,7 +73,7 @@ serve(async (req) => {
   let event: Stripe.Event;
   try {
     const stripe = new Stripe(stripeSecret);
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", err);
     return new Response(JSON.stringify({ error: "Invalid signature" }), {

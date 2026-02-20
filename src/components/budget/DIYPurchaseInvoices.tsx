@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { formatCurrency } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
@@ -76,6 +76,23 @@ function sanitizeFileName(name: string): string {
     .replace(/-+/g, "-");
 }
 
+/** Format fournisseur pour le nom de fichier : minuscules, sans espaces ni accents (ex: canac, renodepot) */
+function supplierToFileName(supplier: string): string {
+  return supplier
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase()
+    .slice(0, 30) || "facture";
+}
+
+/** Date YYYY-MM-DD → DD-MM-YY pour le nom de fichier */
+function dateToFileName(dateStr: string): string {
+  if (!dateStr || dateStr.length < 10) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${d}-${m}-${y?.slice(-2) || ""}`;
+}
+
 export function DIYPurchaseInvoices({
   projectId,
   categoryName,
@@ -103,6 +120,8 @@ export function DIYPurchaseInvoices({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionConfidence, setExtractionConfidence] = useState<"high" | "medium" | "low" | "none" | null>(null);
+  const [manualMode, setManualMode] = useState(false); // true = saisie manuelle sans IA
+  const manualFileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-calculate taxes
   const amountHTNum = parseFloat(newAmountHT) || 0;
@@ -220,10 +239,24 @@ export function DIYPurchaseInvoices({
   const handleFilesSelected = (files: FileList) => {
     const file = files[0];
     if (!file) return;
+    setManualMode(false); // mode automatique IA
     setPendingFile(file);
     setShowAddDialog(true);
-    // Auto-extract price from the file
     extractPriceFromFile(file);
+  };
+
+  const openManualEntryDialog = () => {
+    setManualMode(true);
+    setPendingFile(null);
+    setShowAddDialog(true);
+  };
+
+  const handleManualFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingFile(file);
+      if (manualFileInputRef.current) manualFileInputRef.current.value = "";
+    }
   };
 
   const handleUpload = async () => {
@@ -250,16 +283,17 @@ export function DIYPurchaseInvoices({
         .from("task-attachments")
         .getPublicUrl(storagePath);
 
-      // Build display name: "Fournisseur - Date - Catégorie" or fallback to original file name
+      // Nom du fichier : fournisseur + date (ex: canac12-02-26.pdf) ou fallback
       const supplierPart = newSupplier.trim() || null;
       const datePart = newPurchaseDate || null;
+      const fileExt = pendingFile.name.split(".").pop() || "pdf";
       let displayName = pendingFile.name;
       if (supplierPart && datePart) {
-        const fileExt = pendingFile.name.split(".").pop();
-        displayName = `${supplierPart} - ${datePart} - ${categoryName}.${fileExt}`;
+        const supplierSlug = supplierToFileName(supplierPart);
+        const dateSlug = dateToFileName(datePart);
+        displayName = `${supplierSlug}${dateSlug}.${fileExt}`;
       } else if (supplierPart) {
-        const fileExt = pendingFile.name.split(".").pop();
-        displayName = `${supplierPart} - ${categoryName}.${fileExt}`;
+        displayName = `${supplierToFileName(supplierPart)}.${fileExt}`;
       }
 
       // Store amount (HT), taxes and metadata in file_name — only HT goes to budget
@@ -297,6 +331,7 @@ export function DIYPurchaseInvoices({
 
       setShowAddDialog(false);
       setPendingFile(null);
+      setManualMode(false);
       setNewAmountHT("");
       setNewTPS("");
       setNewTVQ("");
@@ -366,22 +401,31 @@ export function DIYPurchaseInvoices({
             Enregistrez vos factures réelles pour suivre vos dépenses DIY
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {totalInvoices > 0 && (
             <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
               <DollarSign className="h-3 w-3 mr-1" />
               {formatCurrency(totalInvoices)}
             </Badge>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openManualEntryDialog}
+            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+          >
+            <Receipt className="h-4 w-4 mr-2" />
+            Saisie manuelle
+          </Button>
           <FileOrPhotoUpload
             onFilesSelected={handleFilesSelected}
             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
             uploading={uploading}
-            fileLabel="Fichier / PDF"
-            photoLabel="Photo de facture"
+            fileLabel="Analyse IA automatique"
+            photoLabel="Photo / PDF"
             fileVariant="outline"
             photoVariant="outline"
-            className="[&>button]:border-emerald-300 [&>button]:text-emerald-700 [&>button]:hover:bg-emerald-50 dark:[&>button]:border-emerald-700 dark:[&>button]:text-emerald-400 dark:[&>button]:hover:bg-emerald-950/50"
+            className="[&>button]:border-primary [&>button]:text-primary [&>button]:hover:bg-primary/5"
           />
         </div>
       </div>
@@ -390,7 +434,7 @@ export function DIYPurchaseInvoices({
       <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
         <p className="text-xs text-muted-foreground flex items-start gap-2">
           <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5 text-emerald-600" />
-          Les montants <strong>avant taxes</strong> sont automatiquement ajoutés au <strong>coût réel</strong> de cette catégorie dans votre budget.
+          Saisie manuelle ou analyse IA : les montants <strong>avant taxes</strong> sont ajoutés au <strong>coût réel</strong> du projet dans votre budget.
         </p>
         <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
           <span className="shrink-0">⚠️</span>
@@ -527,6 +571,7 @@ export function DIYPurchaseInvoices({
         if (!open) {
           setShowAddDialog(false);
           setPendingFile(null);
+          setManualMode(false);
           setNewAmountHT("");
           setNewTPS("");
           setNewTVQ("");
@@ -544,6 +589,33 @@ export function DIYPurchaseInvoices({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Mode indicator */}
+            {manualMode && (
+              <div className="p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">📝 Saisie manuelle — entrez les informations ci-dessous</p>
+              </div>
+            )}
+            {/* File selection - manual mode: show picker if no file */}
+            {manualMode && !pendingFile ? (
+              <div className="p-4 rounded-lg border-2 border-dashed border-border">
+                <input
+                  ref={manualFileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+                  className="hidden"
+                  onChange={handleManualFileSelect}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => manualFileInputRef.current?.click()}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Sélectionner un fichier (facture ou photo)
+                </Button>
+              </div>
+            ) : null}
             {/* File info */}
             {pendingFile && (
               <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
@@ -561,8 +633,8 @@ export function DIYPurchaseInvoices({
               </div>
             )}
 
-            {/* AI extraction status / result */}
-            {isExtracting ? (
+            {/* AI extraction status / result - only in automatic mode */}
+            {!manualMode && isExtracting ? (
               <div className="flex items-center gap-2 p-3 rounded-lg border border-primary/20 bg-primary/5">
                 <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
                 <div>
@@ -584,7 +656,7 @@ export function DIYPurchaseInvoices({
                   <p className="text-xs text-muted-foreground">Vérifiez et corrigez si nécessaire avant d'enregistrer</p>
                 </div>
               </div>
-            ) : extractionConfidence === "none" ? (
+            ) : !manualMode && extractionConfidence === "none" ? (
               <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">
                 <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">Prix non détecté — entrez le montant manuellement</p>
@@ -656,17 +728,17 @@ export function DIYPurchaseInvoices({
               )}
             </div>
 
-            {/* Supplier + Date row */}
+            {/* Supplier + Date row - utilisés pour le nom du fichier (ex: canac12-02-26.pdf) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="invoice-supplier" className="flex items-center gap-1">
-                  🏪 Fournisseur <span className="text-muted-foreground text-xs">(optionnel)</span>
+                  🏪 Fournisseur
                 </Label>
                 <Input
                   id="invoice-supplier"
                   value={newSupplier}
                   onChange={(e) => setNewSupplier(e.target.value)}
-                  placeholder="Ex: Home Depot, Rona..."
+                  placeholder="Ex: Canac, Rona, Réno-Dépôt..."
                 />
               </div>
               <div className="space-y-2">
@@ -696,15 +768,17 @@ export function DIYPurchaseInvoices({
               />
             </div>
 
-            {/* Naming preview */}
-            {(newSupplier.trim() || newPurchaseDate) && (
+            {/* Naming preview - format fournisseur+date (ex: canac12-02-26.pdf) */}
+            {(newSupplier.trim() || newPurchaseDate) && pendingFile && (
               <div className="p-3 rounded-lg border border-border bg-muted/20">
                 <p className="text-xs text-muted-foreground">
-                  📁 Nom du fichier enregistré :{" "}
-                  <span className="font-medium text-foreground">
-                    {newSupplier.trim() ? newSupplier.trim() : "—"}
-                    {newPurchaseDate ? ` - ${newPurchaseDate}` : ""}
-                    {` - ${categoryName}`}
+                  📁 Nom du fichier :{" "}
+                  <span className="font-medium text-foreground font-mono">
+                    {newSupplier.trim() && newPurchaseDate
+                      ? `${supplierToFileName(newSupplier)}${dateToFileName(newPurchaseDate)}.${pendingFile.name.split(".").pop() || "pdf"}`
+                      : newSupplier.trim()
+                        ? `${supplierToFileName(newSupplier)}.${pendingFile.name.split(".").pop() || "pdf"}`
+                        : pendingFile.name}
                   </span>
                 </p>
               </div>
@@ -721,6 +795,7 @@ export function DIYPurchaseInvoices({
             <Button variant="outline" onClick={() => {
               setShowAddDialog(false);
               setPendingFile(null);
+              setManualMode(false);
               setNewAmountHT("");
               setNewTPS("");
               setNewTVQ("");
@@ -733,7 +808,7 @@ export function DIYPurchaseInvoices({
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={uploading || isExtracting || !newAmountHT || amountHTNum <= 0}
+              disabled={uploading || isExtracting || !pendingFile || !newAmountHT || amountHTNum <= 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {uploading ? (

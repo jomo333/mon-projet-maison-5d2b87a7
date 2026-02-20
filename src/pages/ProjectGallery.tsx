@@ -1526,12 +1526,12 @@ const ProjectGallery = () => {
                     {/* Group by trade category */}
                     {(() => {
                       // Parse metadata from file_name for invoices created via DIYPurchaseInvoices
-                      const parseInvoiceMeta = (fileName: string): { displayName: string; amount?: number; notes?: string } => {
+                      const parseInvoiceMeta = (fileName: string): { displayName: string; amount?: number; notes?: string; supplier?: string; purchase_date?: string } => {
                         if (fileName.includes("||META||")) {
                           const [displayName, metaStr] = fileName.split("||META||");
                           try {
                             const meta = JSON.parse(metaStr);
-                            return { displayName, amount: meta.amount, notes: meta.notes };
+                            return { displayName, amount: meta.amount, notes: meta.notes, supplier: meta.supplier, purchase_date: meta.purchase_date };
                           } catch {
                             return { displayName };
                           }
@@ -1597,7 +1597,7 @@ const ProjectGallery = () => {
                                 {tradeDocs.map((doc) => {
                                   const isPreviewable = canPreview(doc.file_type);
                                   const FileIcon = getFileIcon(doc.file_type);
-                                  const { displayName, amount, notes } = parseInvoiceMeta(doc.file_name);
+                                  const { displayName, amount, notes, supplier, purchase_date } = parseInvoiceMeta(doc.file_name);
                                   return (
                                     <Card key={doc.id} className="border-l-4 border-l-emerald-400">
                                       <CardContent className="p-3 flex items-center gap-3">
@@ -1605,6 +1605,9 @@ const ProjectGallery = () => {
                                         <div className="flex-1 min-w-0">
                                           <p className="text-sm font-medium truncate">{displayName}</p>
                                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                            {supplier && (
+                                              <span className="text-xs font-medium truncate">🏪 {supplier}</span>
+                                            )}
                                             {amount !== undefined && amount > 0 && (
                                               <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                                                 {formatCurrency(amount)}
@@ -1614,7 +1617,7 @@ const ProjectGallery = () => {
                                               <span className="text-xs text-muted-foreground truncate">• {notes}</span>
                                             )}
                                             <span className="text-xs text-muted-foreground">
-                                              {new Date(doc.created_at).toLocaleDateString("fr-CA")}
+                                              {purchase_date ? new Date(purchase_date + "T12:00:00").toLocaleDateString("fr-CA") : new Date(doc.created_at).toLocaleDateString("fr-CA")}
                                             </span>
                                           </div>
                                         </div>

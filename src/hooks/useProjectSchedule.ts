@@ -76,6 +76,18 @@ const isOverlayTask = (s: ScheduleItem): boolean => {
   }
 };
 
+/** Récupère le step_id de l'étape liée pour une tâche manuelle */
+const getLinkedStepId = (s: ScheduleItem): string | null => {
+  if (s.measurement_after_step_id) return s.measurement_after_step_id;
+  if (!s.notes) return null;
+  try {
+    const parsed = JSON.parse(s.notes) as { linkedStepId?: string };
+    return parsed.linkedStepId || null;
+  } catch {
+    return null;
+  }
+};
+
 // Mapping soumission trade ID -> schedule step_id
 const soumissionTradeToStepId: Record<string, string> = {
   "chauffage-et-ventilation": "hvac",
@@ -697,8 +709,36 @@ export const useProjectSchedule = (projectId: string | null) => {
             patch.is_manual_date = focusUpdates.is_manual_date;
           }
         } else if (focusUpdates.start_date) {
-          newStartStr = focusUpdates.start_date;
-          newEndStr = focusUpdates.end_date || format(addBusinessDays(parseISO(newStartStr), duration - 1), "yyyy-MM-dd");
+          const requestedStart = parseISO(focusUpdates.start_date);
+          const minValidStart = cursor ? subBusinessDays(cursor, 0) : null;
+          const linkedStepId = getLinkedStepId(s);
+          const linkedStep = linkedStepId ? sorted.find((x) => x.step_id === linkedStepId) : null;
+          const linkedIsLocked = !!linkedStep?.is_manual_date;
+          // Si étape liée verrouillée : la tâche est après elle, on ne peut pas décaler → date >= fin étape liée
+          // Sinon : tâche avant l'étape liée, date >= fin étape précédente
+          if (minValidStart && requestedStart < minValidStart) {
+            const linkedName = linkedStep?.step_name || linkedStepId || "l'étape précédente";
+            directConflictWarning.push(
+              linkedIsLocked
+                ? `L'étape liée "${linkedName}" a une date verrouillée. La date demandée (${format(requestedStart, "d MMM yyyy", { locale: fr })}) n'est pas possible. La tâche a été placée le ${format(minValidStart, "d MMM yyyy", { locale: fr })}.`
+                : `La date demandée (${format(requestedStart, "d MMM yyyy", { locale: fr })}) est avant la fin de l'étape précédente. La tâche a été placée le ${format(minValidStart, "d MMM yyyy", { locale: fr })}.`
+            );
+            if (linkedIsLocked && projectId) {
+              await supabase.from("schedule_alerts").insert({
+                project_id: projectId,
+                schedule_id: s.id,
+                alert_type: "linked_step_locked",
+                alert_date: format(new Date(), "yyyy-MM-dd"),
+                message: `⚠️ L'étape liée "${linkedStep?.step_name}" a une date verrouillée. La tâche "${s.step_name}" a été décalée. Vérifiez avec vos sous-traitants.`,
+                is_dismissed: false,
+              });
+            }
+            newStartStr = format(minValidStart, "yyyy-MM-dd");
+            newEndStr = format(addBusinessDays(minValidStart, duration - 1), "yyyy-MM-dd");
+          } else {
+            newStartStr = focusUpdates.start_date;
+            newEndStr = focusUpdates.end_date || format(addBusinessDays(parseISO(newStartStr), duration - 1), "yyyy-MM-dd");
+          }
           
           // Vérifier conflit de cure
           if (requiredStartDate && parseISO(newStartStr) < requiredStartDate) {
@@ -1721,7 +1761,7 @@ export const useProjectSchedule = (projectId: string | null) => {
       is_manual_date: task.is_overlay, // true = simultané (garder dates), false = intégré (recalculer)
     };
 
-    const { error } = await supabase
+    const { data: newSchedule, error } = await supabase
       .from("project_schedules")
       .insert([schedule as any])
       .select()
@@ -1736,11 +1776,23 @@ export const useProjectSchedule = (projectId: string | null) => {
     await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
 
     if (task.is_overlay) {
-      toast({ title: "Tâche ajoutée (travaux en simultané)" });
+      // Alerte pour rappeler de vérifier avec les sous-traitants
+      await createAlertMutation.mutateAsync({
+        project_id: projectId,
+        schedule_id: (newSchedule as ScheduleItem).id,
+        alert_type: "simultaneous_work",
+        alert_date: format(new Date(), "yyyy-MM-dd"),
+        message: "⚠️ Travaux en simultané : Vérifiez avec vos sous-traitants que les chevauchements d'horaires conviennent à tous.",
+        is_dismissed: false,
+      });
+      toast({ title: "Tâche ajoutée (travaux en simultané)", description: "Une alerte vous rappelle de vérifier avec vos sous-traitants." });
     } else {
-      // Sans "simultané", la tâche doit être intégrée dans la séquence : régénérer l'échéancier
-      // pour placer la tâche au bon endroit et décaler les étapes suivantes.
-      await fetchAndRegenerateSchedule();
+      // Sans "simultané" : régénérer en conservant la date demandée (ou la corriger si avant l'étape liée)
+      const newItem = newSchedule as ScheduleItem;
+      await fetchAndRegenerateSchedule(newItem.id, {
+        start_date: task.start_date,
+        end_date,
+      });
       toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }
   };

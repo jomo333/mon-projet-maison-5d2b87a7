@@ -10,19 +10,30 @@ export const getStepExecutionOrder = (stepId: string): number => {
 };
 
 /**
- * Get effective order for a schedule (manual tasks with linked_step_id go after that step)
+ * Get effective order for a schedule.
+ * Manual tasks with linked_step_id: go BEFORE that step (tâche d'abord, étape décalée après),
+ * SAUF si l'étape liée a is_manual_date (verrouillée) → tâche après (on ne peut pas décaler).
  */
-export const getScheduleExecutionOrder = (schedule: {
-  step_id?: string | null;
-  measurement_after_step_id?: string | null;
-  notes?: string | null;
-}): number => {
+export const getScheduleExecutionOrder = (
+  schedule: {
+    step_id?: string | null;
+    measurement_after_step_id?: string | null;
+    notes?: string | null;
+    is_manual_date?: boolean;
+  },
+  allSchedules?: Array<{ step_id?: string | null; is_manual_date?: boolean }>
+): number => {
   if (!schedule?.step_id || typeof schedule.step_id !== "string") return 999;
   const baseOrder = getStepExecutionOrder(schedule.step_id);
   if (schedule.step_id.startsWith("manual-")) {
     const linkedId = schedule.measurement_after_step_id || parseLinkedStepFromNotes(schedule.notes);
     if (linkedId) {
-      return getStepExecutionOrder(linkedId) + 0.5; // juste après l'étape liée
+      const linkedStep = allSchedules?.find((x) => x.step_id === linkedId);
+      const linkedIsLocked = !!linkedStep?.is_manual_date;
+      if (linkedIsLocked) {
+        return getStepExecutionOrder(linkedId) + 0.5; // étape verrouillée : tâche après
+      }
+      return getStepExecutionOrder(linkedId) - 0.5; // étape non verrouillée : tâche avant, puis "ce qui reste"
     }
   }
   return baseOrder;
@@ -40,18 +51,20 @@ function parseLinkedStepFromNotes(notes: string | null | undefined): string | nu
 
 /**
  * Sort schedules by their execution order defined in constructionSteps
- * Manual tasks with linked_step_id are placed right after that step
+ * Manual tasks with linked_step_id are placed right BEFORE that step
+ * (tâche d'abord à la date demandée, puis l'étape liée est décalée après)
  */
 export const sortSchedulesByExecutionOrder = <T extends {
   step_id: string;
   measurement_after_step_id?: string | null;
   notes?: string | null;
+  is_manual_date?: boolean;
 }>(
   schedules: T[]
 ): T[] => {
   return [...schedules].sort((a, b) => {
-    const orderA = getScheduleExecutionOrder(a);
-    const orderB = getScheduleExecutionOrder(b);
+    const orderA = getScheduleExecutionOrder(a, schedules);
+    const orderB = getScheduleExecutionOrder(b, schedules);
     return orderA - orderB;
   });
 };

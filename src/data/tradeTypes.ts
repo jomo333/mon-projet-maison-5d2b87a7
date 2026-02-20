@@ -51,6 +51,15 @@ export const getScheduleColor = (stepId: string, tradeType: string): string => {
   return prepStepColors[stepId] ?? getTradeColor(tradeType);
 };
 
+/** Couleur d'affichage : utilise trade_color si fourni (ex: tâches manuelles), sinon getScheduleColor */
+export const getDisplayColor = (
+  stepId: string,
+  tradeType: string,
+  tradeColor?: string | null
+): string => {
+  return tradeColor || getScheduleColor(stepId, tradeType);
+};
+
 export const getTradeName = (tradeId: string): string => {
   const trade = tradeTypes.find(t => t.id === tradeId);
   return trade?.name || "Autre";

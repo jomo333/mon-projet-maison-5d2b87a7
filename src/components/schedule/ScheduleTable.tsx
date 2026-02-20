@@ -55,7 +55,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
-import { tradeTypes, getTradeName, getTradeColor, getScheduleColor } from "@/data/tradeTypes";
+import { tradeTypes, getTradeName, getTradeColor, getDisplayColor } from "@/data/tradeTypes";
 import { constructionSteps } from "@/data/constructionSteps";
 
 interface ScheduleTableProps {
@@ -242,7 +242,7 @@ export const ScheduleTable = ({
                   <div className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getScheduleColor(schedule.step_id, schedule.trade_type) }}
+                      style={{ backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color) }}
                     />
                     {getTradeName(schedule.trade_type)}
                   </div>

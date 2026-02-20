@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Lock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
-import { getTradeColor, getScheduleColor } from "@/data/tradeTypes";
+import { getTradeColor, getDisplayColor } from "@/data/tradeTypes";
 import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 import { getTranslatedStepName } from "@/lib/stepNameI18n";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
@@ -314,7 +314,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                   >
                     <div
                       className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: getScheduleColor(schedule.step_id, schedule.trade_type) }}
+                      style={{ backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color) }}
                     />
                     <span className="truncate text-sm">
                       {getTranslatedStepName(t, schedule.step_id, schedule.step_name)}
@@ -412,7 +412,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                           style={{
                             left: position.left,
                             width: Math.max(position.width, dayWidth),
-                            backgroundColor: getScheduleColor(schedule.step_id, schedule.trade_type),
+                            backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color),
                           }}
                         >
                           <span className="text-xs text-white px-1 truncate block leading-6 pointer-events-none">
@@ -504,7 +504,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                 >
                   <div
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: getScheduleColor(schedule.step_id, schedule.trade_type) }}
+                    style={{ backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color) }}
                   />
                   {getTranslatedTradeName(t, schedule.trade_type)}
                 </Badge>

@@ -9,19 +9,24 @@ export const getStepExecutionOrder = (stepId: string): number => {
   return index === -1 ? 999 : index;
 };
 
+type ScheduleForOrder = {
+  step_id?: string | null;
+  measurement_after_step_id?: string | null;
+  notes?: string | null;
+  is_manual_date?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
 /**
  * Get effective order for a schedule.
  * Manual tasks with linked_step_id: go BEFORE that step (tâche d'abord, étape décalée après),
- * SAUF si l'étape liée a is_manual_date (verrouillée) → tâche après (on ne peut pas décaler).
+ * SAUF si l'étape liée a is_manual_date (verrouillée) → tâche après.
+ * Manual tasks SANS linked_step_id: placées par start_date (entre les étapes correspondantes).
  */
 export const getScheduleExecutionOrder = (
-  schedule: {
-    step_id?: string | null;
-    measurement_after_step_id?: string | null;
-    notes?: string | null;
-    is_manual_date?: boolean;
-  },
-  allSchedules?: Array<{ step_id?: string | null; is_manual_date?: boolean }>
+  schedule: ScheduleForOrder,
+  allSchedules?: ScheduleForOrder[]
 ): number => {
   if (!schedule?.step_id || typeof schedule.step_id !== "string") return 999;
   const baseOrder = getStepExecutionOrder(schedule.step_id);
@@ -33,8 +38,20 @@ export const getScheduleExecutionOrder = (
       if (linkedIsLocked) {
         return getStepExecutionOrder(linkedId) + 0.5; // étape verrouillée : tâche après
       }
-      return getStepExecutionOrder(linkedId) - 0.5; // étape non verrouillée : tâche avant, puis "ce qui reste"
+      return getStepExecutionOrder(linkedId) - 0.5; // étape non verrouillée : tâche avant
     }
+    // Sans lien : placer par start_date (après la dernière étape qui se termine avant ou le jour du start)
+    const manualStart = schedule.start_date ? new Date(schedule.start_date).getTime() : Infinity;
+    let maxOrderBefore = -1;
+    for (const s of allSchedules || []) {
+      if (!s.step_id || s.step_id.startsWith("manual-")) continue;
+      const end = s.end_date ? new Date(s.end_date).getTime() : 0;
+      if (end <= manualStart) {
+        const order = getStepExecutionOrder(s.step_id);
+        if (order < 999 && order > maxOrderBefore) maxOrderBefore = order;
+      }
+    }
+    return maxOrderBefore >= 0 ? maxOrderBefore + 0.5 : 999;
   }
   return baseOrder;
 };
@@ -59,6 +76,8 @@ export const sortSchedulesByExecutionOrder = <T extends {
   measurement_after_step_id?: string | null;
   notes?: string | null;
   is_manual_date?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
 }>(
   schedules: T[]
 ): T[] => {

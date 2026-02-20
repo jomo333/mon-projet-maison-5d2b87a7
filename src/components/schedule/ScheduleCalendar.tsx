@@ -26,7 +26,7 @@ import {
 import { ChevronLeft, ChevronRight, AlertTriangle, CalendarPlus, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScheduleItem } from "@/hooks/useProjectSchedule";
-import { getTradeColor, getScheduleColor } from "@/data/tradeTypes";
+import { getTradeColor, getDisplayColor } from "@/data/tradeTypes";
 import { getTranslatedTradeName } from "@/lib/tradeTypesI18n";
 import { sortSchedulesByExecutionOrder } from "@/lib/scheduleOrder";
 import { getDateLocale } from "@/lib/i18n";
@@ -207,7 +207,7 @@ export const ScheduleCalendar = ({
                     <TooltipTrigger className="w-full">
                       <div
                         className="text-xs px-1 py-0.5 rounded truncate text-white"
-                        style={{ backgroundColor: getScheduleColor(schedule.step_id, schedule.trade_type) }}
+                        style={{ backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color) }}
                       >
                         {schedule.step_name}
                       </div>
@@ -250,7 +250,7 @@ export const ScheduleCalendar = ({
                             >
                               <div
                                 className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: getScheduleColor(s.step_id, s.trade_type) }}
+                                style={{ backgroundColor: getDisplayColor(s.step_id, s.trade_type, s.trade_color) }}
                               />
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">{s.step_name}</p>

@@ -12,6 +12,7 @@ const PUBLIC_ROUTES = [
   "/",
   "/auth",
   "/reset-password",
+  "/achat-reussi",
   "/confidentialite",
   "/conditions",
   "/politique-cookies",
@@ -23,19 +24,19 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Show loading state while checking auth
-  if (loading) {
+  // Check if current route is public
+  const isPublicRoute = PUBLIC_ROUTES.some(route => 
+    location.pathname === route || location.pathname.startsWith(route + "/")
+  );
+
+  // Show loading spinner only for protected routes (public routes s'affichent immédiatement)
+  if (loading && !isPublicRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  // Check if current route is public
-  const isPublicRoute = PUBLIC_ROUTES.some(route => 
-    location.pathname === route || location.pathname.startsWith(route + "/")
-  );
 
   // User not logged in and trying to access protected route
   if (!user && !isPublicRoute) {

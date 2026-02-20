@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLegalConsent } from "@/hooks/useLegalConsent";
 import { LegalAcceptanceDialog } from "./LegalAcceptanceDialog";
@@ -8,12 +9,17 @@ interface LegalConsentGuardProps {
   children: ReactNode;
 }
 
+// Routes où on affiche la page immédiatement sans attendre auth/consent (ex: retour Stripe)
+const SKIP_LOADING_ROUTES = ["/achat-reussi"];
+
 export function LegalConsentGuard({ children }: LegalConsentGuardProps) {
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
   const { needsAcceptance, isLoading: consentLoading, markAsAccepted } = useLegalConsent(user?.id);
+  const skipLoading = SKIP_LOADING_ROUTES.some((r) => location.pathname === r);
 
-  // Show loading state while checking auth and consent
-  if (authLoading || (user && consentLoading)) {
+  // Show loading state while checking auth and consent (sauf achat-reussi)
+  if (!skipLoading && (authLoading || (user && consentLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -44,9 +44,10 @@ interface AddScheduleDialogProps {
 
 // Mapping des étapes vers les métiers par défaut
 const stepTradeMapping: Record<string, string> = {
-  planification: "autre",
-  financement: "autre",
-  "plans-permis": "autre",
+  planification: "planification",
+  financement: "financement",
+  "plans-permis": "plans-permis",
+  soumissions: "soumissions",
   "excavation-fondation": "excavation",
   structure: "charpente",
   toiture: "toiture",

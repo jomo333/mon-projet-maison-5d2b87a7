@@ -26,6 +26,10 @@ const TRADE_I18N_KEYS: Record<string, string> = {
   inspecteur: "inspector",
   arpenteur: "surveyor",
   "entrepreneur-general": "generalContractor",
+  planification: "planification",
+  "plans-permis": "plansPermits",
+  soumissions: "soumissions",
+  financement: "financement",
   autre: "other",
   beton: "concrete",
 };

@@ -22,10 +22,10 @@ const preparationSteps = ["planification", "plans-permis", "soumissions", "finan
 
 // Mapping des étapes vers les métiers par défaut
 const stepTradeMapping: Record<string, string> = {
-  planification: "autre",
-  financement: "autre",
-  "plans-permis": "autre",
-  soumissions: "autre",
+  planification: "planification",
+  financement: "financement",
+  "plans-permis": "plans-permis",
+  soumissions: "soumissions",
   "demolition-prep": "demolition",
   excavation: "excavation",
   fondation: "fondation",

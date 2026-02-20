@@ -1279,9 +1279,10 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     // Mapping des step_id vers trade_type
     const stepTradeMapping: Record<string, string> = {
-      planification: "autre",
-      financement: "autre",
-      "plans-permis": "autre",
+      planification: "planification",
+      financement: "financement",
+      "plans-permis": "plans-permis",
+      soumissions: "soumissions",
       "excavation-fondation": "excavation",
       structure: "charpente",
       toiture: "toiture",
@@ -1421,9 +1422,10 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     // Mapping et durées pour créer les étapes manquantes
     const stepTradeMapping: Record<string, string> = {
-      planification: "autre",
-      financement: "autre",
-      "plans-permis": "autre",
+      planification: "planification",
+      financement: "financement",
+      "plans-permis": "plans-permis",
+      soumissions: "soumissions",
       "excavation-fondation": "excavation",
       structure: "charpente",
       toiture: "toiture",

@@ -1190,6 +1190,10 @@
       "inspector": "Inspector",
       "surveyor": "Surveyor",
       "generalContractor": "General Contractor",
+      "planification": "Planning",
+      "plansPermits": "Plans and permits",
+      "soumissions": "Quotes",
+      "financement": "Financing",
       "other": "Other",
       "concrete": "Concrete"
     },
@@ -1697,6 +1701,10 @@
     "inspector": "Inspector",
     "surveyor": "Surveyor",
     "generalContractor": "General contractor",
+    "planification": "Planning",
+    "plansPermits": "Plans and permits",
+    "soumissions": "Quotes",
+    "financement": "Financing",
     "other": "Other"
   },
   "phases": {

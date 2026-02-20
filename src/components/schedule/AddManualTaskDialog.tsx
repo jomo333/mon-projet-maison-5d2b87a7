@@ -125,12 +125,12 @@ export const AddManualTaskDialog = ({
     if (!formData.description.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
-    setOpen(false); // Fermer immédiatement pour un retour visuel rapide
     try {
       await onAdd(formData);
       setFormData(defaultFormData);
+      setOpen(false); // Fermer seulement après succès
     } catch (err) {
-      setOpen(true); // Rouvrir en cas d'erreur
+      // Rester ouvert en cas d'erreur (toast géré par onAdd)
     } finally {
       setIsSubmitting(false);
     }

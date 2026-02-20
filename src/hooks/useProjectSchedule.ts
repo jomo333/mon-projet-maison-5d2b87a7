@@ -1000,7 +1000,8 @@ export const useProjectSchedule = (projectId: string | null) => {
 
   const fetchAndRegenerateSchedule = async (
     focusScheduleId?: string,
-    focusUpdates?: Partial<ScheduleItem>
+    focusUpdates?: Partial<ScheduleItem>,
+    injectSchedule?: ScheduleItem
   ) => {
     if (!projectId) return;
 
@@ -1011,14 +1012,15 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
-      return;
+      throw new Error(error.message);
     }
 
-    await regenerateScheduleFromSchedules(
-      (data || []) as ScheduleItem[],
-      focusScheduleId,
-      focusUpdates
-    );
+    let schedules = (data || []) as ScheduleItem[];
+    if (injectSchedule && !schedules.some((s) => s.id === injectSchedule.id)) {
+      schedules = [...schedules, injectSchedule];
+    }
+
+    await regenerateScheduleFromSchedules(schedules, focusScheduleId, focusUpdates);
   };
 
   // Force un recalcul complet (utile quand des étapes "terminées" avaient des dates futures)
@@ -1774,7 +1776,6 @@ export const useProjectSchedule = (projectId: string | null) => {
     }
 
     queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
-    await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
 
     if (task.is_overlay) {
       // Alerte pour rappeler de vérifier avec les sous-traitants
@@ -1793,7 +1794,7 @@ export const useProjectSchedule = (projectId: string | null) => {
       await fetchAndRegenerateSchedule(newItem.id, {
         start_date: task.start_date,
         end_date,
-      });
+      }, newItem);
       await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
       toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }

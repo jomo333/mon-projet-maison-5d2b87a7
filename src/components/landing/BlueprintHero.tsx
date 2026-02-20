@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import logoSlim from "@/assets/logo-slim.png";
+import logoSlimEn from "@/assets/logo-slim-en.png";
 import blueprintBgFr from "@/assets/blueprint-background-fr.jpg";
 import blueprintBgEn from "@/assets/blueprint-background-en.jpg";
 
@@ -63,8 +64,8 @@ export function BlueprintHero() {
           {/* Logo slim */}
           <div className="mb-8 flex justify-center animate-fade-up">
             <img 
-              src={logoSlim} 
-              alt="MonProjetMaison.ca - Planifier. Construire. Réussir." 
+              src={lang === "en" ? logoSlimEn : logoSlim} 
+              alt={lang === "en" ? "MonProjetMaison.ca - Plan. Build. Succeed." : "MonProjetMaison.ca - Planifier. Construire. Réussir."} 
               className="h-[144px] sm:h-48 w-auto drop-shadow-lg"
             />
           </div>

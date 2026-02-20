@@ -157,8 +157,18 @@ serve(async (req) => {
       });
     }
 
-    const now = new Date().toISOString();
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+    const stripeSubId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null;
+
+    let periodStart = new Date().toISOString();
+    let periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    if (stripeSubId) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(stripeSubId);
+        periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : periodStart;
+        periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : periodEnd;
+      } catch (_) {}
+    }
 
     const { data: existing } = await supabaseAdmin
       .from("subscriptions")
@@ -168,17 +178,22 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    const updatePayload = {
+      plan_id,
+      status: "active",
+      billing_cycle: "monthly",
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
+      cancelled_at: null,
+      cancel_at: null,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: stripeSubId,
+    };
+
     if (existing) {
       const { error } = await supabaseAdmin
         .from("subscriptions")
-        .update({
-          plan_id,
-          status: "active",
-          billing_cycle: "monthly",
-          current_period_start: now,
-          current_period_end: periodEnd,
-          cancelled_at: null,
-        })
+        .update(updatePayload)
         .eq("id", existing.id);
       if (error) {
         console.error("subscriptions update error:", error);
@@ -195,9 +210,11 @@ serve(async (req) => {
           plan_id,
           status: "active",
           billing_cycle: "monthly",
-          start_date: now,
-          current_period_start: now,
+          start_date: periodStart,
+          current_period_start: periodStart,
           current_period_end: periodEnd,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: stripeSubId,
         });
       if (error) {
         console.error("subscriptions insert error:", error);
@@ -218,40 +235,57 @@ serve(async (req) => {
     const sub = event.data.object as Stripe.Subscription;
     const metadata = sub.metadata as Record<string, string> | null;
     const userIdFromMeta = metadata?.user_id?.trim() || null;
-    const customerId = sub.customer as string;
-    if (!userIdFromMeta && customerId) {
+    const stripeSubId = sub.id;
+    const isDeleted = event.type === "customer.subscription.deleted" || sub.status === "canceled" || sub.status === "unpaid";
+    const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null;
+    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+
+    const updateData: Record<string, unknown> = {
+      current_period_end: periodEnd || undefined,
+      cancel_at: sub.cancel_at_period_end ? cancelAt : null,
+      status: isDeleted ? "cancelled" : sub.status === "active" ? "active" : "paused",
+      cancelled_at: isDeleted ? new Date().toISOString() : null,
+    };
+
+    // 1. Match by stripe_subscription_id
+    const { data: byStripeId } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id")
+      .eq("stripe_subscription_id", stripeSubId)
+      .limit(1)
+      .maybeSingle();
+
+    if (byStripeId) {
+      await supabaseAdmin.from("subscriptions").update(updateData).eq("id", byStripeId.id);
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. Fallback: match by user_id (metadata or customer email)
+    let uid = userIdFromMeta;
+    if (!uid && sub.customer) {
       const stripe = new Stripe(stripeSecret);
-      const customer = await stripe.customers.retrieve(customerId);
+      const customer = await stripe.customers.retrieve(sub.customer as string);
       if (!customer.deleted && "email" in customer && customer.email) {
-        const uid = await findUserIdByEmail(supabaseAdmin, customer.email);
-        if (uid) {
-          const { data: existing } = await supabaseAdmin
-            .from("subscriptions")
-            .select("id")
-            .eq("user_id", uid)
-            .limit(1)
-            .maybeSingle();
-          if (existing) {
-            const isDeleted = event.type === "customer.subscription.deleted" || sub.status === "canceled" || sub.status === "unpaid";
-            await supabaseAdmin
-              .from("subscriptions")
-              .update({
-                status: isDeleted ? "cancelled" : sub.status === "active" ? "active" : "paused",
-                cancelled_at: isDeleted ? new Date().toISOString() : null,
-              })
-              .eq("user_id", uid);
-          }
-        }
+        uid = await findUserIdByEmail(supabaseAdmin, customer.email);
       }
-    } else if (userIdFromMeta) {
-      const isDeleted = event.type === "customer.subscription.deleted" || sub.status === "canceled" || sub.status === "unpaid";
-      await supabaseAdmin
+    }
+    if (uid) {
+      const { data: existing } = await supabaseAdmin
         .from("subscriptions")
-        .update({
-          status: isDeleted ? "cancelled" : sub.status === "active" ? "active" : "paused",
-          cancelled_at: isDeleted ? new Date().toISOString() : null,
-        })
-        .eq("user_id", userIdFromMeta);
+        .select("id")
+        .eq("user_id", uid)
+        .order("current_period_end", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ ...updateData, stripe_subscription_id: stripeSubId })
+          .eq("id", existing.id);
+      }
     }
     return new Response(JSON.stringify({ received: true }), {
       status: 200,

@@ -521,7 +521,15 @@
     "unlimited": "Illimité",
     "upgrade": "Passer à un forfait supérieur",
     "gb": "Go",
-    "buyCredits": "Acheter des analyses supplémentaires"
+    "buyCredits": "Acheter des analyses supplémentaires",
+    "paymentDelayNote": "Le paiement peut prendre 10 à 15 secondes. Merci de ne pas fermer la page."
+  },
+  "purchaseSuccess": {
+    "title": "Achat réussi !",
+    "message": "Vos analyses supplémentaires ont été ajoutées à votre compte.",
+    "myProjects": "Mes projets",
+    "plans": "Forfaits",
+    "home": "Accueil"
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "L'analyse IA des soumissions est disponible à partir du forfait Essentiel",
@@ -1604,9 +1612,13 @@
     "choosePlan": "Choisir ce forfait",
     "redirectingToCheckout": "Redirection vers le paiement…",
     "checkoutError": "Impossible de créer la session de paiement. Vérifiez la configuration Stripe.",
+    "paymentDelayNote": "Le paiement peut prendre 10 à 15 secondes. Merci de ne pas fermer la page.",
     "manageSubscription": "Gérer mon abonnement",
     "manageSubscriptionDesc": "Modifier le moyen de paiement, consulter les factures ou annuler l'abonnement.",
     "manageSubscriptionButton": "Ouvrir le portail de facturation",
+    "cancelPlan": "Annuler votre forfait",
+    "cancelAt": "Annulation prévue le {{date}}",
+    "periodEnd": "Fin : {{date}}",
     "billingMonthly": "Mensuel",
     "billingYearly": "Annuel",
     "billingYearlyOnePayment": "Paiement unique pour l'année",

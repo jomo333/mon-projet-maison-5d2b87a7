@@ -64,7 +64,7 @@ serve(async (req) => {
     });
   }
 
-  let body: { credits_amount?: number };
+  let body: { credits_amount?: number; locale?: string };
   try {
     body = await req.json();
   } catch {
@@ -97,10 +97,13 @@ serve(async (req) => {
   const siteUrl = (Deno.env.get("SITE_URL") || "https://www.monprojetmaison.ca").replace(/\/$/, "");
   const baseUrl = siteUrl.replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
 
+  const locale = (body.locale === "en" || body.locale === "fr") ? body.locale : "fr";
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      locale,
       line_items: [{
         price: priceId,
         quantity: 1,

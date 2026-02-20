@@ -64,7 +64,7 @@ serve(async (req) => {
     });
   }
 
-  let body: { plan_id?: string; billing_cycle?: string };
+  let body: { plan_id?: string; billing_cycle?: string; locale?: string };
   try {
     body = await req.json();
   } catch {
@@ -100,17 +100,20 @@ serve(async (req) => {
   const siteUrl = (Deno.env.get("SITE_URL") || "https://www.monprojetmaison.ca").replace(/\/$/, "");
   const baseUrl = siteUrl.replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
 
+  const locale = (body.locale === "en" || body.locale === "fr") ? body.locale : "fr";
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
+      locale,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${baseUrl}/#/mes-projets?checkout=success`,
       cancel_url: `${baseUrl}/#/forfaits?checkout=cancelled`,
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       subscription_data: {
-        metadata: { plan_id: planId },
+        metadata: { plan_id: planId, user_id: user.id },
       },
     });
 

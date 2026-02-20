@@ -521,7 +521,15 @@
     "unlimited": "Unlimited",
     "upgrade": "Upgrade to a higher plan",
     "gb": "GB",
-    "buyCredits": "Buy additional analyses"
+    "buyCredits": "Buy additional analyses",
+    "paymentDelayNote": "Payment may take 10-15 seconds. Please do not close the page."
+  },
+  "purchaseSuccess": {
+    "title": "Purchase successful!",
+    "message": "Your additional analyses have been added to your account.",
+    "myProjects": "My projects",
+    "plans": "Plans",
+    "home": "Home"
   },
   "premiumFeatures": {
     "quoteAnalysisRestricted": "AI quote analysis is available from the Essential plan",
@@ -1604,9 +1612,13 @@
     "choosePlan": "Choose this plan",
     "redirectingToCheckout": "Redirecting to checkout…",
     "checkoutError": "Unable to create payment session. Check Stripe configuration.",
+    "paymentDelayNote": "Payment may take 10-15 seconds. Please do not close the page.",
     "manageSubscription": "Manage my subscription",
     "manageSubscriptionDesc": "Update payment method, view invoices, or cancel your subscription.",
     "manageSubscriptionButton": "Open billing portal",
+    "cancelPlan": "Cancel your plan",
+    "cancelAt": "Cancellation scheduled for {{date}}",
+    "periodEnd": "End: {{date}}",
     "billingMonthly": "Monthly",
     "billingYearly": "Yearly",
     "billingYearlyOnePayment": "One-time payment for the year",

@@ -35,6 +35,7 @@ interface Plan {
 
 export default function Plans() {
   const { t, i18n } = useTranslation();
+  const stripeLocale = i18n.language?.startsWith("en") ? "en" : "fr";
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -147,7 +148,7 @@ export default function Plans() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ plan_id: plan.id, billing_cycle: "monthly" }),
+          body: JSON.stringify({ plan_id: plan.id, billing_cycle: "monthly", locale: stripeLocale }),
         });
         const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
         if (!res.ok) {
@@ -351,11 +352,14 @@ export default function Plans() {
             )}
 
             {/* Reassuring text */}
-            <div className="mt-12 text-center max-w-2xl mx-auto">
+            <div className="mt-12 text-center max-w-2xl mx-auto space-y-4">
               <p className="text-muted-foreground">
                 <strong className="text-foreground">{t("plans.noWrongPlan")}</strong>
                 <br />
                 {t("plans.noWrongPlanDesc")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("plans.paymentDelayNote")}
               </p>
             </div>
           </div>

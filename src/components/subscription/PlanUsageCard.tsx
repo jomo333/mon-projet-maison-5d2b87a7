@@ -14,7 +14,7 @@ import { getTranslatedPlanName } from "@/lib/planTiersI18n";
 
 export function PlanUsageCard() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { planName, limits, usage, loading } = usePlanLimits();
   const [buyingCredits, setBuyingCredits] = useState<number | null>(null);
 
@@ -59,13 +59,14 @@ export function PlanUsageCard() {
         return;
       }
       const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const stripeLocale = i18n.language?.startsWith("en") ? "en" : "fr";
       const res = await fetch(`${baseUrl}/functions/v1/create-checkout-credits`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ credits_amount: creditsAmount }),
+        body: JSON.stringify({ credits_amount: creditsAmount, locale: stripeLocale }),
       });
       const body = await res.json().catch(() => ({})) as { url?: string; error?: string | { message?: string } };
       if (!res.ok) {
@@ -179,6 +180,9 @@ export function PlanUsageCard() {
                 {buyingCredits === 20 ? <Loader2 className="h-4 w-4 animate-spin" /> : "20 analyses — 15 $"}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {t("planUsage.paymentDelayNote")}
+            </p>
           </div>
         )}
 

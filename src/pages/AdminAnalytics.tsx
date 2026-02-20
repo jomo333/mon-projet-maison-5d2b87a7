@@ -151,16 +151,38 @@ export default function AdminAnalytics() {
 
       const { data: sessions, error } = await supabase
         .from("user_sessions")
-        .select("session_start")
+        .select("user_id, session_start, session_end, duration_seconds")
         .gte("session_start", startDate.toISOString());
 
       if (error) throw error;
 
+      // Compter les utilisateurs DISTINCTS par heure (concurrents estimés)
+      // Pour chaque heure 0-23, combien d'utilisateurs UNIQUES avaient une session active à cette heure (sur les jours de la période)
       const byHour = new Array(24).fill(0).map((_, i) => ({ heure: `${i}h`, count: 0, heureNum: i }));
+      const usersPerHour = byHour.map(() => new Set<string>());
+
       for (const s of sessions || []) {
-        const hour = new Date(s.session_start).getHours();
-        byHour[hour].count++;
+        const start = new Date(s.session_start);
+        const end = s.session_end 
+          ? new Date(s.session_end) 
+          : new Date(start.getTime() + (s.duration_seconds || 10 * 60) * 1000); // 10 min par défaut si pas de fin
+        const startMs = start.getTime();
+        const endMs = end.getTime();
+
+        for (let h = 0; h < 24; h++) {
+          // Pour chaque jour de la période, vérifier si la session chevauche l'heure h ce jour-là
+          const sessionDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+          const hourStart = new Date(sessionDate);
+          hourStart.setHours(h, 0, 0, 0);
+          const hourEnd = new Date(sessionDate);
+          hourEnd.setHours(h + 1, 0, 0, 0);
+          if (startMs < hourEnd.getTime() && endMs > hourStart.getTime()) {
+            usersPerHour[h].add(s.user_id);
+          }
+        }
       }
+
+      usersPerHour.forEach((set, i) => { byHour[i].count = set.size; });
       setPeakHoursData(byHour);
     } catch (error) {
       console.error("Error fetching peak hours:", error);
@@ -1123,7 +1145,7 @@ export default function AdminAnalytics() {
                     Heures de pointe – Utilisateurs connectés
                   </CardTitle>
                   <CardDescription>
-                    Nombre de sessions démarrées par heure (0h–23h) pour identifier quand vous avez le plus d'utilisateurs en même temps. Heures en fuseau local du navigateur.
+                    Nombre d'utilisateurs distincts actifs par heure (0h–23h) — max = nombre total d'utilisateurs. Indique quand vous avez le plus d'utilisateurs connectés en même temps.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1145,7 +1167,7 @@ export default function AdminAnalytics() {
                           />
                           <Tooltip 
                             contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
-                            formatter={(value: number) => [value, "Sessions"]}
+                            formatter={(value: number) => [value, "Utilisateurs actifs"]}
                           />
                           <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
                             {peakHoursData.map((entry, index) => (

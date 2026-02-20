@@ -759,20 +759,15 @@ export const useProjectSchedule = (projectId: string | null) => {
           newEndStr = s.end_date || format(addBusinessDays(parseISO(newStartStr), duration - 1), "yyyy-MM-dd");
         }
 
-        // Appliquer les changements
-        if (s.start_date !== newStartStr) patch.start_date = newStartStr;
-        if (s.end_date !== newEndStr) patch.end_date = newEndStr;
-        
-        // Pour les autres champs (sauf si c'est un reset où on a déjà traité is_manual_date)
+        // Appliquer les changements (toujours pousser pour forcer la persistance)
+        patch.start_date = newStartStr;
+        patch.end_date = newEndStr;
         if (!isReset) {
           const { start_date, end_date, ...rest } = focusUpdates;
           Object.assign(patch, rest);
         }
         if (focusUpdates.actual_days === null) patch.actual_days = null;
-
-        if (Object.keys(patch).length > 0) {
-          updatesToApply.push({ id: s.id, patch });
-        }
+        updatesToApply.push({ id: s.id, patch });
         
         // Mettre à jour stepEndDates et cursor pour les vérifications suivantes
         stepEndDates[s.step_id] = newEndStr;
@@ -858,13 +853,11 @@ export const useProjectSchedule = (projectId: string | null) => {
           const newStartStr = format(newStart, "yyyy-MM-dd");
           const newEndStr = format(addBusinessDays(newStart, duration - 1), "yyyy-MM-dd");
           
-          const patch: Partial<ScheduleItem> = {};
-          if (s.start_date !== newStartStr) patch.start_date = newStartStr;
-          if (s.end_date !== newEndStr) patch.end_date = newEndStr;
-          
-          if (Object.keys(patch).length > 0) {
-            updatesToApply.push({ id: s.id, patch });
-          }
+          const patch: Partial<ScheduleItem> = {
+            start_date: newStartStr,
+            end_date: newEndStr,
+          };
+          updatesToApply.push({ id: s.id, patch });
           
           // Mettre à jour stepEndDates
           stepEndDates[s.step_id] = newEndStr;

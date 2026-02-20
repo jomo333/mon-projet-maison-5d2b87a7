@@ -1227,38 +1227,176 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                 </div>
               )}
 
-              {/* Qualité des finitions - masqué pour les projets garage */}
+              {/* Choix de matériaux et finitions (recommandé) - même section que l'analyse de plan */}
               {projectType !== "garage" && projectType !== "garage-etage" && (
-                <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-                  <Label>{t("planAnalyzer.finishQuality")}</Label>
-                  <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="economique">
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{t("planAnalyzer.qualityLevels.economique")}</span>
-                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.economiqueDesc")}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="standard">
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{t("planAnalyzer.qualityLevels.standard")}</span>
-                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.standardDesc")}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="haut-de-gamme">
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{t("planAnalyzer.qualityLevels.hautDeGamme")}</span>
-                          <span className="text-xs text-muted-foreground">{t("planAnalyzer.qualityLevels.hautDeGammeDesc")}</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3 p-4 rounded-lg border bg-card sm:col-span-2 lg:col-span-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-base font-semibold">{t("planAnalyzer.materialsAndFinishes")}</Label>
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {t("planAnalyzer.qualityNote")}
+                    {t("planAnalyzer.materialsAndFinishesDesc")}
                   </p>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Qualité générale */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.generalFinishQuality")}</Label>
+                      <Select value={finishQuality} onValueChange={(v) => setFinishQuality(v as "economique" | "standard" | "haut-de-gamme")}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="economique">{t("planAnalyzer.qualityLevels.economique")}</SelectItem>
+                          <SelectItem value="standard">{t("planAnalyzer.qualityLevels.standard")}</SelectItem>
+                          <SelectItem value="haut-de-gamme">{t("planAnalyzer.qualityLevels.hautDeGamme")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Revêtement extérieur */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.exteriorSiding")}</Label>
+                      <Select value={exteriorSiding} onValueChange={setExteriorSiding}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vinyle">{t("planAnalyzer.sidingTypes.vinyle")}</SelectItem>
+                          <SelectItem value="canexel">{t("planAnalyzer.sidingTypes.canexel")}</SelectItem>
+                          <SelectItem value="bois">{t("planAnalyzer.sidingTypes.bois")}</SelectItem>
+                          <SelectItem value="brique">{t("planAnalyzer.sidingTypes.brique")}</SelectItem>
+                          <SelectItem value="pierre">{t("planAnalyzer.sidingTypes.pierre")}</SelectItem>
+                          <SelectItem value="aluminium">{t("planAnalyzer.sidingTypes.aluminium")}</SelectItem>
+                          <SelectItem value="mixte">{t("planAnalyzer.sidingTypes.mixte")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Toiture */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.roofType")}</Label>
+                      <Select value={roofingType} onValueChange={setRoofingType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bardeau-asphalte">{t("planAnalyzer.roofTypes.bardeauAsphalte")}</SelectItem>
+                          <SelectItem value="bardeau-architectural">{t("planAnalyzer.roofTypes.bardeauArchitectural")}</SelectItem>
+                          <SelectItem value="metal">{t("planAnalyzer.roofTypes.metal")}</SelectItem>
+                          <SelectItem value="elastomere">{t("planAnalyzer.roofTypes.elastomere")}</SelectItem>
+                          <SelectItem value="tpo-epdm">{t("planAnalyzer.roofTypes.tpoEpdm")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Fenêtres */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.windowType")}</Label>
+                      <Select value={windowType} onValueChange={setWindowType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pvc-standard">{t("planAnalyzer.windowTypes.pvcStandard")}</SelectItem>
+                          <SelectItem value="pvc-triple">{t("planAnalyzer.windowTypes.pvcTriple")}</SelectItem>
+                          <SelectItem value="aluminium">{t("planAnalyzer.windowTypes.aluminium")}</SelectItem>
+                          <SelectItem value="pvc-alu">{t("planAnalyzer.windowTypes.pvcAlu")}</SelectItem>
+                          <SelectItem value="bois">{t("planAnalyzer.windowTypes.bois")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Isolation */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.insulationType")}</Label>
+                      <Select value={insulationType} onValueChange={setInsulationType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="laine-standard">{t("planAnalyzer.insulationTypes.laineStandard")}</SelectItem>
+                          <SelectItem value="laine-haute-densite">{t("planAnalyzer.insulationTypes.laineHauteDensite")}</SelectItem>
+                          <SelectItem value="polyurethane">{t("planAnalyzer.insulationTypes.polyurethane")}</SelectItem>
+                          <SelectItem value="cellulose">{t("planAnalyzer.insulationTypes.cellulose")}</SelectItem>
+                          <SelectItem value="panneau-rigide">{t("planAnalyzer.insulationTypes.panneauRigide")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Chauffage / CVAC */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.heatingType")}</Label>
+                      <Select value={heatingType} onValueChange={setHeatingType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="plinthes">{t("planAnalyzer.heatingTypes.plinthes")}</SelectItem>
+                          <SelectItem value="thermopompe-murale">{t("planAnalyzer.heatingTypes.thermopompeMurale")}</SelectItem>
+                          <SelectItem value="thermopompe-centrale">{t("planAnalyzer.heatingTypes.thermopompeCentrale")}</SelectItem>
+                          <SelectItem value="plancher-radiant">{t("planAnalyzer.heatingTypes.plancherRadiant")}</SelectItem>
+                          <SelectItem value="plancher-radiant-hydro">{t("planAnalyzer.heatingTypes.plancherRadiantHydro")}</SelectItem>
+                          <SelectItem value="bi-energie">{t("planAnalyzer.heatingTypes.biEnergie")}</SelectItem>
+                          <SelectItem value="geothermie">{t("planAnalyzer.heatingTypes.geothermie")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Planchers */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.flooringType")}</Label>
+                      <Select value={flooringType} onValueChange={setFlooringType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="flottant-stratifie">{t("planAnalyzer.flooringTypes.flottantStratifie")}</SelectItem>
+                          <SelectItem value="vinyle-luxe">{t("planAnalyzer.flooringTypes.vinyleLuxe")}</SelectItem>
+                          <SelectItem value="bois-ingenierie">{t("planAnalyzer.flooringTypes.boisIngenierie")}</SelectItem>
+                          <SelectItem value="bois-franc">{t("planAnalyzer.flooringTypes.boisFranc")}</SelectItem>
+                          <SelectItem value="ceramique">{t("planAnalyzer.flooringTypes.ceramique")}</SelectItem>
+                          <SelectItem value="beton-poli">{t("planAnalyzer.flooringTypes.betonPoli")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Armoires */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.cabinetType")}</Label>
+                      <Select value={cabinetType} onValueChange={setCabinetType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="melamine">{t("planAnalyzer.cabinetTypes.melamine")}</SelectItem>
+                          <SelectItem value="polyester">{t("planAnalyzer.cabinetTypes.polyester")}</SelectItem>
+                          <SelectItem value="thermoplastique">{t("planAnalyzer.cabinetTypes.thermoplastique")}</SelectItem>
+                          <SelectItem value="laque">{t("planAnalyzer.cabinetTypes.laque")}</SelectItem>
+                          <SelectItem value="bois-massif">{t("planAnalyzer.cabinetTypes.boisMassif")}</SelectItem>
+                          <SelectItem value="sur-mesure-haut-gamme">{t("planAnalyzer.cabinetTypes.surMesure")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Comptoirs */}
+                    <div className="space-y-2">
+                      <Label>{t("planAnalyzer.countertopType")}</Label>
+                      <Select value={countertopType} onValueChange={setCountertopType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("planAnalyzer.select")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="stratifie">{t("planAnalyzer.countertopTypes.stratifie")}</SelectItem>
+                          <SelectItem value="quartz">{t("planAnalyzer.countertopTypes.quartz")}</SelectItem>
+                          <SelectItem value="granit">{t("planAnalyzer.countertopTypes.granit")}</SelectItem>
+                          <SelectItem value="marbre">{t("planAnalyzer.countertopTypes.marbre")}</SelectItem>
+                          <SelectItem value="bois-boucher">{t("planAnalyzer.countertopTypes.blocBoucher")}</SelectItem>
+                          <SelectItem value="beton">{t("planAnalyzer.countertopTypes.beton")}</SelectItem>
+                          <SelectItem value="dekton">{t("planAnalyzer.countertopTypes.dekton")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               )}
               

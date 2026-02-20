@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,6 +233,10 @@ const ProjectGallery = () => {
   };
 
   const downloadFile = async (fileUrl: string, fileName: string) => {
+    if (isFreePlan) {
+      toast.error(t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP"));
+      return;
+    }
     try {
       // Get fresh signed URL first
       const freshUrl = await getFreshSignedUrl(fileUrl);
@@ -911,26 +916,35 @@ const ProjectGallery = () => {
               </div>
               
               {/* Download all button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadAllAsZip}
-                disabled={isDownloadingAll || isFreePlan || (!photos.length && !documents.length)}
-                title={isFreePlan ? t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP") : undefined}
-                className="gap-2"
-              >
-                {isDownloadingAll ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("gallery.downloading", "Téléchargement...")}
-                  </>
-                ) : (
-                  <>
-                    <FolderArchive className="h-4 w-4" />
-                    {t("gallery.downloadAll", "Tout télécharger")}
-                  </>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadAllAsZip}
+                  disabled={isDownloadingAll || isFreePlan || (!photos.length && !documents.length)}
+                  title={isFreePlan ? t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP") : undefined}
+                  className="gap-2"
+                >
+                  {isDownloadingAll ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t("gallery.downloading", "Téléchargement...")}
+                    </>
+                  ) : (
+                    <>
+                      <FolderArchive className="h-4 w-4" />
+                      {t("gallery.downloadAll", "Tout télécharger")}
+                    </>
+                  )}
+                </Button>
+                {isFreePlan && (
+                  <Alert className="py-2">
+                    <AlertDescription className="text-sm">
+                      {t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP")}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
 
@@ -1188,7 +1202,9 @@ const ProjectGallery = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Télécharger"
+                              title={isFreePlan ? t("gallery.downloadZipLocked") : "Télécharger"}
+                              disabled={isFreePlan}
+                              className={isFreePlan ? "opacity-50 cursor-not-allowed" : ""}
                               onClick={async () => {
                                 await downloadFile(doc.file_url, doc.file_name);
                               }}
@@ -1328,8 +1344,9 @@ const ProjectGallery = () => {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8"
-                                            title="Télécharger"
+                                            className={`h-8 w-8 ${isFreePlan ? "opacity-50 cursor-not-allowed" : ""}`}
+                                            title={isFreePlan ? t("gallery.downloadZipLocked") : "Télécharger"}
+                                            disabled={isFreePlan}
                                             onClick={() => downloadFile(doc.file_url, doc.file_name)}
                                           >
                                             <Download className="h-4 w-4" />
@@ -1423,8 +1440,9 @@ const ProjectGallery = () => {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8"
-                                        title="Télécharger"
+                                        className={`h-8 w-8 ${isFreePlan ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        title={isFreePlan ? t("gallery.downloadZipLocked") : "Télécharger"}
+                                        disabled={isFreePlan}
                                         onClick={() => downloadFile(doc.file_url, doc.file_name)}
                                       >
                                         <Download className="h-4 w-4" />
@@ -1614,7 +1632,9 @@ const ProjectGallery = () => {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Télécharger"
+                                            title={isFreePlan ? t("gallery.downloadZipLocked") : "Télécharger"}
+                                            disabled={isFreePlan}
+                                            className={isFreePlan ? "opacity-50 cursor-not-allowed" : ""}
                                             onClick={() => downloadFile(doc.file_url, displayName)}
                                           >
                                             <Download className="h-4 w-4" />
@@ -1696,6 +1716,8 @@ const ProjectGallery = () => {
                 variant="outline"
                 size="sm"
                 className="ml-4"
+                disabled={isFreePlan}
+                title={isFreePlan ? t("gallery.downloadZipLocked") : undefined}
                 onClick={async () => {
                   if (!previewDocument) return;
                   await downloadFile(previewDocument.url, previewDocument.name);

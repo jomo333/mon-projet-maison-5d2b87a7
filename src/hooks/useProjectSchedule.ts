@@ -1043,9 +1043,11 @@ export const useProjectSchedule = (projectId: string | null) => {
 
     const updates: Array<{ id: string; patch: Partial<ScheduleItem> }> = [];
     const continuations: Omit<ScheduleItem, "id" | "created_at" | "updated_at">[] = [];
+    const continuedStepIds = new Set<string>(); // Éviter plusieurs continuations pour le même step_id
 
     for (const s of allSchedules) {
       if (s.id === newManualTask.id) continue;
+      if (s.step_id?.startsWith("continuation-")) continue; // Ne pas créer de continuation d'une continuation
       if (isOverlayTask(s) || s.status === "completed") continue;
       if (!s.start_date || !s.end_date) continue;
 
@@ -1071,17 +1073,20 @@ export const useProjectSchedule = (projectId: string | null) => {
       if (daysBeforeOverlap > 0) {
         const newEndStr = format(dayBeforeTask, "yyyy-MM-dd");
         updates.push({ id: s.id, patch: { end_date: newEndStr } });
-        const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = s;
-        continuations.push({
-          ...rest,
-          project_id: projectId,
-          step_id: `continuation-${s.step_id}-${Date.now()}`,
-          step_name: `${s.step_name} (suite)`,
-          start_date: contStartStr,
-          end_date: contEndStr,
-          estimated_days: remainingDays,
-          measurement_after_step_id: newManualTask.step_id,
-        } as Omit<ScheduleItem, "id" | "created_at" | "updated_at">);
+        if (s.step_id && !continuedStepIds.has(s.step_id)) {
+          continuedStepIds.add(s.step_id);
+          const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = s;
+          continuations.push({
+            ...rest,
+            project_id: projectId,
+            step_id: `continuation-${s.step_id}-${Date.now()}`,
+            step_name: `${s.step_name} (suite)`,
+            start_date: contStartStr,
+            end_date: contEndStr,
+            estimated_days: remainingDays,
+            measurement_after_step_id: newManualTask.step_id,
+          } as Omit<ScheduleItem, "id" | "created_at" | "updated_at">);
+        }
       } else {
         updates.push({ id: s.id, patch: { start_date: contStartStr, end_date: contEndStr } });
       }

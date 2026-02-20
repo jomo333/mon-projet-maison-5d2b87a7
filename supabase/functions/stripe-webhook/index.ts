@@ -70,16 +70,13 @@ serve(async (req) => {
     });
   }
 
-  const cryptoProvider = Stripe.createSubtleCryptoProvider();
   let event: Stripe.Event;
   try {
     const stripe = new Stripe(stripeSecret);
     event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
-      webhookSecret,
-      undefined,
-      cryptoProvider
+      webhookSecret
     );
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", err);

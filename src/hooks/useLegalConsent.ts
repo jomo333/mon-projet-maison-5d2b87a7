@@ -57,6 +57,9 @@ export function useLegalConsent(userId: string | undefined): ConsentStatus {
 
   useEffect(() => {
     checkConsent();
+    // Timeout de sécurité : éviter spinner infini si Supabase est lent (ex: après retour Stripe)
+    const t = setTimeout(() => setIsLoading(false), 3000);
+    return () => clearTimeout(t);
   }, [checkConsent]);
 
   return {

@@ -10,7 +10,7 @@ interface LegalConsentGuardProps {
 }
 
 // Routes où on affiche la page immédiatement sans attendre auth/consent (ex: retour Stripe)
-const SKIP_LOADING_ROUTES = ["/achat-reussi"];
+const SKIP_LOADING_ROUTES = ["/achat-reussi", "/mes-projets", "/forfaits"];
 
 export function LegalConsentGuard({ children }: LegalConsentGuardProps) {
   const { user, loading: authLoading } = useAuth();

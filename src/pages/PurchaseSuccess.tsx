@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
@@ -20,13 +19,13 @@ const PurchaseSuccess = () => (
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild>
-            <Link to="/mes-projets">Mes projets</Link>
+            <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/#/mes-projets`}>Mes projets</a>
           </Button>
           <Button variant="secondary" asChild>
-            <Link to="/forfaits">Forfaits</Link>
+            <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/#/forfaits`}>Forfaits</a>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/">Accueil</Link>
+            <a href={`${typeof window !== "undefined" ? window.location.origin : ""}/#/`}>Accueil</a>
           </Button>
         </div>
       </div>

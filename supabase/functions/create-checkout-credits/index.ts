@@ -105,8 +105,8 @@ serve(async (req) => {
         price: priceId,
         quantity: 1,
       }],
-      success_url: `${baseUrl}/#/forfaits?credits=success`,
-      cancel_url: `${baseUrl}/#/forfaits?credits=cancelled`,
+      success_url: `${baseUrl}/#/?credits=ok`,
+      cancel_url: `${baseUrl}/#/forfaits`,
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       metadata: {

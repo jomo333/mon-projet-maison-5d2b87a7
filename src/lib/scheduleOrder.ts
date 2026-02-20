@@ -51,7 +51,8 @@ export const getScheduleExecutionOrder = (
         if (order < 999 && order > maxOrderBefore) maxOrderBefore = order;
       }
     }
-    return maxOrderBefore >= 0 ? maxOrderBefore + 0.5 : 999;
+    // Si aucune étape ne se termine avant : tâche au début (order 0 = avant planification)
+    return maxOrderBefore >= 0 ? maxOrderBefore + 0.5 : -0.5;
   }
   return baseOrder;
 };

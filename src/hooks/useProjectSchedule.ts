@@ -1795,6 +1795,8 @@ export const useProjectSchedule = (projectId: string | null) => {
         start_date: task.start_date,
         end_date,
       }, newItem);
+      // Forcer un rafraîchissement immédiat (invalidate + refetch)
+      queryClient.invalidateQueries({ queryKey: ["project-schedules", projectId] });
       await queryClient.refetchQueries({ queryKey: ["project-schedules", projectId] });
       toast({ title: "Tâche ajoutée", description: "L'échéancier a été recalculé." });
     }

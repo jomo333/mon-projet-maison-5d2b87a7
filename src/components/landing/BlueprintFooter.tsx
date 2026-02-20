@@ -24,15 +24,6 @@ export function BlueprintFooter() {
 
   return (
     <footer className="bg-navy text-slate-300 border-t border-slate-800">
-      {/* Social proof line */}
-      <div className="border-b border-slate-800">
-        <div className="container py-6">
-          <p className="text-center text-sm text-slate-400">
-            <span className="text-amber-500 font-medium">+500</span> {t("footer.socialProof")}
-          </p>
-        </div>
-      </div>
-
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}

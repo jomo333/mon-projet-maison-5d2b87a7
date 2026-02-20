@@ -104,6 +104,12 @@ interface HourlyDataPoint {
   heureNum: number;
 }
 
+interface MinuteDataPoint {
+  minute: number;
+  count: number;
+  minuteLabel: string;
+}
+
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [sessionStats, setSessionStats] = useState<UserSessionStats[]>([]);
@@ -115,6 +121,9 @@ export default function AdminAnalytics() {
   const [peakHoursData, setPeakHoursData] = useState<HourlyDataPoint[]>([]);
   const [aiByHourData, setAiByHourData] = useState<HourlyDataPoint[]>([]);
   const [peakPeriodFilter, setPeakPeriodFilter] = useState<string>("30");
+  const [selectedAiHour, setSelectedAiHour] = useState<number | null>(null);
+  const [aiMinuteBreakdown, setAiMinuteBreakdown] = useState<MinuteDataPoint[]>([]);
+  const [loadingMinuteDetail, setLoadingMinuteDetail] = useState(false);
   
   // Filters
   const [bugFilter, setBugFilter] = useState<string>("all");
@@ -127,6 +136,8 @@ export default function AdminAnalytics() {
   const [adminNotes, setAdminNotes] = useState<string>("");
 
   useEffect(() => {
+    setSelectedAiHour(null);
+    setAiMinuteBreakdown([]);
     fetchAllData();
   }, [aiMonthFilter, peakPeriodFilter]);
 
@@ -211,6 +222,46 @@ export default function AdminAnalytics() {
     } catch (error) {
       console.error("Error fetching AI by hour:", error);
       toast.error("Erreur lors du chargement des analyses IA par heure");
+    }
+  };
+
+  const fetchAIMinuteBreakdown = async (hour: number) => {
+    setSelectedAiHour(hour);
+    setLoadingMinuteDetail(true);
+    try {
+      const days = peakPeriodFilter === "all" ? 3650 : parseInt(peakPeriodFilter, 10) || 30;
+      const startDate = subDays(new Date(), days);
+
+      const { data: usage, error } = await supabase
+        .from("ai_analysis_usage")
+        .select("created_at")
+        .gte("created_at", startDate.toISOString());
+
+      if (error) throw error;
+
+      const byMinute = new Map<number, number>();
+      for (const u of usage || []) {
+        const d = new Date(u.created_at);
+        if (d.getHours() === hour) {
+          const min = d.getMinutes();
+          byMinute.set(min, (byMinute.get(min) || 0) + 1);
+        }
+      }
+
+      const breakdown: MinuteDataPoint[] = Array.from(byMinute.entries())
+        .map(([minute, count]) => ({
+          minute,
+          count,
+          minuteLabel: `${hour}h${minute.toString().padStart(2, "0")}`,
+        }))
+        .sort((a, b) => b.count - a.count);
+      setAiMinuteBreakdown(breakdown);
+    } catch (error) {
+      console.error("Error fetching AI minute breakdown:", error);
+      toast.error("Erreur lors du chargement du détail");
+      setAiMinuteBreakdown([]);
+    } finally {
+      setLoadingMinuteDetail(false);
     }
   };
 
@@ -1194,14 +1245,14 @@ export default function AdminAnalytics() {
                     Analyses IA par heure – Pics de charge
                   </CardTitle>
                   <CardDescription>
-                    Nombre d'analyses IA déclenchées par heure pour contrôler vos forfaits IA (analyses/minutes) et ajuster vos offres en conséquence.
+                    Nombre d'analyses IA déclenchées par heure. Cliquez sur une barre pour voir le pic par minute dans cette heure.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
                     <p className="text-muted-foreground">Chargement...</p>
                   ) : (
-                    <div className="h-[300px] w-full">
+                    <div className="h-[300px] w-full [&_.recharts-bar-rectangle]:cursor-pointer">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={aiByHourData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -1218,7 +1269,17 @@ export default function AdminAnalytics() {
                             contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
                             formatter={(value: number) => [value, "Analyses IA"]}
                           />
-                          <Bar dataKey="count" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]}>
+                          <Bar 
+                            dataKey="count" 
+                            fill="hsl(217, 91%, 60%)" 
+                            radius={[4, 4, 0, 0]}
+                            onClick={(_, index) => {
+                              const hour = aiByHourData[index]?.heureNum;
+                              if (hour !== undefined && aiByHourData[index]?.count > 0) {
+                                fetchAIMinuteBreakdown(hour);
+                              }
+                            }}
+                          >
                             {aiByHourData.map((entry, index) => (
                               <Cell 
                                 key={`cell-${index}`} 
@@ -1230,6 +1291,55 @@ export default function AdminAnalytics() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Détail pic par minute - affiché au clic sur une barre */}
+                  {selectedAiHour !== null && (
+                    <div className="mt-6 p-4 rounded-lg border bg-muted/30">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        Détail de l&apos;heure {selectedAiHour}h – Pic par minute
+                      </h4>
+                      {loadingMinuteDetail ? (
+                        <p className="text-sm text-muted-foreground">Chargement...</p>
+                      ) : aiMinuteBreakdown.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Aucune analyse à cette heure sur la période.</p>
+                      ) : (
+                        <>
+                          <div className="mb-3 p-2 rounded bg-primary/10 border border-primary/20">
+                            <p className="text-sm font-medium">
+                              Pic : <span className="text-primary font-bold">{aiMinuteBreakdown[0].minuteLabel}</span> —{" "}
+                              <span className="font-bold">{aiMinuteBreakdown[0].count} analyse{aiMinuteBreakdown[0].count > 1 ? "s" : ""} dans la même minute</span>
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-2">Classement des minutes les plus chargées :</p>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Minute</TableHead>
+                                <TableHead className="text-right">Analyses IA</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {aiMinuteBreakdown.slice(0, 10).map((row) => (
+                                <TableRow key={row.minute}>
+                                  <TableCell>{row.minuteLabel}</TableCell>
+                                  <TableCell className="text-right font-medium">{row.count}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => { setSelectedAiHour(null); setAiMinuteBreakdown([]); }}
+                          >
+                            Fermer le détail
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </CardContent>

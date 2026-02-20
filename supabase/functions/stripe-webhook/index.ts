@@ -40,7 +40,7 @@ serve(async (req) => {
   }
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") || Deno.env.get("STRIPE_WEBHOOK_SIGNING_SECRET");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -70,10 +70,17 @@ serve(async (req) => {
     });
   }
 
+  const cryptoProvider = Stripe.createSubtleCryptoProvider();
   let event: Stripe.Event;
   try {
     const stripe = new Stripe(stripeSecret);
-    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    event = await stripe.webhooks.constructEventAsync(
+      body,
+      signature,
+      webhookSecret,
+      undefined,
+      cryptoProvider
+    );
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", err);
     return new Response(JSON.stringify({ error: "Invalid signature" }), {

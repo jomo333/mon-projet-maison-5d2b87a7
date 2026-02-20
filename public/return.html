@@ -2,12 +2,17 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0;url=/#/" />
+  <meta http-equiv="refresh" content="0;url=https://www.monprojetmaison.ca/#/" />
   <title>Merci - Monprojetmaison.ca</title>
-  <script>window.location.replace("/#/");</script>
+  <script>
+    (function() {
+      var u = window.location.origin + "/#/";
+      try { window.location.replace(u); } catch (e) { window.location.href = u; }
+    })();
+  </script>
 </head>
 <body>
-  <p>Redirection...</p>
-  <p><a href="/#/">Cliquez ici si la redirection ne fonctionne pas</a></p>
+  <p>Redirection en cours...</p>
+  <p><a href="https://www.monprojetmaison.ca/#/">Cliquez ici si la redirection ne fonctionne pas</a></p>
 </body>
 </html>

@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
@@ -27,8 +28,24 @@ interface Project {
 const MyProjects = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const credits = searchParams.get("credits");
+    const checkout = searchParams.get("checkout");
+    if (credits === "success") {
+      toast.success(t("planUsage.creditsPurchaseSuccess", "Achat réussi ! Vos analyses supplémentaires ont été ajoutées."));
+      setSearchParams({}, { replace: true });
+    } else if (credits === "cancelled") {
+      toast.info(t("planUsage.creditsPurchaseCancelled", "Achat annulé."));
+      setSearchParams({}, { replace: true });
+    } else if (checkout === "success") {
+      toast.success(t("plans.subscriptionSuccess", "Abonnement activé avec succès !"));
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, t]);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects", user?.id],

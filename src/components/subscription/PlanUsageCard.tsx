@@ -67,11 +67,12 @@ export function PlanUsageCard() {
         },
         body: JSON.stringify({ credits_amount: creditsAmount }),
       });
-      const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
+      const body = await res.json().catch(() => ({})) as { url?: string; error?: string | { message?: string } };
       if (!res.ok) {
-        const msg = body?.error || `Erreur ${res.status}`;
+        const errMsg = typeof body?.error === "string" ? body.error : (body?.error as { message?: string })?.message;
+        const msg = errMsg || `Erreur ${res.status}`;
         toast.error(msg);
-        console.error("create-checkout-credits:", res.status, body);
+        console.error("create-checkout-credits:", res.status, JSON.stringify(body));
         return;
       }
       if (body?.url) {

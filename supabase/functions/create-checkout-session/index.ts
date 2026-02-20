@@ -97,16 +97,16 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeSecret);
-  const origin = req.headers.get("origin") || req.headers.get("referer") || "https://monprojetmaison.ca";
-  const baseUrl = origin.replace(/\/$/, "");
+  const origin = req.headers.get("origin") || req.headers.get("referer") || "https://www.monprojetmaison.ca";
+  const baseUrl = origin.replace(/\/$/, "").replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/mes-projets?checkout=success`,
-      cancel_url: `${baseUrl}/forfaits?checkout=cancelled`,
+      success_url: `${baseUrl}/#/mes-projets?checkout=success`,
+      cancel_url: `${baseUrl}/#/forfaits?checkout=cancelled`,
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       subscription_data: {

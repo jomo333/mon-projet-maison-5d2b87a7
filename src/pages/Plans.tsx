@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -37,6 +37,7 @@ export default function Plans() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +95,17 @@ export default function Plans() {
 
     fetchPlans();
   }, []);
+
+  useEffect(() => {
+    const credits = searchParams.get("credits");
+    if (credits === "success") {
+      toast.success(t("planUsage.creditsPurchaseSuccess", "Achat réussi ! Vos analyses supplémentaires ont été ajoutées."));
+      setSearchParams({}, { replace: true });
+    } else if (credits === "cancelled") {
+      toast.info(t("planUsage.creditsPurchaseCancelled", "Achat annulé."));
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (!user) return;

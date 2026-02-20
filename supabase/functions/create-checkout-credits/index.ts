@@ -94,8 +94,8 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeSecret);
-  const origin = req.headers.get("origin") || req.headers.get("referer") || "https://www.monprojetmaison.ca";
-  const baseUrl = origin.replace(/\/$/, "").replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
+  const siteUrl = (Deno.env.get("SITE_URL") || "https://www.monprojetmaison.ca").replace(/\/$/, "");
+  const baseUrl = siteUrl.replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -105,8 +105,8 @@ serve(async (req) => {
         price: priceId,
         quantity: 1,
       }],
-      success_url: `${baseUrl}/#/mes-projets?credits=success`,
-      cancel_url: `${baseUrl}/#/mes-projets?credits=cancelled`,
+      success_url: `${baseUrl}/#/forfaits?credits=success`,
+      cancel_url: `${baseUrl}/#/forfaits?credits=cancelled`,
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       metadata: {

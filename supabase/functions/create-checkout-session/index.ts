@@ -97,8 +97,8 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeSecret);
-  const origin = req.headers.get("origin") || req.headers.get("referer") || "https://www.monprojetmaison.ca";
-  const baseUrl = origin.replace(/\/$/, "").replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
+  const siteUrl = (Deno.env.get("SITE_URL") || "https://www.monprojetmaison.ca").replace(/\/$/, "");
+  const baseUrl = siteUrl.replace(/^https?:\/\/monprojetmaison\.ca$/, "https://www.monprojetmaison.ca");
 
   try {
     const session = await stripe.checkout.sessions.create({

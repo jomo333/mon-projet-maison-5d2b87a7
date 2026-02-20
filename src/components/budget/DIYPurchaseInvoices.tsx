@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { formatCurrency } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSignedUrl } from "@/hooks/useSignedUrl";
+import { getSignedUrlFromPublicUrl } from "@/hooks/useSignedUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,7 @@ import {
   Package,
   ExternalLink,
   Sparkles,
-  AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,12 +117,6 @@ export function DIYPurchaseInvoices({
   const [newDescription, setNewDescription] = useState("");
   const [newSupplier, setNewSupplier] = useState("");  // nom du fournisseur
   const [newPurchaseDate, setNewPurchaseDate] = useState(() => new Date().toISOString().split("T")[0]); // date d'achat
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractionConfidence, setExtractionConfidence] = useState<"high" | "medium" | "low" | "none" | null>(null);
-  const [manualMode, setManualMode] = useState(false); // true = saisie manuelle sans IA
-  const manualFileInputRef = useRef<HTMLInputElement>(null);
-
   // Auto-calculate taxes
   const amountHTNum = parseFloat(newAmountHT) || 0;
   const tpsNum = parseFloat(newTPS) || 0;
@@ -171,25 +165,54 @@ export function DIYPurchaseInvoices({
 
   const totalInvoices = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
-  const extractPriceFromFile = async (file: File) => {
-    setIsExtracting(true);
-    setExtractionConfidence(null);
+  // Upload direct : télécharger ou photo → enregistrement immédiat, puis Analyser sur la carte
+  const handleFilesSelected = async (files: FileList) => {
+    const file = files[0];
+    if (!file || !user) return;
+    setUploading(true);
     try {
-      // Upload file temporarily to get a URL for the AI to read
-      if (!user) return;
       const sanitizedName = sanitizeFileName(file.name);
-      const tempPath = `${user.id}/temp-extract/${Date.now()}_${sanitizedName}`;
+      const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${sanitizedName}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("task-attachments")
-        .upload(tempPath, file);
+        .upload(storagePath, file);
       if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
         .from("task-attachments")
-        .getPublicUrl(tempPath);
+        .getPublicUrl(storagePath);
 
-      // Call the extraction edge function
+      await supabase.from("task_attachments").insert({
+        project_id: projectId,
+        step_id: "factures-materiaux",
+        task_id: `facture-diy-${tradeId}`,
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type || "application/octet-stream",
+        file_size: file.size,
+        category: "facture",
+      });
+
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Facture enregistrée. Cliquez sur « Analyser » pour remplir les champs.");
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Erreur lors du téléchargement");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Analyser une facture existante (IA lit fournisseur, date, prix)
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const extractFromExistingInvoice = async (invoice: PurchaseInvoice) => {
+    setAnalyzingId(invoice.id);
+    try {
+      let fileUrl = invoice.file_url;
+      const signed = await getSignedUrlFromPublicUrl(invoice.file_url);
+      if (signed) fileUrl = signed;
+
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
@@ -201,66 +224,77 @@ export function DIYPurchaseInvoices({
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ fileUrl: urlData.publicUrl, fileName: file.name }),
+          body: JSON.stringify({ fileUrl, fileName: invoice.file_name }),
         }
       );
 
-      // Clean up temp file
-      await supabase.storage.from("task-attachments").remove([tempPath]);
-
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        toast.error(errData?.error || "Impossible d'extraire le prix automatiquement");
+        toast.error(errData?.error || "Impossible d'analyser la facture");
         return;
       }
 
       const result = await response.json();
-
-      if (result.confidence !== "none" && result.amountHT !== null) {
-        setNewAmountHT(result.amountHT.toFixed(2));
-        if (result.tps && result.tps > 0) setNewTPS(result.tps.toFixed(2));
-        if (result.tvq && result.tvq > 0) setNewTVQ(result.tvq.toFixed(2));
-        if (result.notes) setNewDescription(result.notes);
-        if (result.supplier) setNewSupplier(result.supplier);
-        if (result.purchase_date) setNewPurchaseDate(result.purchase_date);
-        setExtractionConfidence(result.confidence);
-        toast.success("💡 Prix et fournisseur extraits automatiquement — vérifiez et ajustez si nécessaire");
-      } else {
-        toast.info("Prix non trouvé automatiquement — entrez le montant manuellement");
+      if (result.confidence === "none" || result.amountHT == null) {
+        toast.info("Prix non détecté — utilisez « Modifier » pour saisir manuellement");
+        return;
       }
+
+      const supplierPart = result.supplier?.trim() || null;
+      const datePart = result.purchase_date || null;
+      const amount = Number(result.amountHT) || 0;
+      const fileExt = invoice.file_name.split(".").pop() || "pdf";
+      let displayName = invoice.file_name;
+      if (supplierPart && datePart) {
+        displayName = `${supplierToFileName(supplierPart)}${dateToFileName(datePart)}.${fileExt}`;
+      } else if (supplierPart) {
+        displayName = `${supplierToFileName(supplierPart)}.${fileExt}`;
+      }
+
+      const meta = JSON.stringify({
+        amount,
+        tps: result.tps || 0,
+        tvq: result.tvq || 0,
+        totalTTC: result.totalTTC || amount,
+        notes: result.notes || "",
+        supplier: supplierPart,
+        purchase_date: datePart,
+      });
+      const fileNameWithMeta = `${displayName}||META||${meta}`;
+
+      const { error } = await supabase
+        .from("task_attachments")
+        .update({ file_name: fileNameWithMeta })
+        .eq("id", invoice.id);
+
+      if (error) throw error;
+
+      const newTotal = totalInvoices - (invoice.amount || 0) + amount;
+      onSpentUpdate(newTotal);
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Champs remplis automatiquement — vérifiez et modifiez si besoin");
     } catch (err) {
-      console.error("Price extraction error:", err);
-      // Silent fail — user can enter manually
+      console.error("Extract error:", err);
+      toast.error("Erreur lors de l'analyse");
     } finally {
-      setIsExtracting(false);
+      setAnalyzingId(null);
     }
   };
 
-  const handleFilesSelected = (files: FileList) => {
-    const file = files[0];
-    if (!file) return;
-    setManualMode(false); // mode automatique IA
-    setPendingFile(file);
-    setShowAddDialog(true);
-    extractPriceFromFile(file);
-  };
-
-  const openManualEntryDialog = () => {
-    setManualMode(true);
-    setPendingFile(null);
+  const openEditDialog = (invoice: PurchaseInvoice) => {
+    setEditingInvoice(invoice);
+    setNewAmountHT(invoice.amount ? String(invoice.amount) : "");
+    setNewTPS("");
+    setNewTVQ("");
+    setNewDescription(invoice.notes || "");
+    setNewSupplier(invoice.supplier || "");
+    setNewPurchaseDate(invoice.purchase_date || new Date().toISOString().split("T")[0]);
     setShowAddDialog(true);
   };
+  const [editingInvoice, setEditingInvoice] = useState<PurchaseInvoice | null>(null);
 
-  const handleManualFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPendingFile(file);
-      if (manualFileInputRef.current) manualFileInputRef.current.value = "";
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!pendingFile || !user) return;
+  const handleSaveEdit = async () => {
+    if (!editingInvoice) return;
     if (!newAmountHT || amountHTNum <= 0) {
       toast.error("Veuillez entrer le montant avant taxes de la facture");
       return;
@@ -268,37 +302,19 @@ export function DIYPurchaseInvoices({
 
     setUploading(true);
     try {
-      // Only the pre-tax amount (HT) is tracked in the budget
       const amount = amountHTNum;
-      const sanitizedName = sanitizeFileName(pendingFile.name);
-      const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${sanitizedName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("task-attachments")
-        .upload(storagePath, pendingFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("task-attachments")
-        .getPublicUrl(storagePath);
-
-      // Nom du fichier : fournisseur + date (ex: canac12-02-26.pdf) ou fallback
       const supplierPart = newSupplier.trim() || null;
       const datePart = newPurchaseDate || null;
-      const fileExt = pendingFile.name.split(".").pop() || "pdf";
-      let displayName = pendingFile.name;
+      const fileExt = editingInvoice.file_name.split(".").pop() || "pdf";
+      let displayName = editingInvoice.file_name;
       if (supplierPart && datePart) {
-        const supplierSlug = supplierToFileName(supplierPart);
-        const dateSlug = dateToFileName(datePart);
-        displayName = `${supplierSlug}${dateSlug}.${fileExt}`;
+        displayName = `${supplierToFileName(supplierPart)}${dateToFileName(datePart)}.${fileExt}`;
       } else if (supplierPart) {
         displayName = `${supplierToFileName(supplierPart)}.${fileExt}`;
       }
 
-      // Store amount (HT), taxes and metadata in file_name — only HT goes to budget
       const meta = JSON.stringify({
-        amount,          // montant avant taxes, seul montant enregistré au budget
+        amount,
         tps: tpsNum,
         tvq: tvqNum,
         totalTTC: totalTTC || amount,
@@ -308,30 +324,20 @@ export function DIYPurchaseInvoices({
       });
       const fileNameWithMeta = `${displayName}||META||${meta}`;
 
-      const { error: dbError } = await supabase.from("task_attachments").insert({
-        project_id: projectId,
-        step_id: "factures-materiaux",
-        task_id: `facture-diy-${tradeId}`,
-        file_name: fileNameWithMeta,
-        file_url: urlData.publicUrl,
-        file_type: pendingFile.type,
-        file_size: pendingFile.size,
-        category: "facture",
-      });
+      const { error } = await supabase
+        .from("task_attachments")
+        .update({ file_name: fileNameWithMeta })
+        .eq("id", editingInvoice.id);
 
-      if (dbError) throw dbError;
+      if (error) throw error;
 
-      // Update spent in budget
-      const newTotal = totalInvoices + amount;
+      const newTotal = totalInvoices - (editingInvoice.amount || 0) + amount;
       onSpentUpdate(newTotal);
 
       queryClient.invalidateQueries({ queryKey });
-      const supplierLabel = supplierPart ? ` — ${supplierPart}` : "";
-      toast.success(`Facture ajoutée : ${formatCurrency(amount)} (avant taxes)${supplierLabel}`);
-
+      toast.success("Facture mise à jour");
       setShowAddDialog(false);
-      setPendingFile(null);
-      setManualMode(false);
+      setEditingInvoice(null);
       setNewAmountHT("");
       setNewTPS("");
       setNewTVQ("");
@@ -339,7 +345,7 @@ export function DIYPurchaseInvoices({
       setNewSupplier("");
       setNewPurchaseDate(new Date().toISOString().split("T")[0]);
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Update error:", error);
       toast.error("Erreur lors du téléchargement de la facture");
     } finally {
       setUploading(false);
@@ -408,21 +414,12 @@ export function DIYPurchaseInvoices({
               {formatCurrency(totalInvoices)}
             </Badge>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openManualEntryDialog}
-            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-          >
-            <Receipt className="h-4 w-4 mr-2" />
-            Saisie manuelle
-          </Button>
           <FileOrPhotoUpload
             onFilesSelected={handleFilesSelected}
             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
             uploading={uploading}
-            fileLabel="Analyse IA automatique"
-            photoLabel="Photo / PDF"
+            fileLabel="Télécharger la facture"
+            photoLabel="Prendre une photo"
             fileVariant="outline"
             photoVariant="outline"
             className="[&>button]:border-primary [&>button]:text-primary [&>button]:hover:bg-primary/5"
@@ -434,7 +431,7 @@ export function DIYPurchaseInvoices({
       <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
         <p className="text-xs text-muted-foreground flex items-start gap-2">
           <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5 text-emerald-600" />
-          Saisie manuelle ou analyse IA : les montants <strong>avant taxes</strong> sont ajoutés au <strong>coût réel</strong> du projet dans votre budget.
+          Utilisez le bouton <strong>Analyser</strong> pour remplir automatiquement les champs du fichier (fournisseur, date, prix). Les montants <strong>avant taxes</strong> sont ajoutés au <strong>coût réel</strong> du projet.
         </p>
         <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
           <span className="shrink-0">⚠️</span>
@@ -513,6 +510,29 @@ export function DIYPurchaseInvoices({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
+                  onClick={() => extractFromExistingInvoice(invoice)}
+                  disabled={!!analyzingId}
+                  title="Utilisez le bouton Analyser pour remplir les champs du fichier"
+                >
+                  {analyzingId === invoice.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => openEditDialog(invoice)}
+                  title="Modifier"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => handlePreview(invoice)}
                   title="Aperçu"
                 >
@@ -570,98 +590,36 @@ export function DIYPurchaseInvoices({
       <Dialog open={showAddDialog} onOpenChange={(open) => {
         if (!open) {
           setShowAddDialog(false);
-          setPendingFile(null);
-          setManualMode(false);
+          setEditingInvoice(null);
           setNewAmountHT("");
           setNewTPS("");
           setNewTVQ("");
           setNewDescription("");
           setNewSupplier("");
           setNewPurchaseDate(new Date().toISOString().split("T")[0]);
-          setExtractionConfidence(null);
         }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-emerald-600" />
-              Enregistrer une facture
+              <Pencil className="h-5 w-5 text-emerald-600" />
+              Modifier la facture
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Mode indicator */}
-            {manualMode && (
-              <div className="p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
-                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">📝 Saisie manuelle — entrez les informations ci-dessous</p>
-              </div>
-            )}
-            {/* File selection - manual mode: show picker if no file */}
-            {manualMode && !pendingFile ? (
-              <div className="p-4 rounded-lg border-2 border-dashed border-border">
-                <input
-                  ref={manualFileInputRef}
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
-                  className="hidden"
-                  onChange={handleManualFileSelect}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => manualFileInputRef.current?.click()}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Sélectionner un fichier (facture ou photo)
-                </Button>
-              </div>
-            ) : null}
-            {/* File info */}
-            {pendingFile && (
+            {/* File info - read-only when editing */}
+            {editingInvoice && (
               <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                {pendingFile.type.startsWith("image/") ? (
+                {editingInvoice.file_type?.startsWith("image/") ? (
                   <ImageIcon className="h-5 w-5 text-muted-foreground shrink-0" />
                 ) : (
                   <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{pendingFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(pendingFile.size / 1024).toFixed(0)} KB
-                  </p>
+                  <p className="text-sm font-medium truncate">{editingInvoice.file_name}</p>
                 </div>
               </div>
             )}
-
-            {/* AI extraction status / result - only in automatic mode */}
-            {!manualMode && isExtracting ? (
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-primary/20 bg-primary/5">
-                <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-primary">Lecture automatique en cours…</p>
-                  <p className="text-xs text-muted-foreground">L'IA analyse votre facture pour extraire le prix</p>
-                </div>
-              </div>
-            ) : extractionConfidence && extractionConfidence !== "none" ? (
-              <div className={`flex items-center gap-2 p-3 rounded-lg border ${
-                extractionConfidence === "high" 
-                  ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30" 
-                  : "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/30"
-              }`}>
-                <Sparkles className={`h-4 w-4 shrink-0 ${extractionConfidence === "high" ? "text-emerald-600" : "text-amber-600"}`} />
-                <div className="flex-1">
-                  <p className={`text-xs font-medium ${extractionConfidence === "high" ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>
-                    {extractionConfidence === "high" ? "✅ Prix détecté automatiquement" : "⚠️ Prix détecté — vérifiez les montants"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Vérifiez et corrigez si nécessaire avant d'enregistrer</p>
-                </div>
-              </div>
-            ) : !manualMode && extractionConfidence === "none" ? (
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">
-                <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Prix non détecté — entrez le montant manuellement</p>
-              </div>
-            ) : null}
 
             {/* Important tax notice */}
             <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
@@ -764,21 +722,21 @@ export function DIYPurchaseInvoices({
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="Ex: Ciment, Céramique salle de bain..."
-                onKeyDown={(e) => { if (e.key === "Enter") handleUpload(); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
               />
             </div>
 
-            {/* Naming preview - format fournisseur+date (ex: canac12-02-26.pdf) */}
-            {(newSupplier.trim() || newPurchaseDate) && pendingFile && (
+            {/* Naming preview */}
+            {(newSupplier.trim() || newPurchaseDate) && editingInvoice && (
               <div className="p-3 rounded-lg border border-border bg-muted/20">
                 <p className="text-xs text-muted-foreground">
                   📁 Nom du fichier :{" "}
                   <span className="font-medium text-foreground font-mono">
                     {newSupplier.trim() && newPurchaseDate
-                      ? `${supplierToFileName(newSupplier)}${dateToFileName(newPurchaseDate)}.${pendingFile.name.split(".").pop() || "pdf"}`
+                      ? `${supplierToFileName(newSupplier)}${dateToFileName(newPurchaseDate)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
                       : newSupplier.trim()
-                        ? `${supplierToFileName(newSupplier)}.${pendingFile.name.split(".").pop() || "pdf"}`
-                        : pendingFile.name}
+                        ? `${supplierToFileName(newSupplier)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
+                        : editingInvoice.file_name}
                   </span>
                 </p>
               </div>
@@ -794,31 +752,27 @@ export function DIYPurchaseInvoices({
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShowAddDialog(false);
-              setPendingFile(null);
-              setManualMode(false);
+              setEditingInvoice(null);
               setNewAmountHT("");
               setNewTPS("");
               setNewTVQ("");
               setNewDescription("");
               setNewSupplier("");
               setNewPurchaseDate(new Date().toISOString().split("T")[0]);
-              setExtractionConfidence(null);
             }}>
               Annuler
             </Button>
             <Button
-              onClick={handleUpload}
-              disabled={uploading || isExtracting || !pendingFile || !newAmountHT || amountHTNum <= 0}
+              onClick={handleSaveEdit}
+              disabled={uploading || !editingInvoice || !newAmountHT || amountHTNum <= 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {uploading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : isExtracting ? (
-                <Sparkles className="h-4 w-4 animate-pulse mr-2" />
               ) : (
                 <Receipt className="h-4 w-4 mr-2" />
               )}
-              {isExtracting ? "Lecture en cours…" : "Enregistrer la facture"}
+              Enregistrer les modifications
             </Button>
           </DialogFooter>
         </DialogContent>

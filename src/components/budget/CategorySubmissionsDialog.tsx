@@ -2528,18 +2528,18 @@ export function CategorySubmissionsDialog({
                   }
                 }} className="w-full">
                   <TabsList className={cn(
-                    "grid w-full min-w-0",
-                    categoryTasks.length > 0 ? "grid-cols-2 sm:grid-cols-3 gap-1" : "grid-cols-2 gap-1"
+                    "flex flex-wrap w-full min-w-0 gap-1 p-1 h-auto min-h-[44px]",
+                    "inline-flex"
                   )}>
-                    <TabsTrigger value="single" className="text-xs sm:text-sm min-w-0">
+                    <TabsTrigger value="single" className="flex-1 min-w-[calc(50%-4px)] sm:min-w-0 text-xs sm:text-sm py-2">
                       <span className="truncate">{t("categorySubmissions.taskSubmissions.singleMode")}</span>
                     </TabsTrigger>
                     {categoryTasks.length > 0 && (
-                      <TabsTrigger value="tasks" className="text-xs sm:text-sm min-w-0">
+                      <TabsTrigger value="tasks" className="flex-1 min-w-[calc(50%-4px)] sm:min-w-0 text-xs sm:text-sm py-2">
                         <span className="truncate">{t("categorySubmissions.taskSubmissions.byTask")} ({categoryTasks.length})</span>
                       </TabsTrigger>
                     )}
-                    <TabsTrigger value="subcategories" className="text-xs sm:text-sm min-w-0">
+                    <TabsTrigger value="subcategories" className="flex-1 min-w-[calc(50%-4px)] sm:min-w-0 text-xs sm:text-sm py-2">
                       <span className="truncate">{t("categorySubmissions.taskSubmissions.bySubcategory")} ({subCategories.length})</span>
                     </TabsTrigger>
                   </TabsList>

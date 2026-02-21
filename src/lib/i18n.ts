@@ -42,14 +42,15 @@ export const formatCurrency = (amount: number) => {
   const rounded = Math.round(amount * 100) / 100;
   const locale = i18n.language === 'en' ? 'en-CA' : 'fr-CA';
   
-  // Format with 2 decimal places
+  // Format with 2 decimal places (ex: 6785,00)
   const formatted = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+    useGrouping: false,
   }).format(rounded);
   
-  // Add currency symbol in the correct position
-  return i18n.language === 'en' ? `$${formatted}` : `${formatted} $`;
+  // Add currency symbol in the correct position (ex: 6785,00$)
+  return i18n.language === 'en' ? `$${formatted}` : `${formatted}$`;
 };
 
 // Helper to format numbers

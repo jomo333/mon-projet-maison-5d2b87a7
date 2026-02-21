@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -59,16 +59,19 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const scrollLeftRef = useRef(0);
+  const scrollTopRef = useRef(0);
   const [cursorStyle, setCursorStyle] = useState<'grab' | 'grabbing'>('grab');
 
-  // Obtenir le container de scroll une seule fois
+  // Obtenir le container de scroll : sur mobile c'est containerRef, sur desktop c'est Radix viewport
   const getScrollContainer = useCallback(() => {
+    if (isMobile && containerRef.current) return containerRef.current;
     if (!scrollContainerRef.current && containerRef.current) {
       scrollContainerRef.current = containerRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
     }
     return scrollContainerRef.current;
-  }, []);
+  }, [isMobile]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const scrollContainer = getScrollContainer();
@@ -106,13 +109,15 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     }
   }, [handleMouseUp]);
 
-  // Support tactile pour mobile : glisser pour faire défiler horizontalement
+  // Support tactile pour mobile : glisser pour faire défiler (horizontal + vertical)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const scrollContainer = getScrollContainer();
     if (!scrollContainer) return;
     isDraggingRef.current = true;
     startXRef.current = e.touches[0].pageX;
+    startYRef.current = e.touches[0].pageY;
     scrollLeftRef.current = scrollContainer.scrollLeft;
+    scrollTopRef.current = scrollContainer.scrollTop;
   }, [getScrollContainer]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -121,15 +126,32 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     if (!scrollContainer) return;
     e.preventDefault();
     const x = e.touches[0].pageX;
-    const walk = (x - startXRef.current) * 1.5;
-    scrollContainer.scrollLeft = scrollLeftRef.current - walk;
+    const y = e.touches[0].pageY;
+    const walkX = (x - startXRef.current) * 1.5;
+    const walkY = y - startYRef.current;
+    scrollContainer.scrollLeft = scrollLeftRef.current - walkX;
+    scrollContainer.scrollTop = scrollTopRef.current - walkY;
     startXRef.current = x;
+    startYRef.current = y;
     scrollLeftRef.current = scrollContainer.scrollLeft;
+    scrollTopRef.current = scrollContainer.scrollTop;
   }, [getScrollContainer]);
 
   const handleTouchEnd = useCallback(() => {
     isDraggingRef.current = false;
   }, []);
+
+  // Sur mobile : attacher touchmove avec passive:false pour que preventDefault fonctionne
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (isDraggingRef.current) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, [isMobile]);
 
   // Sort schedules by execution order and filter those with dates
   const schedulesWithDates = useMemo(() => 
@@ -271,20 +293,20 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onMouseMove={!isMobile ? handleMouseMove : undefined}
         onMouseUp={!isMobile ? handleMouseUp : undefined}
         onMouseLeave={!isMobile ? handleMouseLeave : undefined}
-        onTouchStart={!isMobile ? handleTouchStart : undefined}
-        onTouchMove={!isMobile ? handleTouchMove : undefined}
-        onTouchEnd={!isMobile ? handleTouchEnd : undefined}
-        onTouchCancel={!isMobile ? handleTouchEnd : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         className={cn(
           !isMobile && "select-none",
-          isMobile && "w-full max-w-full overflow-auto overflow-x-auto overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] [touch-action:manipulation]"
+          isMobile && "w-full max-w-full overflow-scroll overflow-x-scroll overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] touch-none"
         )}
         style={{ cursor: isMobile ? "default" : cursorStyle }}
       >
         {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
         {isMobile ? (
           <div
-            className="will-change-transform min-h-full"
+            className="will-change-transform min-h-full touch-none"
             style={{
               minWidth: totalDays * dayWidth + labelWidth,
               height: schedulesWithDates.length * rowHeight + headerHeight + 20,

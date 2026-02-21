@@ -154,8 +154,9 @@ serve(async (req) => {
     // Fetch the file
     const fileData = await fetchFileAsBase64(fileUrl);
     if (!fileData) {
+      console.error("fetchFileAsBase64 failed for url (redacted)");
       return new Response(
-        JSON.stringify({ error: "Impossible de charger le fichier" }),
+        JSON.stringify({ error: "Impossible de charger le fichier. Vérifiez que l'URL est accessible." }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -294,9 +295,10 @@ Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
     );
 
   } catch (error) {
-    console.error("extract-invoice-price error:", error);
+    const msg = error instanceof Error ? error.message : "Erreur inconnue";
+    console.error("extract-invoice-price error:", msg, error);
     return new Response(
-      JSON.stringify({ error: "Erreur interne du serveur" }),
+      JSON.stringify({ error: `Erreur: ${msg}. Vérifiez GEMINI_API_KEY dans Supabase (Edge Functions > Secrets).` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

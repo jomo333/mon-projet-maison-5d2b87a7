@@ -3,9 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Max-Age': '86400',
 };
 
 async function validateAuth(authHeader: string | null): Promise<{ userId: string } | { error: string; status: number }> {
@@ -88,7 +90,7 @@ Si tu ne peux pas extraire les montants, retourne:
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const authHeader = req.headers.get('Authorization');
@@ -110,10 +112,12 @@ serve(async (req) => {
       );
     }
 
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY non configurée" }),
+        JSON.stringify({ error: "GEMINI_API_KEY ou LOVABLE_API_KEY requis. Configurez une clé dans Supabase > Project Settings > Edge Functions > Secrets." }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -129,73 +133,90 @@ serve(async (req) => {
 
     const userPrompt = `Analyse cette facture${fileName ? ` (${fileName})` : ''} et extrait les montants. Retourne UNIQUEMENT le JSON demandé.`;
 
-    // Build message content
-    const messageContent: any[] = [];
+    let rawContent = "";
 
-    if (fileData.isPdf) {
-      // For PDFs, send as document
-      messageContent.push({
-        type: "image_url",
-        image_url: {
-          url: `data:application/pdf;base64,${fileData.base64}`,
-        },
-      });
-    } else {
-      // For images
-      messageContent.push({
-        type: "image_url",
-        image_url: {
-          url: `data:${fileData.mediaType};base64,${fileData.base64}`,
-        },
-      });
-    }
-
-    messageContent.push({
-      type: "text",
-      text: userPrompt,
-    });
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: messageContent },
-        ],
-        stream: false,
-        max_tokens: 500,
-        temperature: 0.1,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limite de requêtes atteinte, réessayez dans quelques secondes." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Crédits insuffisants pour l'analyse IA." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
-      return new Response(
-        JSON.stringify({ error: "Erreur du service IA" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    if (GEMINI_API_KEY) {
+      // Appel direct à l'API Google Gemini
+      const parts: any[] = [
+        { inline_data: { mime_type: fileData.mediaType, data: fileData.base64 } },
+        { text: userPrompt },
+      ];
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ parts }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 500,
+            },
+          }),
+        }
       );
-    }
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.error("Gemini API error:", geminiRes.status, errText);
+        return new Response(
+          JSON.stringify({ error: geminiRes.status === 429 ? "Limite de requêtes atteinte." : "Erreur du service IA Gemini." }),
+          { status: geminiRes.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const geminiData = await geminiRes.json();
+      rawContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else {
+      // Fallback: Lovable AI Gateway
+      const messageContent: any[] = [];
+      if (fileData.isPdf) {
+        messageContent.push({ type: "image_url", image_url: { url: `data:application/pdf;base64,${fileData.base64}` } });
+      } else {
+        messageContent.push({ type: "image_url", image_url: { url: `data:${fileData.mediaType};base64,${fileData.base64}` } });
+      }
+      messageContent.push({ type: "text", text: userPrompt });
 
-    const aiData = await response.json();
-    const rawContent = aiData?.choices?.[0]?.message?.content || "";
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: messageContent },
+          ],
+          stream: false,
+          max_tokens: 500,
+          temperature: 0.1,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Limite de requêtes atteinte, réessayez dans quelques secondes." }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "Crédits insuffisants pour l'analyse IA." }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const errText = await response.text();
+        console.error("AI gateway error:", response.status, errText);
+        return new Response(
+          JSON.stringify({ error: "Erreur du service IA" }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const aiData = await response.json();
+      rawContent = aiData?.choices?.[0]?.message?.content || "";
+    }
 
     // Parse JSON from response
     let extracted: any = null;

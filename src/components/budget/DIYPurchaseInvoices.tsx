@@ -286,6 +286,10 @@ export function DIYPurchaseInvoices({
       const newTotal = totalInvoices - (invoice.amount || 0) + amount;
       onSpentUpdate(newTotal);
       queryClient.invalidateQueries({ queryKey });
+      if (editingInvoice?.id === invoice.id) {
+        setShowAddDialog(false);
+        setEditingInvoice(null);
+      }
       toast.success("Champs remplis automatiquement — vérifiez et modifiez si besoin");
     } catch (err) {
       console.error("Extract error:", err);
@@ -601,7 +605,7 @@ export function DIYPurchaseInvoices({
           setNewPurchaseDate(new Date().toISOString().split("T")[0]);
         }
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-emerald-600" />
@@ -610,104 +614,109 @@ export function DIYPurchaseInvoices({
                 : "Modifier la facture"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Action requise : remplir manuellement ou utiliser Analyser sur la carte */}
-            {editingInvoice && (editingInvoice.amount == null || editingInvoice.amount === 0) && (
-              <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
-                <p className="text-sm font-medium text-primary">
-                  Action requise pour cette facture
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Remplissez les champs ci-dessous manuellement, ou annulez et cliquez sur le bouton <strong>Analyser</strong> (✨) sur la carte pour une extraction automatique.
-                </p>
-              </div>
-            )}
-
-            {/* File info - read-only when editing */}
-            {editingInvoice && (
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                {editingInvoice.file_type?.startsWith("image/") ? (
-                  <ImageIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-                ) : (
-                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{editingInvoice.file_name}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Colonne gauche */}
+            <div className="space-y-3">
+              {/* Action requise + Bouton Analyser */}
+              {editingInvoice && (editingInvoice.amount == null || editingInvoice.amount === 0) && (
+                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
+                  <p className="text-sm font-medium text-primary">
+                    Action requise pour cette facture
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Utilisez l'IA pour remplir automatiquement les champs, ou saisissez-les manuellement à droite.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => extractFromExistingInvoice(editingInvoice)}
+                    disabled={!!analyzingId}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    {analyzingId === editingInvoice.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Analyse en cours…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Analyser avec l'IA
+                      </>
+                    )}
+                  </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Important tax notice */}
-            <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
-              <p className="text-xs text-amber-800 dark:text-amber-300 font-medium flex items-start gap-1.5">
-                ⚠️ Entrez le montant <strong>avant taxes</strong> — le budget n'affiche pas les taxes (TPS/TVQ). Vous pouvez indiquer les taxes séparément pour référence uniquement.
-              </p>
-            </div>
-
-            {/* Amount before taxes - required */}
-            <div className="space-y-2">
-              <Label htmlFor="invoice-amount-ht" className="flex items-center gap-1 font-semibold">
-                <DollarSign className="h-3.5 w-3.5" />
-                Montant <strong>avant taxes</strong> <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="invoice-amount-ht"
-                type="number"
-                step="0.01"
-                min="0"
-                value={newAmountHT}
-                onChange={(e) => setNewAmountHT(e.target.value)}
-                placeholder="0.00"
-                className="max-w-[200px]"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Ce montant sera enregistré dans votre budget (coût réel).
-              </p>
-            </div>
-
-            {/* Taxes - optional, for reference only */}
-            <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/20">
-              <p className="text-xs font-medium text-muted-foreground">Taxes (pour référence, non comptabilisées au budget)</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="invoice-tps" className="text-xs">TPS (5%)</Label>
-                  <Input
-                    id="invoice-tps"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={newTPS}
-                    onChange={(e) => setNewTPS(e.target.value)}
-                    placeholder={amountHTNum > 0 ? (amountHTNum * 0.05).toFixed(2) : "0.00"}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="invoice-tvq" className="text-xs">TVQ (9.975%)</Label>
-                  <Input
-                    id="invoice-tvq"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={newTVQ}
-                    onChange={(e) => setNewTVQ(e.target.value)}
-                    placeholder={amountHTNum > 0 ? (amountHTNum * 0.09975).toFixed(2) : "0.00"}
-                  />
-                </div>
-              </div>
-              {totalTTC > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Total avec taxes : <span className="font-semibold">{formatCurrency(totalTTC)}</span>
-                </p>
               )}
+
+              {/* File info */}
+              {editingInvoice && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                  {editingInvoice.file_type?.startsWith("image/") ? (
+                    <ImageIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{editingInvoice.file_name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Montant + Taxes */}
+              <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+                <p className="text-xs text-amber-800 dark:text-amber-300 font-medium mb-2">
+                  ⚠️ Montant <strong>avant taxes</strong> (obligatoire)
+                </p>
+                <div className="space-y-2">
+                  <Input
+                    id="invoice-amount-ht"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newAmountHT}
+                    onChange={(e) => setNewAmountHT(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full"
+                    autoFocus
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="invoice-tps" className="text-xs">TPS (5%)</Label>
+                      <Input
+                        id="invoice-tps"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newTPS}
+                        onChange={(e) => setNewTPS(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="invoice-tvq" className="text-xs">TVQ (9.975%)</Label>
+                      <Input
+                        id="invoice-tvq"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newTVQ}
+                        onChange={(e) => setNewTVQ(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  {totalTTC > 0 && (
+                    <p className="text-xs">Total TTC : <span className="font-semibold">{formatCurrency(totalTTC)}</span></p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Supplier + Date row - utilisés pour le nom du fichier (ex: canac12-02-26.pdf) */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Colonne droite */}
+            <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="invoice-supplier" className="flex items-center gap-1">
-                  🏪 Fournisseur
-                </Label>
+                <Label htmlFor="invoice-supplier">🏪 Fournisseur</Label>
                 <Input
                   id="invoice-supplier"
                   value={newSupplier}
@@ -716,9 +725,7 @@ export function DIYPurchaseInvoices({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="invoice-date" className="flex items-center gap-1">
-                  📅 Date d'achat
-                </Label>
+                <Label htmlFor="invoice-date">📅 Date d'achat</Label>
                 <Input
                   id="invoice-date"
                   type="date"
@@ -726,42 +733,29 @@ export function DIYPurchaseInvoices({
                   onChange={(e) => setNewPurchaseDate(e.target.value)}
                 />
               </div>
-            </div>
-
-            {/* Description - optional */}
-            <div className="space-y-2">
-              <Label htmlFor="invoice-description">
-                Items achetés <span className="text-muted-foreground text-xs">(optionnel)</span>
-              </Label>
-              <Input
-                id="invoice-description"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Ex: Ciment, Céramique salle de bain..."
-                onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
-              />
-            </div>
-
-            {/* Naming preview */}
-            {(newSupplier.trim() || newPurchaseDate) && editingInvoice && (
-              <div className="p-3 rounded-lg border border-border bg-muted/20">
-                <p className="text-xs text-muted-foreground">
-                  📁 Nom du fichier :{" "}
-                  <span className="font-medium text-foreground font-mono">
-                    {newSupplier.trim() && newPurchaseDate
-                      ? `${supplierToFileName(newSupplier)}${dateToFileName(newPurchaseDate)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
-                      : newSupplier.trim()
-                        ? `${supplierToFileName(newSupplier)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
-                        : editingInvoice.file_name}
-                  </span>
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="invoice-description">
+                  Items achetés <span className="text-muted-foreground text-xs">(optionnel)</span>
+                </Label>
+                <Input
+                  id="invoice-description"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Ex: Ciment, Céramique..."
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
+                />
               </div>
-            )}
-
-            {/* Category info */}
-            <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30">
+              {(newSupplier.trim() || newPurchaseDate) && editingInvoice && (
+                <div className="p-2 rounded border bg-muted/20 text-xs">
+                  📁 {newSupplier.trim() && newPurchaseDate
+                    ? `${supplierToFileName(newSupplier)}${dateToFileName(newPurchaseDate)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
+                    : newSupplier.trim()
+                      ? `${supplierToFileName(newSupplier)}.${editingInvoice.file_name.split(".").pop() || "pdf"}`
+                      : editingInvoice.file_name}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                📁 Sera enregistré dans <strong>Mes Dossiers → Factures matériaux</strong> sous la catégorie <strong>{categoryName}</strong>
+                📁 Catégorie : <strong>{categoryName}</strong>
               </p>
             </div>
           </div>

@@ -39,7 +39,6 @@ import {
   DollarSign,
   Eye,
   Download,
-  CheckCircle2,
   Package,
   ExternalLink,
   Sparkles,
@@ -183,19 +182,34 @@ export function DIYPurchaseInvoices({
         .from("task-attachments")
         .getPublicUrl(storagePath);
 
-      await supabase.from("task_attachments").insert({
-        project_id: projectId,
-        step_id: "factures-materiaux",
-        task_id: `facture-diy-${tradeId}`,
-        file_name: file.name,
-        file_url: urlData.publicUrl,
-        file_type: file.type || "application/octet-stream",
-        file_size: file.size,
-        category: "facture",
-      });
+      const { data: inserted, error: insertErr } = await supabase
+        .from("task_attachments")
+        .insert({
+          project_id: projectId,
+          step_id: "factures-materiaux",
+          task_id: `facture-diy-${tradeId}`,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_type: file.type || "application/octet-stream",
+          file_size: file.size,
+          category: "facture",
+        })
+        .select()
+        .single();
+
+      if (insertErr) throw insertErr;
 
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Facture enregistrée. Cliquez sur « Analyser » pour remplir les champs.");
+
+      const newInvoice: PurchaseInvoice = {
+        ...inserted,
+        file_name: inserted.file_name,
+        amount: undefined,
+        supplier: undefined,
+        purchase_date: undefined,
+        notes: undefined,
+      };
+      openEditDialog(newInvoice);
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Erreur lors du téléchargement");
@@ -427,18 +441,6 @@ export function DIYPurchaseInvoices({
         </div>
       </div>
 
-      {/* Info banner */}
-      <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
-        <p className="text-xs text-muted-foreground flex items-start gap-2">
-          <CheckCircle2 className="h-3 w-3 shrink-0 mt-0.5 text-emerald-600" />
-          Utilisez le bouton <strong>Analyser</strong> pour remplir automatiquement les champs du fichier (fournisseur, date, prix). Les montants <strong>avant taxes</strong> sont ajoutés au <strong>coût réel</strong> du projet.
-        </p>
-        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
-          <span className="shrink-0">⚠️</span>
-          Le budget n'affiche pas les taxes (TPS/TVQ) — entrez toujours vos montants <strong>avant taxes</strong>.
-        </p>
-      </div>
-
       {/* Invoice list */}
       {isLoading ? (
         <div className="text-center py-6">
@@ -603,10 +605,24 @@ export function DIYPurchaseInvoices({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-emerald-600" />
-              Modifier la facture
+              {editingInvoice && (editingInvoice.amount == null || editingInvoice.amount === 0)
+                ? "Compléter la facture"
+                : "Modifier la facture"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Action requise : remplir manuellement ou utiliser Analyser sur la carte */}
+            {editingInvoice && (editingInvoice.amount == null || editingInvoice.amount === 0) && (
+              <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
+                <p className="text-sm font-medium text-primary">
+                  Action requise pour cette facture
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Remplissez les champs ci-dessous manuellement, ou annulez et cliquez sur le bouton <strong>Analyser</strong> (✨) sur la carte pour une extraction automatique.
+                </p>
+              </div>
+            )}
+
             {/* File info - read-only when editing */}
             {editingInvoice && (
               <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -34,17 +35,27 @@ export function ChatAssistant() {
   }, [messages]);
 
   const streamChat = async (userMessages: Message[]) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ messages: userMessages }),
     });
 
     if (!resp.ok || !resp.body) {
-      throw new Error(t("chatAssistant.connectionError"));
+      let msg = t("chatAssistant.connectionError");
+      try {
+        const errData = await resp.json();
+        if (errData?.error) msg = errData.error;
+      } catch {
+        if (resp.status === 500) msg = "Erreur serveur. Vérifiez que GEMINI_API_KEY est configurée dans Supabase.";
+      }
+      throw new Error(msg);
     }
 
     const reader = resp.body.getReader();

@@ -131,11 +131,20 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between gap-2">
+        {/* Logo - premier à gauche sur mobile pour priorité tactile */}
+        <Link
+          to="/"
+          className="relative z-10 flex items-center min-h-[44px] min-w-[44px] shrink-0 -ml-1 pl-1 py-2 order-first md:order-none"
+          aria-label={t("nav.home")}
+        >
+          <img src={i18n.language?.startsWith("en") ? logoEn : logo} alt="MonProjetMaison.ca" className="h-10 w-auto pointer-events-none" />
+        </Link>
+
         {/* Mobile menu button */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
+          <SheetTrigger asChild className="md:hidden shrink-0">
+            <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px]">
               <Menu className="h-5 w-5" />
               <span className="sr-only">{t("nav.menu")}</span>
             </Button>
@@ -185,10 +194,6 @@ export function Header() {
             </nav>
           </SheetContent>
         </Sheet>
-
-        <Link to="/" className="flex items-center">
-          <img src={i18n.language?.startsWith("en") ? logoEn : logo} alt="MonProjetMaison.ca" className="h-10 w-auto" />
-        </Link>
 
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {

@@ -18,15 +18,14 @@ async function incrementAiUsage(authHeader: string | null): Promise<void> {
       global: { headers: { Authorization: authHeader } }
     });
     
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims?.sub) {
+    if (userError || !user?.id) {
       // User not authenticated - this is OK for chat (anonymous allowed)
       return;
     }
     
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     const { error } = await supabase.rpc('increment_ai_usage', { p_user_id: userId });
     
     if (error) {
@@ -52,20 +51,19 @@ async function trackAiAnalysisUsage(
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const token = authHeader.replace('Bearer ', '');
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const userSupabase = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } }
     });
     
-    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims?.sub) {
+    if (userError || !user?.id) {
       // User not authenticated - this is OK for chat (anonymous allowed)
       return;
     }
     
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     
     const { error } = await supabase.from('ai_analysis_usage').insert({
       user_id: userId,

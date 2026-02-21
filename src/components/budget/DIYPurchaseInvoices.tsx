@@ -171,12 +171,27 @@ export function DIYPurchaseInvoices({
     if (!file || !user) return;
     setUploading(true);
     try {
-      const sanitizedName = sanitizeFileName(file.name);
-      const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${sanitizedName}`;
+      // Sur mobile (iOS/Android), le FileList peut être invalidé quand l'app passe en arrière-plan
+      // pendant la capture photo. Copier le fichier en mémoire immédiatement.
+      const fileBuffer = await file.arrayBuffer();
+      const ext = file.name?.match(/\.(heic|heif|jpg|jpeg|png|webp|pdf)$/i)?.[1]?.toLowerCase()
+        || (file.type?.includes("pdf") ? "pdf" : file.type?.includes("heic") ? "heic" : "jpg");
+      const baseName = file.name?.trim() && sanitizeFileName(file.name) !== ""
+        ? sanitizeFileName(file.name).replace(/\.[^.]+$/, "") || `facture_${Date.now()}`
+        : `facture_${Date.now()}`;
+      const safeName = `${baseName}.${ext}`;
+      const fileToUpload = new File([fileBuffer], safeName, {
+        type: file.type || (ext === "pdf" ? "application/pdf" : "image/jpeg"),
+      });
+
+      const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${safeName}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("task-attachments")
-        .upload(storagePath, file);
+        .upload(storagePath, fileToUpload, {
+          cacheControl: "3600",
+          upsert: false,
+        });
       if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
@@ -189,10 +204,10 @@ export function DIYPurchaseInvoices({
           project_id: projectId,
           step_id: "factures-materiaux",
           task_id: `facture-diy-${tradeId}`,
-          file_name: file.name,
+          file_name: file.name || safeName,
           file_url: urlData.publicUrl,
-          file_type: file.type || "application/octet-stream",
-          file_size: file.size,
+          file_type: fileToUpload.type || "application/octet-stream",
+          file_size: fileToUpload.size,
           category: "facture",
         })
         .select()
@@ -213,7 +228,14 @@ export function DIYPurchaseInvoices({
       openEditDialog(newInvoice);
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Erreur lors du téléchargement");
+      const msg = err && typeof err === "object" && "message" in err
+        ? String((err as { message?: string }).message)
+        : err instanceof Error ? err.message : "Erreur inconnue";
+      toast.error(msg?.includes("Payload too large") || msg?.includes("413")
+        ? "Photo trop volumineuse. Réduisez la taille ou prenez une photo de moins bonne qualité."
+        : msg?.includes("Failed to fetch") || msg?.includes("NetworkError")
+        ? "Problème de connexion. Vérifiez votre réseau et réessayez."
+        : `Erreur lors du téléchargement: ${msg}`);
     } finally {
       setUploading(false);
     }

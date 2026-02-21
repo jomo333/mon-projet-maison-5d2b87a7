@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   format,
   parseISO,
@@ -51,6 +52,7 @@ interface ScheduleGanttProps {
 
 export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUpdating }: ScheduleGanttProps) => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const dateLocale = getDateLocale();
   const localizedSteps = useConstructionSteps();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,6 +106,31 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     }
   }, [handleMouseUp]);
 
+  // Support tactile pour mobile : glisser pour faire défiler horizontalement
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.touches[0].pageX;
+    scrollLeftRef.current = scrollContainer.scrollLeft;
+  }, [getScrollContainer]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+    e.preventDefault();
+    const x = e.touches[0].pageX;
+    const walk = (x - startXRef.current) * 1.5;
+    scrollContainer.scrollLeft = scrollLeftRef.current - walk;
+    startXRef.current = x;
+    scrollLeftRef.current = scrollContainer.scrollLeft;
+  }, [getScrollContainer]);
+
+  const handleTouchEnd = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
   // Sort schedules by execution order and filter those with dates
   const schedulesWithDates = useMemo(() => 
     sortSchedulesByExecutionOrder(schedules).filter((s) => s.start_date && s.end_date),
@@ -146,9 +173,10 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     };
   }, [schedulesWithDates]);
 
-  const dayWidth = 30;
-  const rowHeight = 40;
-  const headerHeight = 80;
+  const dayWidth = isMobile ? 24 : 30;
+  const rowHeight = isMobile ? 36 : 40;
+  const headerHeight = isMobile ? 70 : 80;
+  const labelWidth = isMobile ? 140 : 250;
 
   const getBarPosition = (schedule: ScheduleItem) => {
     if (!schedule.start_date || !schedule.end_date) return null;
@@ -232,12 +260,21 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         )}
       </div>
       
+      {isMobile && (
+        <p className="text-xs text-muted-foreground px-4 py-1 text-center border-b bg-muted/30">
+          {t("schedule.swipeToScroll")}
+        </p>
+      )}
       <div 
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         className="select-none"
         style={{ cursor: cursorStyle }}
       >
@@ -245,7 +282,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         <div
           className="will-change-transform"
           style={{
-            minWidth: totalDays * dayWidth + 250,
+            minWidth: totalDays * dayWidth + labelWidth,
             height: schedulesWithDates.length * rowHeight + headerHeight + 20,
           }}
         >
@@ -254,7 +291,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
             className="sticky top-0 z-10 bg-background border-b"
             style={{ height: headerHeight }}
           >
-            <div className="flex" style={{ marginLeft: 250 }}>
+            <div className="flex" style={{ marginLeft: labelWidth }}>
               {weeks.map((week, index) => (
                 <div
                   key={week.toISOString()}
@@ -310,7 +347,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
                   {/* Nom de l'étape - z-30 pour passer au-dessus des barres (z-20) */}
                   <div
                     className="sticky left-0 z-30 bg-background px-2 flex items-center gap-2 border-r shadow-sm"
-                    style={{ width: 250, minWidth: 250 }}
+                    style={{ width: labelWidth, minWidth: labelWidth }}
                   >
                     <div
                       className="w-3 h-3 rounded-full flex-shrink-0"

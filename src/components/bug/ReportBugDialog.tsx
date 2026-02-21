@@ -94,14 +94,14 @@ export function ReportBugDialog({ trigger, variant = "link" }: ReportBugDialogPr
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="report-bug-desc">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bug className="h-5 w-5 text-destructive" />
               {t("reportBug.title", "Signaler un bug")}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="report-bug-desc">
               {t("reportBug.description", "Décrivez le problème que vous avez rencontré. Nous examinerons votre signalement rapidement.")}
             </DialogDescription>
           </DialogHeader>

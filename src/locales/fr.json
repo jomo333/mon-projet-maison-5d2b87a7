@@ -309,6 +309,7 @@
     "socialProof": "autoconstructeurs nous font confiance au Québec"
   },
   "nav": {
+    "home": "Accueil",
     "menu": "Menu",
     "myProjects": "Mes Projets",
     "steps": "Étapes",
@@ -1154,6 +1155,7 @@
     "updateSchedule": "Mise à jour de l'échéancier",
     "noScheduledSteps": "Aucune étape planifiée avec des dates.",
     "addDatesToSeeGantt": "Ajoutez des dates de début aux étapes pour voir le diagramme de Gantt.",
+    "swipeToScroll": "← Glissez horizontalement pour faire défiler →",
     "alertsAndReminders": "Alertes et rappels",
     "noActiveAlerts": "Aucune alerte active",
     "overdue": "en retard",

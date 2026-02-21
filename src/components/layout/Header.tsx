@@ -113,11 +113,10 @@ export function Header() {
     }
   };
 
-  // Analyses restantes = quota mensuel restant + crédits bonus
+  // Analyses restantes = (quota forfait + crédits bonus) - analyses déjà utilisées
+  const totalLimit = limits.ai_analyses === -1 ? -1 : limits.ai_analyses + (usage.bonus_credits ?? 0);
   const remainingAnalyses =
-    limits.ai_analyses === -1
-      ? -1
-      : Math.max(0, limits.ai_analyses - usage.ai_analyses) + (usage.bonus_credits ?? 0);
+    totalLimit === -1 ? -1 : Math.max(0, totalLimit - usage.ai_analyses);
 
   const getInitials = () => {
     if (profile?.display_name) {

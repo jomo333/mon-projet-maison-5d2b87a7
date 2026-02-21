@@ -689,10 +689,10 @@ const ProjectGallery = () => {
   }, {} as Record<string, typeof photos>);
 
   // Normalize search: lowercase, trim, split words for partial match
-  const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const matchesSearch = (texts: string[]) => {
+  const searchTerms = (searchQuery ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matchesSearch = (texts: (string | null | undefined)[]) => {
     if (searchTerms.length === 0) return true;
-    const haystack = texts.join(" ").toLowerCase();
+    const haystack = texts.map((t) => String(t ?? "")).join(" ").toLowerCase();
     return searchTerms.every((term) => haystack.includes(term));
   };
 
@@ -703,7 +703,7 @@ const ProjectGallery = () => {
   const filteredPhotos = searchTerms.length === 0
     ? filteredPhotosBase
     : filteredPhotosBase.filter((p) =>
-        matchesSearch([p.file_name, getStepTitle(p.step_id)])
+        matchesSearch([p.file_name ?? "", getStepTitle(p.step_id)])
       );
 
   // Filter documents - exclude soumissions (they appear in their own tab)
@@ -720,7 +720,7 @@ const ProjectGallery = () => {
     ? filteredDocumentsBase
     : filteredDocumentsBase.filter((d) =>
         matchesSearch([
-          d.file_name,
+          d.file_name ?? "",
           documentCategories.find((c) => c.value === d.category)?.label ?? "",
           getStepTitle(d.step_id),
         ])
@@ -840,22 +840,24 @@ const ProjectGallery = () => {
   const totalDocsCount = soumissionDocs.length;
 
   // Filter factures by search: file_name, parsed metadata (supplier, notes, amount)
-  const parseInvoiceMetaForSearch = (fileName: string) => {
-    if (fileName.includes("||META||")) {
-      const [displayName, metaStr] = fileName.split("||META||");
+  const parseInvoiceMetaForSearch = (fileName: string | null | undefined): string[] => {
+    const safe = String(fileName ?? "");
+    if (!safe) return [""];
+    if (safe.includes("||META||")) {
+      const [displayName, metaStr] = safe.split("||META||");
       try {
-        const meta = JSON.parse(metaStr);
+        const meta = JSON.parse(metaStr ?? "{}");
         return [displayName, meta.notes ?? "", meta.supplier ?? "", (meta.amount ?? "").toString()].filter(Boolean);
       } catch {
-        return [fileName];
+        return [safe];
       }
     }
-    return [fileName];
+    return [safe];
   };
   const filteredFacturesMateriaux = searchTerms.length === 0
     ? facturesMateriaux
     : facturesMateriaux.filter((doc) =>
-        matchesSearch(parseInvoiceMetaForSearch(doc.file_name))
+        matchesSearch(parseInvoiceMetaForSearch(doc?.file_name))
       );
   
   // Filter AI analyses documents
@@ -1604,17 +1606,16 @@ const ProjectGallery = () => {
                     {/* Group by trade category */}
                     {(() => {
                       // Parse metadata from file_name for invoices created via DIYPurchaseInvoices
-                      const parseInvoiceMeta = (fileName: string): { displayName: string; amount?: number; notes?: string; supplier?: string; purchase_date?: string } => {
-                        if (fileName.includes("||META||")) {
-                          const [displayName, metaStr] = fileName.split("||META||");
-                          try {
-                            const meta = JSON.parse(metaStr);
-                            return { displayName, amount: meta.amount, notes: meta.notes, supplier: meta.supplier, purchase_date: meta.purchase_date };
-                          } catch {
-                            return { displayName };
-                          }
+                      const parseInvoiceMeta = (fileName: string | null | undefined): { displayName: string; amount?: number; notes?: string; supplier?: string; purchase_date?: string } => {
+                        const safe = String(fileName ?? "");
+                        if (!safe.includes("||META||")) return { displayName: safe };
+                        const [displayName, metaStr] = safe.split("||META||");
+                        try {
+                          const meta = JSON.parse(metaStr ?? "{}");
+                          return { displayName, amount: meta.amount, notes: meta.notes, supplier: meta.supplier, purchase_date: meta.purchase_date };
+                        } catch {
+                          return { displayName: safe };
                         }
-                        return { displayName: fileName };
                       };
 
                       // Group by task_id (which encodes the trade) - use filtered list

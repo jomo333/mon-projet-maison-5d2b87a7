@@ -115,7 +115,7 @@ Réponds UNIQUEMENT avec un JSON valide, SANS texte avant ou après:
 - "low" = données partielles
 
 **Si vraiment aucune donnée lisible:** retourne confidence "none" et null pour les champs non trouvés.
-**IMPORTANT:** Si le document est lisible et contient des prix, un nom de magasin ou une date, EXTRAIS-LES. Ne retourne "none" que si le document est illisible ou vide.`;
+**IMPORTANT:** Si le document est lisible et contient des prix, un nom de magasin ou une date, EXTRAIS-LES. Ne retourne JAMAIS "none" si tu vois des chiffres ou un total sur la facture. Même un montant approximatif est acceptable.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -160,49 +160,52 @@ serve(async (req) => {
       );
     }
 
-    const userPrompt = `Analyse cette facture${fileName ? ` (fichier: ${fileName})` : ''}.
+    const userPrompt = `DOCUMENT À ANALYSER: ${fileName || "facture"}
 
-Extrait précisément:
-1. **Fournisseur** - nom de l'entreprise vendeuse (en-tête/logo, PAS le client)
-2. **Montant avant taxes** - sous-total, subtotal, ou total ÷ 1.14975 si seul le TTC est visible
-3. **TPS** et **TVQ** si indiquées
-4. **Date** - date de facturation (format YYYY-MM-DD)
-5. **Matériaux/items** - principaux articles achetés (ciment, bois, peinture, etc.)
+Lis attentivement cette facture ou reçu. Extrait le prix (montant avant taxes), le nom du fournisseur, la date et les matériaux.
 
-Retourne UNIQUEMENT le JSON demandé, sans texte autour.`;
+Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
 
     let rawContent = "";
 
+    // Même format que analyze-soumissions (qui fonctionne) : inlineData + mimeType en camelCase
+    const geminiModel = Deno.env.get("GEMINI_MODEL_INVOICE") || "gemini-1.5-flash";
+
     if (GEMINI_API_KEY) {
-      // Appel direct à l'API Google Gemini
-      const parts: any[] = [
-        { inline_data: { mime_type: fileData.mediaType, data: fileData.base64 } },
+      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
         { text: userPrompt },
+        { inlineData: { mimeType: fileData.mediaType, data: fileData.base64 } },
       ];
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
-        {
+      const geminiBody = {
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: geminiParts }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+      };
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+
+      let geminiRes: Response | null = null;
+      const maxRetries = 2;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, attempt * 2000));
+        }
+        geminiRes = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: [{ parts }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 800,
-            },
-          }),
-        }
-      );
-      if (!geminiRes.ok) {
+          body: JSON.stringify(geminiBody),
+        });
+        if (geminiRes.ok) break;
         const errText = await geminiRes.text();
-        console.error("Gemini API error:", geminiRes.status, errText);
-        return new Response(
-          JSON.stringify({ error: geminiRes.status === 429 ? "Limite de requêtes atteinte." : "Erreur du service IA Gemini." }),
-          { status: geminiRes.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED/i.test(errText || "");
+        if (!isQuota || attempt === maxRetries) {
+          console.error("Gemini API error:", geminiRes.status, errText?.slice(0, 300));
+          return new Response(
+            JSON.stringify({ error: isQuota ? "Limite de requêtes atteinte. Réessayez dans 1 minute." : "Erreur du service IA." }),
+            { status: geminiRes.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
-      const geminiData = await geminiRes.json();
+      const geminiData = await geminiRes!.json();
       rawContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } else {
       // Fallback: Lovable AI Gateway
@@ -259,13 +262,20 @@ Retourne UNIQUEMENT le JSON demandé, sans texte autour.`;
     // Parse JSON from response
     let extracted: any = null;
     try {
-      // Try to extract JSON from the response
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         extracted = JSON.parse(jsonMatch[0]);
       }
     } catch (e) {
-      console.error("Failed to parse AI response:", rawContent);
+      console.error("Failed to parse AI response:", rawContent?.slice(0, 500));
+    }
+
+    // Si amountHT manquant mais totalTTC présent, calculer le HT
+    if (extracted && extracted.amountHT == null && extracted.totalTTC != null) {
+      const ttc = Number(extracted.totalTTC);
+      if (!isNaN(ttc) && ttc > 0) {
+        extracted.amountHT = Math.round((ttc / 1.14975) * 100) / 100;
+      }
     }
 
     if (!extracted) {

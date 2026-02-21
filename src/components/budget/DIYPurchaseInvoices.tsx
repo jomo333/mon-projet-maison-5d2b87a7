@@ -76,6 +76,16 @@ function sanitizeFileName(name: string): string {
     .replace(/-+/g, "-");
 }
 
+/** Sanitise un segment de chemin pour Supabase Storage (évite Invalid key avec é, è, etc.) */
+function sanitizeStoragePath(segment: string): string {
+  return segment
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\-_]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 200) || "unknown";
+}
+
 /** Format fournisseur pour le nom de fichier : minuscules, sans espaces ni accents (ex: canac, renodepot) */
 function supplierToFileName(supplier: string): string {
   return supplier
@@ -184,7 +194,7 @@ export function DIYPurchaseInvoices({
         type: file.type || (ext === "pdf" ? "application/pdf" : "image/jpeg"),
       });
 
-      const storagePath = `${user.id}/factures-materiaux/${tradeId}/${Date.now()}_${safeName}`;
+      const storagePath = `${user.id}/factures-materiaux/${sanitizeStoragePath(tradeId)}/${Date.now()}_${safeName}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("task-attachments")

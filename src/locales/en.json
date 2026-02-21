@@ -1402,6 +1402,7 @@
     "createProjectFirst": "Create a project to start uploading files",
     "filterByStep": "Filter by step",
     "allSteps": "All steps",
+    "searchPlaceholder": "Search by registered file name",
     "filterByCategory": "Filter by category",
     "allDocuments": "All documents",
     "documentCategories": {

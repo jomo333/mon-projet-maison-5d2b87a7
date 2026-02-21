@@ -1402,6 +1402,9 @@
     "createProjectFirst": "Créez un projet pour commencer à télécharger des fichiers",
     "filterByStep": "Filtrer par étape",
     "allSteps": "Toutes les étapes",
+    "searchPlaceholder": "Rechercher par nom de fichier enregistré",
+    "noSearchResults": "Aucun résultat pour votre recherche",
+    "tryDifferentSearch": "Essayez d'autres mots-clés ou effacez la recherche",
     "filterByCategory": "Filtrer par catégorie",
     "allDocuments": "Tous les documents",
     "documentCategories": {

@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { 
   Camera, 
   FileText, 
@@ -62,7 +63,8 @@ import {
   Trash2,
   Receipt,
   Upload,
-  Plus
+  Plus,
+  Search
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { toast } from "sonner";
@@ -116,6 +118,7 @@ const ProjectGallery = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [selectedStep, setSelectedStep] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [previewDocument, setPreviewDocument] = useState<{url: string; name: string; type: string} | null>(null);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -685,10 +688,23 @@ const ProjectGallery = () => {
     return acc;
   }, {} as Record<string, typeof photos>);
 
-  // Filter photos
-  const filteredPhotos = selectedStep === "all" 
-    ? photos 
-    : photos.filter(p => p.step_id === selectedStep);
+  // Normalize search: lowercase, trim, split words for partial match
+  const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matchesSearch = (texts: string[]) => {
+    if (searchTerms.length === 0) return true;
+    const haystack = texts.join(" ").toLowerCase();
+    return searchTerms.every((term) => haystack.includes(term));
+  };
+
+  // Filter photos: by step + search in file_name, step title
+  const filteredPhotosBase = selectedStep === "all"
+    ? photos
+    : photos.filter((p) => p.step_id === selectedStep);
+  const filteredPhotos = searchTerms.length === 0
+    ? filteredPhotosBase
+    : filteredPhotosBase.filter((p) =>
+        matchesSearch([p.file_name, getStepTitle(p.step_id)])
+      );
 
   // Filter documents - exclude soumissions (they appear in their own tab)
   const nonSoumissionDocs = documents.filter(d => 
@@ -697,9 +713,18 @@ const ProjectGallery = () => {
     d.category !== "analyse"
   );
   
-  const filteredDocuments = selectedCategory === "all"
+  const filteredDocumentsBase = selectedCategory === "all"
     ? nonSoumissionDocs
-    : nonSoumissionDocs.filter(d => d.category === selectedCategory);
+    : nonSoumissionDocs.filter((d) => d.category === selectedCategory);
+  const filteredDocuments = searchTerms.length === 0
+    ? filteredDocumentsBase
+    : filteredDocumentsBase.filter((d) =>
+        matchesSearch([
+          d.file_name,
+          documentCategories.find((c) => c.value === d.category)?.label ?? "",
+          getStepTitle(d.step_id),
+        ])
+      );
 
   // Parse supplier info from notes JSON
   const parseSupplierInfo = (notes: string | null) => {
@@ -798,8 +823,40 @@ const ProjectGallery = () => {
   };
 
   const soumissionsData = getSoumissionsFromData();
-  const retenuCount = soumissionsData.filter(s => s.isRetenu).length;
+  // Filter soumissions by search: trade name, supplier, contact, amount, doc file names
+  const filteredSoumissionsData = searchTerms.length === 0
+    ? soumissionsData
+    : soumissionsData.filter((s) => {
+        const searchable = [
+          s.name,
+          s.supplierName ?? "",
+          s.contactPerson ?? "",
+          s.amount ?? "",
+          ...s.docs.map((d) => d.file_name),
+        ].filter(Boolean);
+        return matchesSearch(searchable);
+      });
+  const retenuCount = soumissionsData.filter((s) => s.isRetenu).length;
   const totalDocsCount = soumissionDocs.length;
+
+  // Filter factures by search: file_name, parsed metadata (supplier, notes, amount)
+  const parseInvoiceMetaForSearch = (fileName: string) => {
+    if (fileName.includes("||META||")) {
+      const [displayName, metaStr] = fileName.split("||META||");
+      try {
+        const meta = JSON.parse(metaStr);
+        return [displayName, meta.notes ?? "", meta.supplier ?? "", (meta.amount ?? "").toString()].filter(Boolean);
+      } catch {
+        return [fileName];
+      }
+    }
+    return [fileName];
+  };
+  const filteredFacturesMateriaux = searchTerms.length === 0
+    ? facturesMateriaux
+    : facturesMateriaux.filter((doc) =>
+        matchesSearch(parseInvoiceMetaForSearch(doc.file_name))
+      );
   
   // Filter AI analyses documents
   const analysisDocs = soumissionDocs.filter(d => d.category === 'analyse');
@@ -948,46 +1005,79 @@ const ProjectGallery = () => {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Search bar + filter + Tabs - barre de recherche visible à côté des onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="flex flex-wrap w-full max-w-2xl gap-1 p-1 h-auto min-h-[44px]">
-              <TabsTrigger value="photos" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-                <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span className="truncate">{t("gallery.photos")} ({photos.length})</span>
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span className="truncate">{t("gallery.documents")} ({nonSoumissionDocs.length})</span>
-              </TabsTrigger>
-              <TabsTrigger value="soumissions" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-                <ClipboardCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span className="truncate">{t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})</span>
-              </TabsTrigger>
-              <TabsTrigger value="factures" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-                <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span className="truncate">Factures ({facturesMateriaux.length})</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col gap-3 mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+                {/* Search bar - toujours visible en premier */}
+                <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t("gallery.searchPlaceholder", "Rechercher par nom de fichier enregistré")}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                {/* Filter par étape / catégorie */}
+                {activeTab === "photos" && (
+                  <div className="shrink-0 w-full sm:w-[220px]">
+                    <Select value={selectedStep} onValueChange={setSelectedStep}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("gallery.filterByStep")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("gallery.allSteps")}</SelectItem>
+                        {Object.keys(photosByStep).map((stepId) => (
+                          <SelectItem key={stepId} value={stepId}>
+                            {getStepTitle(stepId)} ({photosByStep[stepId].length})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {activeTab === "documents" && (
+                  <div className="shrink-0 w-full sm:w-[220px]">
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("gallery.filterByCategory")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {documentCategories.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {/* Tabs */}
+              <TabsList className="flex flex-wrap w-full max-w-2xl gap-1 p-1 h-auto min-h-[44px]">
+                <TabsTrigger value="photos" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                  <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">{t("gallery.photos")} ({photos.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">{t("gallery.documents")} ({nonSoumissionDocs.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="soumissions" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                  <ClipboardCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">{t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="factures" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                  <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Factures ({facturesMateriaux.length})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Photos Tab */}
-            <TabsContent value="photos" className="mt-6">
-              {/* Step filter */}
-              <div className="mb-6">
-                <Select value={selectedStep} onValueChange={setSelectedStep}>
-                  <SelectTrigger className="w-full max-w-xs">
-                    <SelectValue placeholder={t("gallery.filterByStep")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("gallery.allSteps")}</SelectItem>
-                    {Object.keys(photosByStep).map((stepId) => (
-                      <SelectItem key={stepId} value={stepId}>
-                        {getStepTitle(stepId)} ({photosByStep[stepId].length})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <TabsContent value="photos" className="mt-4">
               {photosLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {[...Array(10)].map((_, i) => (
@@ -1126,23 +1216,7 @@ const ProjectGallery = () => {
             </TabsContent>
 
             {/* Documents Tab */}
-            <TabsContent value="documents" className="mt-6">
-              {/* Category filter */}
-              <div className="mb-6">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-full max-w-xs">
-                    <SelectValue placeholder="Filtrer par catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {documentCategories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <TabsContent value="documents" className="mt-4">
               {documentsLoading ? (
                 <div className="space-y-3">
                   {[...Array(5)].map((_, i) => (
@@ -1278,7 +1352,7 @@ const ProjectGallery = () => {
                       </Card>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2 w-full max-w-full min-w-0">
-                        {soumissionsData.filter(s => s.isRetenu).map((trade) => (
+                        {filteredSoumissionsData.filter(s => s.isRetenu).map((trade) => (
                           <Card key={trade.id} className="border-green-200 bg-green-50/50 min-w-0 overflow-hidden">
                             <CardContent className="p-4 min-w-0">
                               <div className="flex items-start justify-between gap-2 min-w-0">
@@ -1394,14 +1468,14 @@ const ProjectGallery = () => {
                   </div>
 
                   {/* Fournisseurs manquants - show all categories not retained */}
-                  {soumissionsData.filter(s => !s.isRetenu).length > 0 && (
+                  {filteredSoumissionsData.filter(s => !s.isRetenu).length > 0 && (
                   <div>
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                       <Clock className="h-5 w-5 text-amber-600" />
-                      Fournisseurs manquants ({soumissionsData.filter(s => !s.isRetenu).length})
+                      Fournisseurs manquants ({filteredSoumissionsData.filter(s => !s.isRetenu).length})
                     </h3>
                     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 w-full max-w-full min-w-0">
-                      {soumissionsData.filter(s => !s.isRetenu).map((trade) => (
+                      {filteredSoumissionsData.filter(s => !s.isRetenu).map((trade) => (
                         <Card key={trade.id} className="border-dashed border-amber-300 dark:border-amber-700 min-w-0 overflow-hidden">
                           <CardContent className="p-3 space-y-2 min-w-0">
                             <div className="flex items-center justify-between gap-2 min-w-0">
@@ -1511,13 +1585,15 @@ const ProjectGallery = () => {
                       <Skeleton key={i} className="h-16 rounded-lg" />
                     ))}
                   </div>
-                ) : facturesMateriaux.length === 0 ? (
+                ) : filteredFacturesMateriaux.length === 0 ? (
                   <Card className="border-dashed">
                     <CardContent className="py-12 text-center">
                       <Receipt className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground font-medium">Aucune facture enregistrée</p>
+                      <p className="text-muted-foreground font-medium">
+                        {searchTerms.length > 0 ? t("gallery.noSearchResults", "Aucun résultat pour votre recherche") : "Aucune facture enregistrée"}
+                      </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Cliquez sur "Ajouter une facture" pour téléverser vos reçus et factures d'achats de matériaux.
+                        {searchTerms.length > 0 ? t("gallery.tryDifferentSearch", "Essayez d'autres mots-clés ou effacez la recherche") : "Cliquez sur \"Ajouter une facture\" pour téléverser vos reçus et factures d'achats de matériaux."}
                       </p>
                     </CardContent>
                   </Card>
@@ -1539,9 +1615,9 @@ const ProjectGallery = () => {
                         return { displayName: fileName };
                       };
 
-                      // Group by task_id (which encodes the trade)
-                      const byTrade: Record<string, typeof facturesMateriaux> = {};
-                      facturesMateriaux.forEach(doc => {
+                      // Group by task_id (which encodes the trade) - use filtered list
+                      const byTrade: Record<string, typeof filteredFacturesMateriaux> = {};
+                      filteredFacturesMateriaux.forEach(doc => {
                         const tradeKey = doc.task_id || "general";
                         if (!byTrade[tradeKey]) byTrade[tradeKey] = [];
                         byTrade[tradeKey].push(doc);
@@ -1556,7 +1632,7 @@ const ProjectGallery = () => {
                           .join(" ");
                       };
 
-                      const totalAmount = facturesMateriaux.reduce((sum, doc) => {
+                      const totalAmount = filteredFacturesMateriaux.reduce((sum, doc) => {
                         const { amount } = parseInvoiceMeta(doc.file_name);
                         return sum + (amount || 0);
                       }, 0);

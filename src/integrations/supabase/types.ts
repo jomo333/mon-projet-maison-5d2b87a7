@@ -937,6 +937,11 @@ export type Database = {
     }
     Functions: {
       get_ai_usage: { Args: { p_user_id: string }; Returns: number }
+      get_ai_usage_current: { Args: { p_user_id: string }; Returns: number }
+      get_ai_usage_for_period: {
+        Args: { p_user_id: string; p_period_start: string; p_period_end: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

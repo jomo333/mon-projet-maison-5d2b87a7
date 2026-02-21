@@ -26,6 +26,7 @@ export interface Subscription {
   status: string;
   billing_cycle: string;
   start_date: string;
+  current_period_start: string | null;
   current_period_end: string | null;
   cancel_at: string | null;
 }
@@ -138,16 +139,12 @@ export function useSubscription(): SubscriptionData {
 
       if (projectError) throw projectError;
 
-      // 2. AI usage this month
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const { data: aiUsageData, error: aiError } = await supabase
-        .from("ai_usage")
-        .select("count")
-        .eq("user_id", user.id)
-        .eq("month", currentMonth)
-        .maybeSingle();
-
+      // 2. AI usage : par période de facturation (abonnement) ou mois civil (Gratuit/Découverte)
+      const { data: aiCountData, error: aiError } = await supabase.rpc("get_ai_usage_current", {
+        p_user_id: user.id,
+      });
       if (aiError) throw aiError;
+      const aiCount = aiCountData ?? 0;
 
       // 3. Storage usage
       const { data: storageData, error: storageError } = await supabase
@@ -167,7 +164,7 @@ export function useSubscription(): SubscriptionData {
 
       setUsage({
         projects: projectCount || 0,
-        ai_analyses: aiUsageData?.count || 0,
+        ai_analyses: aiCount,
         storage_gb: (storageData?.bytes_used || 0) / (1024 * 1024 * 1024),
         bonus_credits: creditsData?.bonus_credits || 0,
       });
@@ -208,7 +205,19 @@ export function useSubscription(): SubscriptionData {
     };
   }, [user?.id]);
 
+  // Écouter l'événement global pour rafraîchir le compteur d'analyses IA (Header, PlanUsageCard)
+  useEffect(() => {
+    const onRefetch = () => { if (user) fetchData(true); };
+    window.addEventListener("subscription-refetch", onRefetch);
+    return () => window.removeEventListener("subscription-refetch", onRefetch);
+  }, [user?.id]);
+
   const limits = plan?.limits || DEFAULT_LIMITS;
+
+  const refetch = async () => {
+    await fetchData();
+    window.dispatchEvent(new CustomEvent("subscription-refetch"));
+  };
 
   return {
     subscription,
@@ -217,6 +226,6 @@ export function useSubscription(): SubscriptionData {
     usage,
     loading,
     error,
-    refetch: fetchData,
+    refetch,
   };
 }

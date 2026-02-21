@@ -76,6 +76,7 @@ supabase functions deploy analyze-soumissions
 supabase functions deploy chat-assistant
 supabase functions deploy analyze-diy-materials
 supabase functions deploy analyze-plan
+supabase functions deploy extract-invoice-price
 supabase functions deploy stripe-webhook
 supabase functions deploy create-checkout-credits
 ```
@@ -87,9 +88,11 @@ Remplace le chemin et le `project-ref` si besoin (le project ref est dans l’UR
 Les fonctions **analyze-soumissions**, **chat-assistant** et **analyze-diy-materials** appellent directement l’API Google Gemini (plus de passerelle Lovable). Configure une seule variable :
 
 - **`GEMINI_API_KEY`** (obligatoire) : clé API Google AI Studio (https://aistudio.google.com/apikey).
+- **Clés additionnelles pour les factures** (optionnel) : en cas de limites Gemini 3 Flash (250k tokens/min, 20 analyses/jour), ajoute des clés de projets Google Cloud distincts : `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3` ou `GEMINI_API_KEYS` = `key1,key2,key3`. La fonction `extract-invoice-price` essaie la clé suivante en cas de 429.
+- **`GEMINI_MODEL_INVOICE`** (optionnel) : modèle pour les factures (défaut : `gemini-1.5-flash`).
 - **`GEMINI_MODEL_SOUMISSIONS`** (optionnel) : si tu as « quota atteint » alors qu’il te reste du quota, ajoute cette variable pour utiliser un autre modèle (quota séparé) : **`gemini-2.0-flash`** ou **`gemini-3-flash-preview`** (Gemini 3 Flash).
 
-Sans `GEMINI_API_KEY`, les analyses IA et le chat renverront une erreur. En cas de 429, la fonction réessaie automatiquement 2 fois.
+Sans `GEMINI_API_KEY`, les analyses IA renverront une erreur. En cas de 429, la fonction réessaie 2 fois, puis la clé suivante si configurée.
 
 ### Webhook Stripe (achats test ou réels → déverrouillage des forfaits)
 

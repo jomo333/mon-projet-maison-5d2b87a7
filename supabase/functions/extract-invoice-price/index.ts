@@ -153,10 +153,24 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    // Plusieurs clés API pour contourner les limites (250k tokens/min, 20 analyses/jour par clé)
+    const keysRaw = [
+      Deno.env.get("GEMINI_API_KEY"),
+      Deno.env.get("GEMINI_API_KEY_2"),
+      Deno.env.get("GEMINI_API_KEY_3"),
+      Deno.env.get("GEMINI_API_KEY_4"),
+      Deno.env.get("GEMINI_API_KEY_5"),
+      Deno.env.get("GEMINI_API_KEY_6"),
+      Deno.env.get("GEMINI_API_KEY_7"),
+      Deno.env.get("GEMINI_API_KEY_8"),
+      Deno.env.get("GEMINI_API_KEY_9"),
+      Deno.env.get("GEMINI_API_KEY_10"),
+      ...(Deno.env.get("GEMINI_API_KEYS") || "").split(",").map((k) => k.trim()).filter(Boolean),
+    ];
+    const GEMINI_API_KEYS = [...new Set(keysRaw.filter(Boolean))] as string[];
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+    if (GEMINI_API_KEYS.length === 0 && !LOVABLE_API_KEY) {
       return new Response(
         JSON.stringify({ error: "GEMINI_API_KEY ou LOVABLE_API_KEY requis. Configurez une clé dans Supabase > Project Settings > Edge Functions > Secrets." }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -197,7 +211,7 @@ Retourne UNIQUEMENT le JSON, sans texte autour.`;
 
     const geminiModel = Deno.env.get("GEMINI_MODEL_INVOICE") || Deno.env.get("GEMINI_MODEL_SOUMISSIONS") || "gemini-1.5-flash";
 
-    if (GEMINI_API_KEY) {
+    if (GEMINI_API_KEYS.length > 0) {
       // Même structure que analyze-soumissions : text + image_url data URL, puis conversion en geminiParts
       const messageParts: any[] = [
         { type: "text", text: userPrompt },
@@ -220,34 +234,46 @@ Retourne UNIQUEMENT le JSON, sans texte autour.`;
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`;
 
       let geminiRes: Response | null = null;
-      const maxRetries = 2;
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        if (attempt > 0) {
-          await new Promise((r) => setTimeout(r, attempt * 2000));
-        }
-        geminiRes = await fetch(`${geminiUrl}?key=${GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(geminiBody),
-        });
-        if (geminiRes.ok) break;
-        const errText = await geminiRes.text();
-        const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED/i.test(errText || "");
-        if (!isQuota || attempt === maxRetries) {
-          let errMsg = "Erreur du service IA.";
-          try {
-            const errJson = JSON.parse(errText || "{}");
-            const detail = errJson?.error?.message || errJson?.error?.details?.[0]?.message || errJson?.message;
-            if (detail) errMsg = `Gemini: ${String(detail).slice(0, 200)}`;
-          } catch (_) {
-            if (errText && errText.length < 300) errMsg = errText;
+      let lastErrText = "";
+      let lastStatus = 0;
+
+      for (let keyIndex = 0; keyIndex < GEMINI_API_KEYS.length; keyIndex++) {
+        const apiKey = GEMINI_API_KEYS[keyIndex];
+        const maxRetries = 2;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, attempt * 2000));
           }
-          console.error("Gemini API error:", geminiRes.status, errText?.slice(0, 500));
-          return new Response(
-            JSON.stringify({ error: isQuota ? "Limite de requêtes atteinte. Réessayez dans 1 minute." : errMsg }),
-            { status: geminiRes.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          geminiRes = await fetch(`${geminiUrl}?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(geminiBody),
+          });
+          if (geminiRes.ok) break;
+          lastErrText = await geminiRes.text();
+          lastStatus = geminiRes.status;
+          const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED/i.test(lastErrText || "");
+          if (isQuota && keyIndex < GEMINI_API_KEYS.length - 1) {
+            console.log(`Gemini key ${keyIndex + 1} quota atteinte, essai avec clé suivante...`);
+            break;
+          }
+          if (!isQuota || attempt === maxRetries) {
+            let errMsg = "Erreur du service IA.";
+            try {
+              const errJson = JSON.parse(lastErrText || "{}");
+              const detail = errJson?.error?.message || errJson?.error?.details?.[0]?.message || errJson?.message;
+              if (detail) errMsg = `Gemini: ${String(detail).slice(0, 200)}`;
+            } catch (_) {
+              if (lastErrText && lastErrText.length < 300) errMsg = lastErrText;
+            }
+            console.error("Gemini API error:", lastStatus, lastErrText?.slice(0, 500));
+            return new Response(
+              JSON.stringify({ error: isQuota ? "Limite de requêtes atteinte. Réessayez dans 1 minute." : errMsg }),
+              { status: lastStatus === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
         }
+        if (geminiRes?.ok) break;
       }
       const geminiData = await geminiRes!.json().catch(() => ({}));
       rawContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";

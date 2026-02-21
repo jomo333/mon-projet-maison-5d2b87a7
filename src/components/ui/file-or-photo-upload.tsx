@@ -56,7 +56,7 @@ export function FileOrPhotoUpload({
   };
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+    <div className={`flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto ${className}`}>
       {/* Hidden file input (PDFs, docs, any image) */}
       <input
         ref={fileInputRef}
@@ -83,7 +83,7 @@ export function FileOrPhotoUpload({
         size={size}
         disabled={disabled || uploading}
         onClick={() => fileInputRef.current?.click()}
-        className="gap-1.5"
+        className="gap-1.5 w-full sm:w-auto min-h-[44px]"
         type="button"
       >
         {uploading ? (
@@ -100,7 +100,7 @@ export function FileOrPhotoUpload({
         size={size}
         disabled={disabled || uploading}
         onClick={() => photoInputRef.current?.click()}
-        className="gap-1.5"
+        className="gap-1.5 w-full sm:w-auto min-h-[44px]"
         type="button"
       >
         <Camera className="h-4 w-4" />

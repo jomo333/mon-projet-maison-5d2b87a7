@@ -420,7 +420,7 @@ export function DIYPurchaseInvoices({
   return (
     <div className="space-y-4">
       {/* Header with summary */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h4 className="font-medium flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
             <Receipt className="h-4 w-4" />
@@ -430,7 +430,7 @@ export function DIYPurchaseInvoices({
             Enregistrez vos factures réelles pour suivre vos dépenses DIY
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {totalInvoices > 0 && (
             <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
               <DollarSign className="h-3 w-3 mr-1" />
@@ -470,21 +470,20 @@ export function DIYPurchaseInvoices({
           {invoices.map((invoice) => (
             <div
               key={invoice.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
             >
-              {/* File icon */}
-              <div className="shrink-0 w-9 h-9 rounded-md bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                {isImage(invoice.file_type) ? (
-                  <ImageIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                ) : isPdf(invoice.file_type) ? (
-                  <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                )}
-              </div>
-
-              {/* File info */}
-              <div className="flex-1 min-w-0">
+              {/* File icon + info (grouped for mobile) */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="shrink-0 w-9 h-9 rounded-md bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  {isImage(invoice.file_type) ? (
+                    <ImageIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  ) : isPdf(invoice.file_type) ? (
+                    <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{invoice.file_name}</p>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                   {invoice.supplier && (
@@ -514,13 +513,14 @@ export function DIYPurchaseInvoices({
                   )}
                 </div>
               </div>
+            </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center justify-end sm:justify-start gap-1 shrink-0 self-end sm:self-auto">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
                   onClick={() => extractFromExistingInvoice(invoice)}
                   disabled={!!analyzingId}
                   title="Utilisez le bouton Analyser pour remplir les champs du fichier"
@@ -534,7 +534,7 @@ export function DIYPurchaseInvoices({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
                   onClick={() => openEditDialog(invoice)}
                   title="Modifier"
                 >
@@ -543,7 +543,7 @@ export function DIYPurchaseInvoices({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
                   onClick={() => handlePreview(invoice)}
                   title="Aperçu"
                 >
@@ -554,7 +554,7 @@ export function DIYPurchaseInvoices({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-10 w-10 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 text-destructive hover:text-destructive"
                       title="Supprimer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -610,7 +610,7 @@ export function DIYPurchaseInvoices({
           setNewPurchaseDate(new Date().toISOString().split("T")[0]);
         }
       }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-invoice-desc">
+        <DialogContent className="w-[100vw] sm:w-auto sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-none sm:rounded-lg" aria-describedby="edit-invoice-desc">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-emerald-600" />

@@ -5,6 +5,7 @@ import { stripJsonBlocksFromAnalysisText } from "@/lib/analysisText";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { getSignedUrl } from "@/hooks/useSignedUrl";
 import { useTranslation } from "react-i18next";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -210,6 +211,10 @@ export function CategorySubmissionsDialog({
   const [viewMode, setViewMode] = useState<'single' | 'subcategories' | 'tasks'>('single');
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
   const categoryTasks = getTasksForCategory(categoryName);
+
+  // Inner DIY tabs: on mobile, default to "invoices" (Factures) for easier access
+  const isMobile = useIsMobile();
+  const [diyInnerTab, setDiyInnerTab] = useState<"comparison" | "invoices">("comparison");
 
   const tradeId =
     categoryToTradeId[categoryName] ||
@@ -553,6 +558,13 @@ export function CategorySubmissionsDialog({
       });
     }
   }, [diySupplierStatus]);
+
+  // On mobile, default to Factures tab when opening DIY subcategories (easier to add invoices after photo)
+  useEffect(() => {
+    if (open && isMobile && viewMode === "subcategories") {
+      setDiyInnerTab("invoices");
+    }
+  }, [open, isMobile, viewMode]);
 
   // Set supplier info from saved status when changing category/sub-category
   useEffect(() => {
@@ -2399,7 +2411,7 @@ export function CategorySubmissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[100vw] sm:w-[95vw] max-w-4xl h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[90vh] overflow-hidden flex flex-col rounded-none sm:rounded-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {viewingSubCategory && (
@@ -2548,8 +2560,8 @@ export function CategorySubmissionsDialog({
                   
                   <TabsContent value="subcategories" className="mt-4 space-y-4">
                     {/* Inner DIY tabs: Comparaison fournisseurs / Factures d'achat */}
-                    <Tabs defaultValue="comparison" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
+                    <Tabs value={diyInnerTab} onValueChange={(v) => setDiyInnerTab(v as "comparison" | "invoices")} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 min-w-0">
                         <TabsTrigger value="comparison" className="text-xs sm:text-sm flex items-center gap-1.5">
                           <Sparkles className="h-3.5 w-3.5" />
                           Comparaison fournisseurs

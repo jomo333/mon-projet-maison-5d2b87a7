@@ -405,14 +405,11 @@ export function DIYPurchaseInvoices({
 
   const handlePreview = async (invoice: PurchaseInvoice) => {
     setPreviewFile(invoice);
-    // Try to get signed URL
-    const bucketMarker = "/task-attachments/";
-    const markerIndex = invoice.file_url.indexOf(bucketMarker);
-    if (markerIndex >= 0) {
-      const path = invoice.file_url.slice(markerIndex + bucketMarker.length).split("?")[0];
-      const signed = await getSignedUrl("task-attachments", path);
+    setPreviewUrl(null); // reset pendant le chargement
+    try {
+      const signed = await getSignedUrlFromPublicUrl(invoice.file_url);
       setPreviewUrl(signed || invoice.file_url);
-    } else {
+    } catch {
       setPreviewUrl(invoice.file_url);
     }
   };
@@ -819,15 +816,20 @@ export function DIYPurchaseInvoices({
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {previewUrl && previewFile && isImage(previewFile.file_type) ? (
+            {!previewUrl ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>Chargement de l'aperçu…</p>
+              </div>
+            ) : previewFile && isImage(previewFile.file_type) ? (
               <img
                 src={previewUrl}
                 alt={previewFile.file_name}
                 className="max-w-full max-h-[60vh] object-contain mx-auto rounded-lg"
               />
-            ) : previewUrl && previewFile && isPdf(previewFile.file_type) ? (
+            ) : previewFile && isPdf(previewFile.file_type) ? (
               <iframe
-                src={previewUrl}
+                src={`${previewUrl}#toolbar=0`}
                 className="w-full h-[60vh] rounded-lg border"
                 title={previewFile.file_name}
               />
@@ -835,17 +837,15 @@ export function DIYPurchaseInvoices({
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-2" />
                 <p>Aperçu non disponible</p>
-                {previewUrl && (
-                  <a
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-1 justify-center mt-2"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Ouvrir le fichier
-                  </a>
-                )}
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center gap-1 justify-center mt-2"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Ouvrir le fichier
+                </a>
               </div>
             )}
           </div>

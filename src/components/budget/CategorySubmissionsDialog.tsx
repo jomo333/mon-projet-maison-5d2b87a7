@@ -2456,9 +2456,12 @@ export function CategorySubmissionsDialog({
           </div>
         )}
 
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-6 pb-4">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className={cn(
+            "flex-1 min-h-0 pr-2 sm:pr-4 overflow-x-hidden",
+            isMobile ? "overflow-y-auto [-webkit-overflow-scrolling:touch]" : "overflow-y-auto"
+          )}>
+            <div className="space-y-6 pb-4 min-w-0 overflow-x-hidden">
             {/* Budget Section - Only show on main view */}
             {!viewingSubCategory && (
               <div className="space-y-3">
@@ -2466,8 +2469,8 @@ export function CategorySubmissionsDialog({
                   <DollarSign className="h-4 w-4" />
                   Budget
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="budget">Budget estimé ($)</Label>
                     <Input
                       id="budget"
@@ -2480,7 +2483,7 @@ export function CategorySubmissionsDialog({
                       placeholder="0"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="spent">
                       Coût réel total ($)
                       {subCategories.length > 0 && (
@@ -2523,17 +2526,20 @@ export function CategorySubmissionsDialog({
                     setActiveTaskTitle(null);
                   }
                 }} className="w-full">
-                  <TabsList className={`grid w-full ${categoryTasks.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                    <TabsTrigger value="single" className="text-xs sm:text-sm">
-                      {t("categorySubmissions.taskSubmissions.singleMode")}
+                  <TabsList className={cn(
+                    "grid w-full min-w-0",
+                    categoryTasks.length > 0 ? "grid-cols-2 sm:grid-cols-3 gap-1" : "grid-cols-2 gap-1"
+                  )}>
+                    <TabsTrigger value="single" className="text-xs sm:text-sm min-w-0">
+                      <span className="truncate">{t("categorySubmissions.taskSubmissions.singleMode")}</span>
                     </TabsTrigger>
                     {categoryTasks.length > 0 && (
-                      <TabsTrigger value="tasks" className="text-xs sm:text-sm">
-                        {t("categorySubmissions.taskSubmissions.byTask")} ({categoryTasks.length})
+                      <TabsTrigger value="tasks" className="text-xs sm:text-sm min-w-0">
+                        <span className="truncate">{t("categorySubmissions.taskSubmissions.byTask")} ({categoryTasks.length})</span>
                       </TabsTrigger>
                     )}
-                    <TabsTrigger value="subcategories" className="text-xs sm:text-sm">
-                      {t("categorySubmissions.taskSubmissions.bySubcategory")} ({subCategories.length})
+                    <TabsTrigger value="subcategories" className="text-xs sm:text-sm min-w-0">
+                      <span className="truncate">{t("categorySubmissions.taskSubmissions.bySubcategory")} ({subCategories.length})</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -2561,21 +2567,21 @@ export function CategorySubmissionsDialog({
                   <TabsContent value="subcategories" className="mt-4 space-y-4">
                     {/* Inner DIY tabs: Comparaison fournisseurs / Factures d'achat */}
                     <Tabs value={diyInnerTab} onValueChange={(v) => setDiyInnerTab(v as "comparison" | "invoices")} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 min-w-0">
-                        <TabsTrigger value="comparison" className="text-xs sm:text-sm flex items-center gap-1.5">
+                      <TabsList className="grid w-full grid-cols-2 gap-1 min-w-0">
+                        <TabsTrigger value="comparison" className="text-xs sm:text-sm flex items-center gap-1.5 min-w-0">
                           <Sparkles className="h-3.5 w-3.5" />
                           Comparaison fournisseurs
                         </TabsTrigger>
-                        <TabsTrigger value="invoices" className="text-xs sm:text-sm flex items-center gap-1.5">
+                        <TabsTrigger value="invoices" className="text-xs sm:text-sm flex items-center gap-1.5 min-w-0">
                           <Receipt className="h-3.5 w-3.5" />
                           Factures d'achat
                         </TabsTrigger>
                       </TabsList>
 
                       {/* Onglet 1 : Comparaison fournisseurs (ancien DIYItemsTable) */}
-                      <TabsContent value="comparison" className="mt-4 space-y-4">
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
-                          <p className="text-sm text-muted-foreground">
+                      <TabsContent value="comparison" className="mt-4 space-y-4 min-w-0 overflow-hidden">
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 min-w-0">
+                          <p className="text-sm text-muted-foreground break-words">
                             Comparez les soumissions de fournisseurs pour vos matériaux et assurez-vous qu'elles correspondent à votre projet. Enregistrez les coûts et les préavis de commande.
                           </p>
                         </div>
@@ -3403,7 +3409,7 @@ export function CategorySubmissionsDialog({
             {/* Extra padding at the bottom to ensure visibility */}
             <div className="h-2" />
           </div>
-          </ScrollArea>
+          </div>
         </div>
 
         <DialogFooter className="mt-4 flex justify-between">

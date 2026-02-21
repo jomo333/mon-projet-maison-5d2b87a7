@@ -277,7 +277,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onTouchCancel={!isMobile ? handleTouchEnd : undefined}
         className={cn(
           !isMobile && "select-none",
-          isMobile && "w-full max-w-full overflow-x-scroll overflow-y-hidden [-webkit-overflow-scrolling:touch] [touch-action:pan-x]"
+          isMobile && "w-full max-w-full overflow-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] [touch-action:pan-x_pan-y]"
         )}
         style={{ cursor: isMobile ? "default" : cursorStyle }}
       >

@@ -950,22 +950,22 @@ const ProjectGallery = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full max-w-2xl grid-cols-4">
-              <TabsTrigger value="photos" className="gap-2">
-                <Camera className="h-4 w-4" />
-                {t("gallery.photos")} ({photos.length})
+            <TabsList className="flex flex-wrap w-full max-w-2xl gap-1 p-1 h-auto min-h-[44px]">
+              <TabsTrigger value="photos" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="truncate">{t("gallery.photos")} ({photos.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-2">
-                <FileText className="h-4 w-4" />
-                {t("gallery.documents")} ({nonSoumissionDocs.length})
+              <TabsTrigger value="documents" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="truncate">{t("gallery.documents")} ({nonSoumissionDocs.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="soumissions" className="gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                {t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})
+              <TabsTrigger value="soumissions" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                <ClipboardCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="truncate">{t("gallery.quotes")} ({retenuCount}/{soumissionTrades.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="factures" className="gap-2">
-                <Receipt className="h-4 w-4" />
-                Factures ({facturesMateriaux.length})
+              <TabsTrigger value="factures" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="truncate">Factures ({facturesMateriaux.length})</span>
               </TabsTrigger>
             </TabsList>
 

@@ -222,9 +222,9 @@ export function DIYItemsTable({
         </div>
       ) : (
         <>
-          {/* Compact Table */}
-          <div className="border rounded-lg overflow-hidden border-amber-200 dark:border-amber-800">
-            <Table>
+          {/* Compact Table - scroll horizontal sur mobile si besoin */}
+          <div className="border rounded-lg overflow-x-auto overflow-y-visible border-amber-200 dark:border-amber-800 [-webkit-overflow-scrolling:touch]">
+            <Table className="min-w-[500px]">
               <TableHeader>
                 <TableRow className="bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-50/50">
                   <TableHead className="w-8"></TableHead>
@@ -261,9 +261,9 @@ export function DIYItemsTable({
                           </Button>
                         </CollapsibleTrigger>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{item.name}</span>
+                      <TableCell className="min-w-0 max-w-[180px]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium truncate">{item.name}</span>
                           {item.hasAnalysis && (
                             <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
                               <Sparkles className="h-3 w-3 mr-1" />
@@ -311,8 +311,8 @@ export function DIYItemsTable({
                     <CollapsibleContent asChild>
                       <TableRow>
                         <TableCell colSpan={6} className="p-0">
-                          <div className="bg-amber-50/20 dark:bg-amber-950/10 border-t border-amber-200 dark:border-amber-800">
-                            <div className="p-4 space-y-4">
+                          <div className="bg-amber-50/20 dark:bg-amber-950/10 border-t border-amber-200 dark:border-amber-800 min-w-0">
+                            <div className="p-4 space-y-4 min-w-0 break-words">
                               {/* Item Notes */}
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">

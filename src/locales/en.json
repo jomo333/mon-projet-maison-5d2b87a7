@@ -1155,7 +1155,7 @@
     "updateSchedule": "Update Schedule",
     "noScheduledSteps": "No scheduled steps with dates.",
     "addDatesToSeeGantt": "Add start dates to steps to see the Gantt chart.",
-    "swipeToScroll": "← Swipe horizontally to scroll →",
+    "swipeToScroll": "← → Swipe to scroll the chart ↔ ↕",
     "alertsAndReminders": "Alerts and Reminders",
     "noActiveAlerts": "No active alerts",
     "overdue": "overdue",

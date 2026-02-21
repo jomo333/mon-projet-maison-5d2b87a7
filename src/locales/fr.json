@@ -1155,7 +1155,7 @@
     "updateSchedule": "Mise à jour de l'échéancier",
     "noScheduledSteps": "Aucune étape planifiée avec des dates.",
     "addDatesToSeeGantt": "Ajoutez des dates de début aux étapes pour voir le diagramme de Gantt.",
-    "swipeToScroll": "← Glissez horizontalement pour faire défiler →",
+    "swipeToScroll": "← → Glissez pour faire défiler le tableau ↔ ↕",
     "alertsAndReminders": "Alertes et rappels",
     "noActiveAlerts": "Aucune alerte active",
     "overdue": "en retard",

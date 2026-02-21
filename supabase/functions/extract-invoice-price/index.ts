@@ -49,44 +49,73 @@ async function fetchFileAsBase64(url: string): Promise<{ base64: string; mediaTy
   }
 }
 
-const SYSTEM_PROMPT = `Tu es un expert en lecture de factures au Québec. 
-Ton rôle est d'extraire les montants financiers et les informations clés d'une facture ou d'un reçu.
+const SYSTEM_PROMPT = `Tu es un expert en lecture de factures et reçus au Québec. Tu dois extraire avec PRÉCISION les montants, le fournisseur et les matériaux.
 
-RÈGLES IMPORTANTES:
-- Cherche TOUJOURS le montant AVANT taxes (sous-total, subtotal, montant HT)
-- Cherche la TPS (5%, Goods and Services Tax, GST)
-- Cherche la TVQ (9.975%, Quebec Sales Tax, QST, PST)
-- Si tu vois seulement un TOTAL, essaie de calculer le montant avant taxes
-- Les montants peuvent être en format français (1 234,56) ou anglais (1,234.56)
-- Pour le fournisseur (supplier): cherche le nom de l'entreprise vendeur (en-tête, logo, nom sur le document). Ne pas confondre avec le client.
-- Pour la date (purchase_date): cherche la date de facturation/d'achat. Format retourné: YYYY-MM-DD si possible.
-- Réponds UNIQUEMENT avec un JSON valide, pas de texte autour
+## EXTRACTION DU FOURNISSEUR (supplier)
 
-Format de réponse obligatoire (JSON uniquement):
+**FOURNISSEUR = l'entreprise VENDEUSE** (pas le client!). Cherche:
+- Logo ou nom d'entreprise en HAUT de la facture (en-tête)
+- Section "De:", "From:", "Vendeur:", "Fournisseur:"
+- Pied de page avec coordonnées
+- À côté des numéros TPS/TVQ ou RBQ
+
+**À IGNORER (c'est le CLIENT):**
+- Après "À:", "Bill to:", "Facturer à:", "Client:", "Destinataire:"
+- Adresse de livraison ou de chantier
+
+**Extrais le nom EXACT** de l'entreprise fournisseur (ex: "Canac", "Réno-Dépôt", "Rona", "Home Depot").
+
+## EXTRACTION DES MONTANTS
+
+**Montant AVANT taxes (amountHT):** Cherche ces libellés:
+- "Sous-total", "Subtotal", "Total avant taxes"
+- "Montant HT", "Amount before taxes"
+- "Merchandise total", "Total marchandises"
+- Si seul le TOTAL TTC est visible: calcule (total ÷ 1.14975) pour obtenir le HT (TPS 5% + TVQ 9.975%)
+
+**Montants en dollars:** Accepte les deux formats:
+- Français: 1 234,56 ou 1234.56
+- Anglais: 1,234.56
+
+**TPS (5%):** Cherche "TPS", "GST", "TVH"
+**TVQ (9.975%):** Cherche "TVQ", "QST"
+
+## EXTRACTION DE LA DATE
+
+Cherche: "Date", "Date de facturation", "Invoice date", "Order date"
+Format de sortie: YYYY-MM-DD (ex: 2025-02-19)
+
+## EXTRACTION DES MATÉRIAUX / ITEMS (notes)
+
+Dans "notes", liste les principaux articles achetés:
+- Types de matériaux (ciment, bois, clous, peinture, etc.)
+- Marques ou modèles si visibles
+- Quantités si pertinentes (ex: "10 sacs de ciment", "2x4x8 pin")
+- Sois concis mais informatif
+
+## FORMAT DE RÉPONSE
+
+Réponds UNIQUEMENT avec un JSON valide, SANS texte avant ou après:
+
 {
   "amountHT": 0.00,
   "tps": 0.00,
   "tvq": 0.00,
   "totalTTC": 0.00,
   "confidence": "high|medium|low",
-  "supplier": "Nom du fournisseur/vendeur",
-  "purchase_date": "YYYY-MM-DD ou null si non trouvée",
-  "notes": "description courte des items principaux achetés",
+  "supplier": "Nom exact du fournisseur",
+  "purchase_date": "YYYY-MM-DD",
+  "notes": "Description des matériaux/items achetés",
   "currency": "CAD"
 }
 
-Si tu ne peux pas extraire les montants, retourne:
-{
-  "amountHT": null,
-  "tps": null,
-  "tvq": null,
-  "totalTTC": null,
-  "confidence": "none",
-  "supplier": null,
-  "purchase_date": null,
-  "notes": "Impossible de lire les montants",
-  "currency": "CAD"
-}`;
+**Confidence:**
+- "high" = toutes les données clés trouvées et claires
+- "medium" = plupart trouvées, une incertitude
+- "low" = données partielles
+
+**Si vraiment aucune donnée lisible:** retourne confidence "none" et null pour les champs non trouvés.
+**IMPORTANT:** Si le document est lisible et contient des prix, un nom de magasin ou une date, EXTRAIS-LES. Ne retourne "none" que si le document est illisible ou vide.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -131,7 +160,16 @@ serve(async (req) => {
       );
     }
 
-    const userPrompt = `Analyse cette facture${fileName ? ` (${fileName})` : ''} et extrait les montants. Retourne UNIQUEMENT le JSON demandé.`;
+    const userPrompt = `Analyse cette facture${fileName ? ` (fichier: ${fileName})` : ''}.
+
+Extrait précisément:
+1. **Fournisseur** - nom de l'entreprise vendeuse (en-tête/logo, PAS le client)
+2. **Montant avant taxes** - sous-total, subtotal, ou total ÷ 1.14975 si seul le TTC est visible
+3. **TPS** et **TVQ** si indiquées
+4. **Date** - date de facturation (format YYYY-MM-DD)
+5. **Matériaux/items** - principaux articles achetés (ciment, bois, peinture, etc.)
+
+Retourne UNIQUEMENT le JSON demandé, sans texte autour.`;
 
     let rawContent = "";
 
@@ -142,7 +180,7 @@ serve(async (req) => {
         { text: userPrompt },
       ];
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -150,8 +188,8 @@ serve(async (req) => {
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ parts }],
             generationConfig: {
-              temperature: 0.1,
-              maxOutputTokens: 500,
+              temperature: 0.2,
+              maxOutputTokens: 800,
             },
           }),
         }

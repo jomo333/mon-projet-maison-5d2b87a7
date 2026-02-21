@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -244,7 +245,11 @@ export function DIYPurchaseInvoices({
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        toast.error(errData?.error || "Impossible d'analyser la facture");
+        const msg = errData?.error || "Impossible d'analyser la facture";
+        const hint = response.status === 500
+          ? " Vérifiez que GEMINI_API_KEY est configurée dans Supabase (Edge Functions > Secrets)."
+          : "";
+        toast.error(msg + hint);
         return;
       }
 
@@ -293,7 +298,10 @@ export function DIYPurchaseInvoices({
       toast.success("Champs remplis automatiquement — vérifiez et modifiez si besoin");
     } catch (err) {
       console.error("Extract error:", err);
-      toast.error("Erreur lors de l'analyse");
+      const msg = (err instanceof Error && err.message?.includes("fetch"))
+        ? "Connexion au service d'analyse impossible. Vérifiez CORS et GEMINI_API_KEY dans Supabase."
+        : "Erreur lors de l'analyse";
+      toast.error(msg);
     } finally {
       setAnalyzingId(null);
     }
@@ -605,7 +613,7 @@ export function DIYPurchaseInvoices({
           setNewPurchaseDate(new Date().toISOString().split("T")[0]);
         }
       }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-invoice-desc">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-emerald-600" />
@@ -613,6 +621,9 @@ export function DIYPurchaseInvoices({
                 ? "Compléter la facture"
                 : "Modifier la facture"}
             </DialogTitle>
+            <DialogDescription id="edit-invoice-desc" className="sr-only">
+              Remplissez les champs ou utilisez l'IA pour extraire automatiquement les informations de la facture.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Colonne gauche */}
@@ -792,7 +803,7 @@ export function DIYPurchaseInvoices({
       <Dialog open={!!previewFile} onOpenChange={(open) => {
         if (!open) { setPreviewFile(null); setPreviewUrl(null); }
       }}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
+        <DialogContent className="max-w-3xl max-h-[90vh]" aria-describedby="preview-invoice-desc">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 truncate">
               <Receipt className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -803,6 +814,9 @@ export function DIYPurchaseInvoices({
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription id="preview-invoice-desc" className="sr-only">
+              Aperçu du fichier de la facture.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0">
             {previewUrl && previewFile && isImage(previewFile.file_type) ? (

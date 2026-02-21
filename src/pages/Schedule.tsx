@@ -339,7 +339,7 @@ const Schedule = () => {
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Main content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 min-w-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

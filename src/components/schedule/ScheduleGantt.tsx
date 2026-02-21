@@ -252,7 +252,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
   }
 
   return (
-    <div className="bg-card rounded-lg border">
+    <div className={cn("bg-card rounded-lg border", isMobile && "min-w-0")}>
       {/* Header avec titre et bouton */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <h3 className="font-semibold text-lg">{t("schedule.projectPlanning")}</h3>
@@ -289,9 +289,9 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onTouchCancel={isMobile ? undefined : handleTouchEnd}
         className={cn(
           !isMobile && "select-none",
-          isMobile && "w-full max-w-full overflow-auto overflow-x-auto overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] overscroll-x-auto"
+          isMobile && "min-w-0 w-full max-w-full overflow-x-scroll overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] overscroll-x-contain"
         )}
-        style={{ cursor: isMobile ? "default" : cursorStyle }}
+        style={{ cursor: isMobile ? "default" : cursorStyle, ...(isMobile && { touchAction: "pan-x pan-y" } as React.CSSProperties) }}
       >
         {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
         {isMobile ? (

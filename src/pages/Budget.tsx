@@ -820,10 +820,10 @@ const Budget = () => {
                     <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
                       <p className="text-xs text-muted-foreground/80">
                         <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold">{formatCurrency(Math.round(budgetTTC))}</span>
+                        <span className="font-semibold">{formatCurrency(Math.round(budgetTTC * 100) / 100)}</span>
                       </p>
                       <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(budgetTPS))} · TVQ : {formatCurrency(Math.round(budgetTVQ))}
+                        TPS : {formatCurrency(Math.round(budgetTPS * 100) / 100)} · TVQ : {formatCurrency(Math.round(budgetTVQ * 100) / 100)}
                       </p>
                     </div>
                   </>
@@ -859,10 +859,10 @@ const Budget = () => {
                     <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
                       <p className="text-xs text-muted-foreground/80">
                         <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold">{formatCurrency(Math.round(spentTTC))}</span>
+                        <span className="font-semibold">{formatCurrency(Math.round(spentTTC * 100) / 100)}</span>
                       </p>
                       <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(spentTPS))} · TVQ : {formatCurrency(Math.round(spentTVQ))}
+                        TPS : {formatCurrency(Math.round(spentTPS * 100) / 100)} · TVQ : {formatCurrency(Math.round(spentTVQ * 100) / 100)}
                       </p>
                     </div>
                   </>
@@ -889,10 +889,10 @@ const Budget = () => {
                     <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
                       <p className="text-xs text-muted-foreground/80">
                         <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold text-success">{formatCurrency(Math.round(remainingTTC))}</span>
+                        <span className="font-semibold text-success">{formatCurrency(Math.round(remainingTTC * 100) / 100)}</span>
                       </p>
                       <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(displayRemaining * TPS_RATE))} · TVQ : {formatCurrency(Math.round(displayRemaining * TVQ_RATE))}
+                        TPS : {formatCurrency(Math.round(displayRemaining * TPS_RATE * 100) / 100)} · TVQ : {formatCurrency(Math.round(displayRemaining * TVQ_RATE * 100) / 100)}
                       </p>
                     </div>
                   </>

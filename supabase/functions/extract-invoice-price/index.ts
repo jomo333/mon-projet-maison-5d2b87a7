@@ -143,6 +143,27 @@ serve(async (req) => {
     );
   }
 
+  // Vérifier le quota d'analyses IA avant d'appeler Gemini
+  try {
+    const serviceSupabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: limitCheck, error: limitError } = await serviceSupabase.rpc("check_ai_analysis_limit", {
+      p_user_id: authResult.userId,
+    });
+    if (!limitError && limitCheck && typeof limitCheck === "object" && limitCheck.allowed === false) {
+      return new Response(
+        JSON.stringify({
+          error: `Limite d'analyses IA atteinte (${limitCheck.current}/${limitCheck.limit}). Passez à un forfait supérieur ou achetez des analyses supplémentaires.`,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  } catch (limitErr) {
+    console.error("Limit check failed:", limitErr);
+  }
+
   try {
     const { fileUrl, fileName } = await req.json();
 
@@ -355,6 +376,13 @@ Retourne UNIQUEMENT le JSON, sans texte autour.`;
     }
 
     if (!extracted) {
+      // Consomme 1 analyse même si parsing échoue (appel Gemini effectué)
+      try {
+        const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        await svc.rpc("consume_ai_analysis", { p_user_id: authResult.userId });
+      } catch (e) {
+        console.error("consume_ai_analysis error:", e);
+      }
       return new Response(
         JSON.stringify({ 
           amountHT: null, tps: null, tvq: null, totalTTC: null, 
@@ -362,6 +390,14 @@ Retourne UNIQUEMENT le JSON, sans texte autour.`;
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Consomme 1 analyse IA (extraction réussie)
+    try {
+      const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await svc.rpc("consume_ai_analysis", { p_user_id: authResult.userId });
+    } catch (e) {
+      console.error("consume_ai_analysis error:", e);
     }
 
     return new Response(

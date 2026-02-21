@@ -103,6 +103,7 @@ export function ChatAssistant() {
         }
       }
     }
+    window.dispatchEvent(new CustomEvent("subscription-refetch"));
   };
 
   const sendMessage = async (text: string) => {

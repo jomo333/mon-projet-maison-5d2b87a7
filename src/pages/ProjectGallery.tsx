@@ -1013,7 +1013,9 @@ const ProjectGallery = () => {
                 <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    type="search"
+                    type="text"
+                    inputMode="search"
+                    autoComplete="off"
                     placeholder={t("gallery.searchPlaceholder", "Rechercher par nom de fichier enregistré")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}

@@ -1265,6 +1265,7 @@ export function CategorySubmissionsDialog({
       // Set final result and show analysis view
       setDiyAnalysisResult(result);
       setShowDIYAnalysis(true);
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
       
       // Mark item as analyzed
       setDiyItems(prev => prev.map(i => 
@@ -1472,6 +1473,7 @@ export function CategorySubmissionsDialog({
       setDiyAnalysisResult(result);
       setShowDIYAnalysis(true);
       toast.success(t("toasts.diyAnalysisDone"));
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
       refetchPlanLimits();
       
       // Try to extract estimated cost from analysis

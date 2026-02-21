@@ -468,6 +468,8 @@ export function SoumissionsManager({ projectId }: SoumissionsManagerProps) {
         [tradeId]: { tradeId, isAnalyzing: false, result: analysisResult }
       }));
 
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
+
       toast({
         title: "Analyse terminée",
         description: `L'analyse des soumissions pour ${tradeName} est prête.`,

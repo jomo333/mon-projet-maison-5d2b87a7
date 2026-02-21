@@ -561,6 +561,7 @@ const BuildingCode = () => {
       }
 
       const aiResponse = data as AIResponse;
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
 
       if (aiResponse.type === "clarification") {
         // AI needs more information

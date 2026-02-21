@@ -288,6 +288,7 @@ export function DIYPurchaseInvoices({
       const result = await response.json();
       if (result.confidence === "none" || result.amountHT == null) {
         toast.info("Prix non détecté — utilisez « Modifier » pour saisir manuellement");
+        window.dispatchEvent(new CustomEvent("subscription-refetch"));
         return;
       }
 
@@ -328,6 +329,7 @@ export function DIYPurchaseInvoices({
         setEditingInvoice(null);
       }
       toast.success("Champs remplis automatiquement — vérifiez et modifiez si besoin");
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
     } catch (err) {
       console.error("Extract error:", err);
       const msg = (err instanceof Error && err.message?.includes("fetch"))

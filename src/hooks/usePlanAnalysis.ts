@@ -287,6 +287,8 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
       if (error) throw error;
       
       if (data.success && data.data) {
+        await refetchLimits();
+        window.dispatchEvent(new CustomEvent("subscription-refetch"));
         return {
           success: true,
           analysis: data.data as BudgetAnalysis,
@@ -455,6 +457,7 @@ export function usePlanAnalysis(options: UsePlanAnalysisOptions = {}) {
 
       // Refresh limits after successful analysis
       await refetchLimits();
+      window.dispatchEvent(new CustomEvent("subscription-refetch"));
       
       return {
         success: true,

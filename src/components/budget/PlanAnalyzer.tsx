@@ -753,6 +753,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         if (data.success && data.data) {
           setAnalysis(data.data);
           toast.success(t("toasts.analysisDone"));
+          window.dispatchEvent(new CustomEvent("subscription-refetch"));
         } else {
           throw new Error(data?.error || "Échec de l'analyse - " + JSON.stringify(data).slice(0, 200));
         }
@@ -1020,6 +1021,7 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           }
         }
         
+        window.dispatchEvent(new CustomEvent("subscription-refetch"));
         toast.success(t("toasts.analysisCompleteCount", { count: totalImages }));
       }
     } catch (error) {

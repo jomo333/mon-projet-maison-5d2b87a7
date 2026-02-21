@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +28,11 @@ interface LegalAcceptanceDialogProps {
 
 export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAcceptanceDialogProps) {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [accepted, setAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Sur mobile : pas de target="_blank" (popups bloquées) → navigation dans le même onglet
+  const linkProps = isMobile ? {} : { target: "_blank" as const, rel: "noopener noreferrer" };
 
   const handleAccept = async () => {
     if (!accepted) {
@@ -101,7 +105,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
               className="w-full justify-start text-left h-auto py-2"
               asChild
             >
-              <Link to="/conditions" target="_blank">
+              <Link to="/conditions" {...linkProps}>
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
                 <span className="text-xs sm:text-sm">{t("legalAcceptance.readTerms")}</span>
               </Link>
@@ -112,7 +116,7 @@ export function LegalAcceptanceDialog({ open, userId, onAccepted }: LegalAccepta
               className="w-full justify-start text-left h-auto py-2"
               asChild
             >
-              <Link to="/confidentialite" target="_blank">
+              <Link to="/confidentialite" {...linkProps}>
                 <FileText className="h-4 w-4 mr-2 shrink-0" />
                 <span className="text-xs sm:text-sm">{t("legalAcceptance.readPrivacy")}</span>
               </Link>

@@ -245,25 +245,32 @@ export function CategorySubmissionsDialog({
   };
 
   const currentTaskId = getCurrentTaskId();
+  const prevOpenRef = useRef(false);
 
-  // Reset state when dialog opens
+  // Reset state only when dialog first opens (open: false -> true). When budget/spent change
+  // after save (e.g. in "Fait par moi-même"), do NOT reset viewMode so we stay on the same tab.
   useEffect(() => {
     if (open) {
+      const justOpened = !prevOpenRef.current;
+      prevOpenRef.current = true;
+
       setBudget((Math.round(currentBudget * 100) / 100).toString());
       setSpent((Math.round(currentSpent * 100) / 100).toString());
-      setAnalysisResult(null);
-      setExtractedSuppliers([]);
-      setSelectedSupplierIndex(null);
-      setSelectedOptionIndex(null);
-      setActiveSubCategoryId(null);
-      setViewingSubCategory(false);
-      setDiyAnalysisResult(null);
-      setShowDIYAnalysis(false);
-      // Default to 'single' mode (one submission for all tasks)
-      // User can switch to 'tasks' mode if they want per-task submissions
-      setViewMode('single');
-      setActiveTaskTitle(null);
-      setActiveSubCategoryId(null);
+
+      if (justOpened) {
+        setAnalysisResult(null);
+        setExtractedSuppliers([]);
+        setSelectedSupplierIndex(null);
+        setSelectedOptionIndex(null);
+        setActiveSubCategoryId(null);
+        setViewingSubCategory(false);
+        setDiyAnalysisResult(null);
+        setShowDIYAnalysis(false);
+        setViewMode('single');
+        setActiveTaskTitle(null);
+      }
+    } else {
+      prevOpenRef.current = false;
     }
   }, [open, currentBudget, currentSpent]);
   

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -141,17 +141,7 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
     isDraggingRef.current = false;
   }, []);
 
-  // Sur mobile : attacher touchmove avec passive:false pour que preventDefault fonctionne
-  useEffect(() => {
-    if (!isMobile) return;
-    const el = containerRef.current;
-    if (!el) return;
-    const onTouchMove = (e: TouchEvent) => {
-      if (isDraggingRef.current) e.preventDefault();
-    };
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => el.removeEventListener("touchmove", onTouchMove);
-  }, [isMobile]);
+  // Sur mobile : scroll natif (overflow-auto), pas de gestion manuelle du touch
 
   // Sort schedules by execution order and filter those with dates
   const schedulesWithDates = useMemo(() => 
@@ -293,20 +283,20 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onMouseMove={!isMobile ? handleMouseMove : undefined}
         onMouseUp={!isMobile ? handleMouseUp : undefined}
         onMouseLeave={!isMobile ? handleMouseLeave : undefined}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
+        onTouchStart={isMobile ? undefined : handleTouchStart}
+        onTouchMove={isMobile ? undefined : handleTouchMove}
+        onTouchEnd={isMobile ? undefined : handleTouchEnd}
+        onTouchCancel={isMobile ? undefined : handleTouchEnd}
         className={cn(
           !isMobile && "select-none",
-          isMobile && "w-full max-w-full overflow-scroll overflow-x-scroll overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] touch-none"
+          isMobile && "w-full max-w-full overflow-auto overflow-x-auto overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] overscroll-x-auto"
         )}
         style={{ cursor: isMobile ? "default" : cursorStyle }}
       >
         {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
         {isMobile ? (
           <div
-            className="will-change-transform min-h-full touch-none"
+            className="will-change-transform min-h-full"
             style={{
               minWidth: totalDays * dayWidth + labelWidth,
               height: schedulesWithDates.length * rowHeight + headerHeight + 20,

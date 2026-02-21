@@ -4001,6 +4001,7 @@
     "inputPlaceholder": "Write your message...",
     "connectionError": "Connection error",
     "errorMessage": "Sorry, an error occurred. Please try again in a moment.",
+    "retryHint": "Check your connection and try again. If the problem persists, GEMINI_API_KEY must be configured in Supabase (Edge Functions > Secrets).",
     "quickActions": {
       "createProject": "Create a project",
       "uploadQuote": "Upload a quote",

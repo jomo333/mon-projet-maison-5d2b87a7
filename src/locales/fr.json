@@ -4023,6 +4023,7 @@
     "inputPlaceholder": "Écris ton message...",
     "connectionError": "Erreur de connexion",
     "errorMessage": "Désolé, une erreur est survenue. Réessaie dans un moment.",
+    "retryHint": "Vérifiez votre connexion et réessayez. Si le problème persiste, la clé GEMINI_API_KEY doit être configurée dans Supabase (Edge Functions > Secrets).",
     "quickActions": {
       "createProject": "Créer un projet",
       "uploadQuote": "Téléverser une soumission",

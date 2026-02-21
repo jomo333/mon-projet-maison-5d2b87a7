@@ -30,19 +30,21 @@ export function ChatAssistant() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [messages]);
 
   const streamChat = async (userMessages: Message[]) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
+        ...(anonKey && { apikey: anonKey }),
       },
       body: JSON.stringify({ messages: userMessages }),
     });
@@ -115,10 +117,11 @@ export function ChatAssistant() {
     try {
       await streamChat(newMessages);
     } catch (error) {
-      console.error(error);
+      console.error("ChatAssistant error:", error);
+      const errMsg = error instanceof Error ? error.message : t("chatAssistant.errorMessage");
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: t("chatAssistant.errorMessage") },
+        { role: "assistant", content: `**Erreur :** ${errMsg}\n\n${t("chatAssistant.retryHint")}` },
       ]);
     } finally {
       setIsLoading(false);
@@ -183,7 +186,7 @@ export function ChatAssistant() {
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-3" viewportRef={scrollRef}>
         {messages.length === 0 ? (
           <div className="space-y-4">
             <div className="flex items-start gap-2">

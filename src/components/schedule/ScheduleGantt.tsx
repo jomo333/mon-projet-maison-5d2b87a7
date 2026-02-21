@@ -267,25 +267,29 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
       )}
       <div 
         ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        className="select-none"
-        style={{ cursor: cursorStyle }}
+        onMouseDown={!isMobile ? handleMouseDown : undefined}
+        onMouseMove={!isMobile ? handleMouseMove : undefined}
+        onMouseUp={!isMobile ? handleMouseUp : undefined}
+        onMouseLeave={!isMobile ? handleMouseLeave : undefined}
+        onTouchStart={!isMobile ? handleTouchStart : undefined}
+        onTouchMove={!isMobile ? handleTouchMove : undefined}
+        onTouchEnd={!isMobile ? handleTouchEnd : undefined}
+        onTouchCancel={!isMobile ? handleTouchEnd : undefined}
+        className={cn(
+          "select-none",
+          isMobile && "w-full max-w-full overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] touch-pan-x"
+        )}
+        style={{ cursor: isMobile ? "default" : cursorStyle }}
       >
-        <ScrollArea className="w-full">
-        <div
-          className="will-change-transform"
-          style={{
-            minWidth: totalDays * dayWidth + labelWidth,
-            height: schedulesWithDates.length * rowHeight + headerHeight + 20,
-          }}
-        >
+        {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
+        {isMobile ? (
+          <div
+            className="will-change-transform"
+            style={{
+              minWidth: totalDays * dayWidth + labelWidth,
+              height: schedulesWithDates.length * rowHeight + headerHeight + 20,
+            }}
+          >
           {/* Header avec les semaines */}
           <div
             className="sticky top-0 z-10 bg-background border-b"
@@ -520,8 +524,196 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
             })}
           </div>
         </div>
+        ) : (
+        <ScrollArea className="w-full">
+        <div
+          className="will-change-transform"
+          style={{
+            minWidth: totalDays * dayWidth + labelWidth,
+            height: schedulesWithDates.length * rowHeight + headerHeight + 20,
+          }}
+        >
+          {/* Duplicate header and rows for desktop ScrollArea - reuse same structure */}
+          {/* Header avec les semaines */}
+          <div
+            className="sticky top-0 z-10 bg-background border-b"
+            style={{ height: headerHeight }}
+          >
+            <div className="flex" style={{ marginLeft: labelWidth }}>
+              {weeks.map((week) => (
+                <div
+                  key={week.toISOString()}
+                  className="border-r px-1 py-1"
+                  style={{ width: 7 * dayWidth }}
+                >
+                  <div className="text-xs font-medium">
+                    {format(week, "d MMM", { locale: dateLocale })}
+                  </div>
+                  <div className="flex mt-1">
+                    {[...Array(7)].map((_, dayIndex) => {
+                      const day = addDays(week, dayIndex);
+                      const isWeekend = dayIndex >= 5;
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={cn(
+                            "text-center",
+                            isWeekend && "text-muted-foreground"
+                          )}
+                          style={{ width: dayWidth }}
+                        >
+                          <div className="text-xs font-medium">
+                            {format(day, "EEE", { locale: dateLocale }).charAt(0)}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(day, "d", { locale: dateLocale })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Lignes du Gantt - same as mobile */}
+          <div className="relative" style={{ paddingTop: 10 }}>
+            {schedulesWithDates.map((schedule) => {
+              const position = getBarPosition(schedule);
+              if (!position) return null;
+              const delayInfo = getDelayInfo(schedule);
+              const isStructure = schedule.step_id === "structure";
+              return (
+                <div
+                  key={schedule.id}
+                  className="flex items-center border-b"
+                  style={{ height: rowHeight }}
+                >
+                  <div
+                    className="sticky left-0 z-30 bg-background px-2 flex items-center gap-2 border-r shadow-sm"
+                    style={{ width: labelWidth, minWidth: labelWidth }}
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color) }}
+                    />
+                    <span className="truncate text-sm">
+                      {getTranslatedStepName(t, schedule.step_id, schedule.step_name)}
+                    </span>
+                    {delayInfo && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Clock className="h-4 w-4 text-primary flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">{t(`schedule.delayReasons.${delayInfo.reasonKey}`)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {schedule.is_manual_date && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Lock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">{t("schedule.dateLockedManually")}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {hasConflict(schedule) && (
+                      <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                    )}
+                  </div>
+                  <div
+                    className="relative h-full"
+                    style={{ width: totalDays * dayWidth }}
+                  >
+                    <div className="absolute inset-0 flex">
+                      {[...Array(totalDays)].map((_, i) => {
+                        const day = addDays(minDate, i);
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        return (
+                          <div
+                            key={i}
+                            className={cn(
+                              "border-r h-full",
+                              isWeekend && "bg-muted/30"
+                            )}
+                            style={{ width: dayWidth }}
+                          />
+                        );
+                      })}
+                    </div>
+                    {isStructure && getCuringPeriod && getCuringPeriod.width > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="absolute top-2 h-6 rounded cursor-pointer opacity-60"
+                            style={{
+                              left: getCuringPeriod.left,
+                              width: getCuringPeriod.width,
+                              background:
+                                "repeating-linear-gradient(45deg, hsl(var(--accent)), hsl(var(--accent)) 4px, hsl(var(--muted)) 4px, hsl(var(--muted)) 8px)",
+                            }}
+                          >
+                            <span className="text-xs text-white px-1 truncate block leading-6 font-medium drop-shadow-sm">
+                              ⏳ {t("schedule.curingPeriod")} {getCuringPeriod.days}{t("schedule.days").charAt(0)}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-1">
+                            <p className="font-medium flex items-center gap-1">
+                              <Clock className="h-4 w-4" /> {t("schedule.concreteCuring")}
+                            </p>
+                            <p className="text-sm">
+                              {t("schedule.curingDescription", { days: getCuringPeriod.days })}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {t("schedule.curingMinRecommended")}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "absolute top-2 h-6 rounded cursor-pointer transition-opacity hover:opacity-80 z-20",
+                            hasConflict(schedule) && "ring-2 ring-destructive"
+                          )}
+                          style={{
+                            left: position.left,
+                            width: Math.max(position.width, dayWidth),
+                            backgroundColor: getDisplayColor(schedule.step_id, schedule.trade_type, schedule.trade_color),
+                          }}
+                        >
+                          <span className="text-xs text-white px-1 truncate block leading-6 pointer-events-none">
+                            {schedule.actual_days || schedule.estimated_days}j
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <div className="space-y-1">
+                          <p className="font-medium">{getTranslatedStepName(t, schedule.step_id, schedule.step_name)}</p>
+                          <p className="text-sm">
+                            {format(parseISO(schedule.start_date!), "d MMM", { locale: dateLocale })}
+                            {" - "}
+                            {format(parseISO(schedule.end_date!), "d MMM yyyy", { locale: dateLocale })}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+        )}
 
         {/* Légende */}
         <div className="border-t p-4">

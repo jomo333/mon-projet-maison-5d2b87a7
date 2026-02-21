@@ -1,6 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders: Record<string, string> = {
@@ -28,23 +26,37 @@ async function validateAuth(authHeader: string | null): Promise<{ userId: string
   }
 }
 
-async function fetchFileAsBase64(url: string): Promise<{ base64: string; mediaType: string; isPdf: boolean } | null> {
+// Même logique que analyze-soumissions (qui fonctionne bien)
+function getMimeType(fileName: string): string {
+  const ext = (fileName || "").toLowerCase().split(".").pop() || "";
+  const mimeTypes: Record<string, string> = {
+    pdf: "application/pdf",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return mimeTypes[ext] || "application/octet-stream";
+}
+
+async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mimeType: string } | null> {
   try {
-    const resp = await fetch(url);
-    if (!resp.ok) return null;
-    const arrayBuffer = await resp.arrayBuffer();
-    // Limit to 10MB
-    if (arrayBuffer.byteLength > 10_000_000) return null;
-    const base64 = encodeBase64(arrayBuffer);
-    const contentType = resp.headers.get('content-type') || '';
-    const isPdf = contentType.includes('pdf') || url.toLowerCase().includes('.pdf');
-    let mediaType = 'image/jpeg';
-    if (contentType.includes('png')) mediaType = 'image/png';
-    else if (contentType.includes('webp')) mediaType = 'image/webp';
-    else if (contentType.includes('gif')) mediaType = 'image/gif';
-    else if (isPdf) mediaType = 'application/pdf';
-    return { base64, mediaType, isPdf };
-  } catch {
+    const response = await fetch(fileUrl);
+    if (!response.ok) {
+      console.error("fetchFileAsBase64: HTTP", response.status);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > 10_000_000) return null;
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    return { base64, mimeType: contentType };
+  } catch (e) {
+    console.error("fetchFileAsBase64 error:", e instanceof Error ? e.message : e);
     return null;
   }
 }
@@ -161,28 +173,51 @@ serve(async (req) => {
       );
     }
 
-    const userPrompt = `DOCUMENT À ANALYSER: ${fileName || "facture"}
+    const mimeType = getMimeType(fileName || "facture.pdf");
+    const isSupported = mimeType === "application/pdf" || mimeType.startsWith("image/");
+    if (!isSupported) {
+      return new Response(
+        JSON.stringify({ error: "Format non supporté. Utilisez PDF, JPG, PNG ou WebP." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-Lis attentivement cette facture ou reçu. Extrait le prix (montant avant taxes), le nom du fournisseur, la date et les matériaux.
+    const userPrompt = `ANALYSE DE FACTURE - Document: ${fileName || "facture"}
 
-Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
+Ce document est une facture ou un reçu (même structure qu'une soumission). Extrait:
+1. Fournisseur (nom entreprise en-tête/logo, PAS le client)
+2. Montant AVANT taxes (sous-total, subtotal, ou total ÷ 1.14975)
+3. TPS et TVQ si visibles
+4. Date (YYYY-MM-DD)
+5. Matériaux/items achetés
+
+Retourne UNIQUEMENT le JSON, sans texte autour.`;
 
     let rawContent = "";
 
-    // Même format que analyze-soumissions (qui fonctionne) : inlineData + mimeType en camelCase
-    const geminiModel = Deno.env.get("GEMINI_MODEL_INVOICE") || "gemini-1.5-flash";
+    const geminiModel = Deno.env.get("GEMINI_MODEL_INVOICE") || Deno.env.get("GEMINI_MODEL_SOUMISSIONS") || "gemini-1.5-flash";
 
     if (GEMINI_API_KEY) {
-      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
-        { text: userPrompt },
-        { inlineData: { mimeType: fileData.mediaType, data: fileData.base64 } },
+      // Même structure que analyze-soumissions : text + image_url data URL, puis conversion en geminiParts
+      const messageParts: any[] = [
+        { type: "text", text: userPrompt },
+        { type: "image_url", image_url: { url: `data:${mimeType};base64,${fileData.base64}` } },
       ];
+      const geminiParts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+      for (const part of messageParts) {
+        if (part.type === "text" && part.text) {
+          geminiParts.push({ text: part.text });
+        } else if (part.type === "image_url" && part.image_url?.url?.startsWith("data:")) {
+          const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) geminiParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
       const geminiBody = {
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: "user", parts: geminiParts }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+        generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
       };
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`;
 
       let geminiRes: Response | null = null;
       const maxRetries = 2;
@@ -190,7 +225,7 @@ Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
         if (attempt > 0) {
           await new Promise((r) => setTimeout(r, attempt * 2000));
         }
-        geminiRes = await fetch(geminiUrl, {
+        geminiRes = await fetch(`${geminiUrl}?key=${GEMINI_API_KEY}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(geminiBody),
@@ -199,24 +234,38 @@ Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
         const errText = await geminiRes.text();
         const isQuota = geminiRes.status === 429 || /quota|RESOURCE_EXHAUSTED/i.test(errText || "");
         if (!isQuota || attempt === maxRetries) {
-          console.error("Gemini API error:", geminiRes.status, errText?.slice(0, 300));
+          let errMsg = "Erreur du service IA.";
+          try {
+            const errJson = JSON.parse(errText || "{}");
+            const detail = errJson?.error?.message || errJson?.error?.details?.[0]?.message || errJson?.message;
+            if (detail) errMsg = `Gemini: ${String(detail).slice(0, 200)}`;
+          } catch (_) {
+            if (errText && errText.length < 300) errMsg = errText;
+          }
+          console.error("Gemini API error:", geminiRes.status, errText?.slice(0, 500));
           return new Response(
-            JSON.stringify({ error: isQuota ? "Limite de requêtes atteinte. Réessayez dans 1 minute." : "Erreur du service IA." }),
+            JSON.stringify({ error: isQuota ? "Limite de requêtes atteinte. Réessayez dans 1 minute." : errMsg }),
             { status: geminiRes.status === 429 ? 429 : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
       }
-      const geminiData = await geminiRes!.json();
+      const geminiData = await geminiRes!.json().catch(() => ({}));
       rawContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (!rawContent && geminiData?.candidates?.[0]?.finishReason) {
+        const reason = geminiData.candidates[0].finishReason;
+        if (reason === "SAFETY" || reason === "RECITATION") {
+          return new Response(
+            JSON.stringify({ error: "Le contenu a été bloqué par les filtres de sécurité." }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
     } else {
       // Fallback: Lovable AI Gateway
-      const messageContent: any[] = [];
-      if (fileData.isPdf) {
-        messageContent.push({ type: "image_url", image_url: { url: `data:application/pdf;base64,${fileData.base64}` } });
-      } else {
-        messageContent.push({ type: "image_url", image_url: { url: `data:${fileData.mediaType};base64,${fileData.base64}` } });
-      }
-      messageContent.push({ type: "text", text: userPrompt });
+      const messageContent: any[] = [
+        { type: "text", text: userPrompt },
+        { type: "image_url", image_url: { url: `data:${mimeType};base64,${fileData.base64}` } },
+      ];
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -298,7 +347,7 @@ Retourne UNIQUEMENT le JSON (aucun texte avant ou après).`;
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
     console.error("extract-invoice-price error:", msg, error);
     return new Response(
-      JSON.stringify({ error: `Erreur: ${msg}. Vérifiez GEMINI_API_KEY dans Supabase (Edge Functions > Secrets).` }),
+      JSON.stringify({ error: `Erreur: ${msg}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

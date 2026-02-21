@@ -882,8 +882,8 @@ const ProjectGallery = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 py-8">
-        <div className="container">
+      <main className="flex-1 py-8 overflow-x-hidden">
+        <div className="container px-4 sm:px-6 max-w-full">
           {/* Header with project selector */}
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -1250,7 +1250,7 @@ const ProjectGallery = () => {
             </TabsContent>
 
             {/* Soumissions Tab */}
-            <TabsContent value="soumissions" className="mt-6">
+            <TabsContent value="soumissions" className="mt-6 overflow-x-hidden min-w-0 w-full max-w-full">
               {soumissionsLoading ? (
                 <div className="space-y-3">
                   {[...Array(5)].map((_, i) => (
@@ -1277,11 +1277,11 @@ const ProjectGallery = () => {
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-3 md:grid-cols-2 w-full max-w-full min-w-0">
                         {soumissionsData.filter(s => s.isRetenu).map((trade) => (
-                          <Card key={trade.id} className="border-green-200 bg-green-50/50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
+                          <Card key={trade.id} className="border-green-200 bg-green-50/50 min-w-0 overflow-hidden">
+                            <CardContent className="p-4 min-w-0">
+                              <div className="flex items-start justify-between gap-2 min-w-0">
                                 <div className="flex-1">
                                   <h4 className="font-medium flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -1319,13 +1319,13 @@ const ProjectGallery = () => {
                                     {trade.docs.map((doc) => {
                                       const isPreviewable = canPreview(doc.file_type);
                                       return (
-                                        <div key={doc.id} className="flex items-center gap-2 rounded-md bg-background/60 px-2 py-1">
+                                        <div key={doc.id} className="flex items-center gap-2 rounded-md bg-background/60 px-2 py-1 min-w-0">
                                           <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                           <a
                                             href={doc.file_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-sm truncate flex-1 hover:underline"
+                                            className="text-sm truncate flex-1 min-w-0 hover:underline"
                                             title={doc.file_name}
                                           >
                                             {doc.file_name}
@@ -1400,27 +1400,27 @@ const ProjectGallery = () => {
                       <Clock className="h-5 w-5 text-amber-600" />
                       Fournisseurs manquants ({soumissionsData.filter(s => !s.isRetenu).length})
                     </h3>
-                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 w-full max-w-full min-w-0">
                       {soumissionsData.filter(s => !s.isRetenu).map((trade) => (
-                        <Card key={trade.id} className="border-dashed border-amber-300 dark:border-amber-700">
-                          <CardContent className="p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">{trade.name}</span>
+                        <Card key={trade.id} className="border-dashed border-amber-300 dark:border-amber-700 min-w-0 overflow-hidden">
+                          <CardContent className="p-3 space-y-2 min-w-0">
+                            <div className="flex items-center justify-between gap-2 min-w-0">
+                              <span className="text-sm font-medium truncate">{trade.name}</span>
                               {trade.docs.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs flex-shrink-0">
                                   {trade.docs.length} doc(s)
                                 </Badge>
                               )}
                             </div>
                             {trade.docs.length > 0 ? (
-                              <div className="space-y-1">
+                              <div className="space-y-1 min-w-0">
                                 {trade.docs.map((doc) => {
                                   const isPreviewable = canPreview(doc.file_type);
                                   return (
-                                    <div key={doc.id} className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1">
+                                    <div key={doc.id} className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1 min-w-0">
                                       <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                       <span
-                                        className="text-sm truncate flex-1 cursor-pointer hover:underline"
+                                        className="text-sm truncate flex-1 min-w-0 cursor-pointer hover:underline"
                                         title={doc.file_name}
                                         onClick={() => openDocumentPreview(doc)}
                                       >

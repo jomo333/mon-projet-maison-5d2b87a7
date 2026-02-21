@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -752,7 +752,7 @@ const Budget = () => {
                   </div>
                 ) : (
                   <p className="text-muted-foreground">
-                    {t("budget.noProjectsYet")} <a href="/demarrer" className="text-primary underline">{t("budget.createProjectLink")}</a> {t("budget.toSaveBudget")}
+                    {t("budget.noProjectsYet")} <Link to="/start" className="text-primary underline">{t("budget.createProjectLink")}</Link> {t("budget.toSaveBudget")}
                   </p>
                 )}
               </CardContent>
@@ -764,7 +764,7 @@ const Budget = () => {
               <CardContent className="py-4">
                 <p className="text-sm text-warning-foreground flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
-                  <a href="/auth" className="text-primary underline">{t("nav.login")}</a> {t("budget.loginToSave")}
+                  <Link to="/auth" className="text-primary underline">{t("nav.login")}</Link> {t("budget.loginToSave")}
                 </p>
               </CardContent>
             </Card>

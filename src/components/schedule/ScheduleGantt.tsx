@@ -277,22 +277,22 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onTouchCancel={!isMobile ? handleTouchEnd : undefined}
         className={cn(
           !isMobile && "select-none",
-          isMobile && "w-full max-w-full overflow-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] [touch-action:pan-x_pan-y]"
+          isMobile && "w-full max-w-full overflow-auto overflow-x-auto overflow-y-auto max-h-[70vh] [-webkit-overflow-scrolling:touch] [touch-action:manipulation]"
         )}
         style={{ cursor: isMobile ? "default" : cursorStyle }}
       >
         {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
         {isMobile ? (
           <div
-            className="will-change-transform pointer-events-none min-h-full"
+            className="will-change-transform min-h-full"
             style={{
               minWidth: totalDays * dayWidth + labelWidth,
               height: schedulesWithDates.length * rowHeight + headerHeight + 20,
             }}
           >
-          {/* Header avec les semaines */}
+          {/* Header avec les semaines - z-50 pour rester au-dessus des barres */}
           <div
-            className="sticky top-0 z-10 bg-background border-b"
+            className="sticky top-0 z-50 bg-background border-b shadow-sm"
             style={{ height: headerHeight }}
           >
             <div className="flex" style={{ marginLeft: labelWidth }}>

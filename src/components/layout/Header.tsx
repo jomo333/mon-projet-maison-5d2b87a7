@@ -64,7 +64,7 @@ export function Header() {
   
   // Helper to get href with project param
   const getHref = (href: string) => {
-    if (projectId && (href === "/galerie" || href === "/dashboard" || href === "/budget")) {
+    if (projectId && (href === "/galerie" || href === "/dashboard" || href === "/budget" || href === "/echeancier")) {
       return `${href}?project=${projectId}`;
     }
     return href;

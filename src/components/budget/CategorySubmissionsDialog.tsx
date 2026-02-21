@@ -73,6 +73,7 @@ import { DIYItemsTable, type DIYItem, type DIYSupplierQuote, type DIYSelectedSup
 import { DIYPurchaseInvoices } from "./DIYPurchaseInvoices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface CategorySubmissionsDialogProps {
   open: boolean;

@@ -1007,13 +1007,13 @@ const ProjectGallery = () => {
             </div>
           </div>
 
-          {/* Search bar + filter + Tabs - barre de recherche visible à côté des onglets */}
+          {/* Search bar + filter + Tabs - sticky pour rester visible (clavier mobile) */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="flex flex-col gap-3 mb-2">
+            <div className="sticky top-0 z-10 bg-background pt-2 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col gap-3 mb-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
-                {/* Search bar - toujours visible en premier */}
-                <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                {/* Search bar - min-w pour éviter collapse sur mobile */}
+                <div className="relative flex-1 min-w-[140px] w-full sm:max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     type="text"
                     inputMode="search"
@@ -1021,7 +1021,7 @@ const ProjectGallery = () => {
                     placeholder={t("gallery.searchPlaceholder", "Rechercher par nom de fichier enregistré")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 min-h-[44px] text-base"
                   />
                 </div>
                 {/* Filter par étape / catégorie */}

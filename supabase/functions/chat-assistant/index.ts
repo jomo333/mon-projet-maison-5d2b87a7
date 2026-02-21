@@ -127,8 +127,9 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY doit être configuré (Supabase → Edge Functions → Secrets)");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+      throw new Error("GEMINI_API_KEY ou LOVABLE_API_KEY doit être configuré (Supabase → Edge Functions → Secrets)");
     }
 
     // Convertir format OpenAI (messages) vers format Gemini (contents)
@@ -149,32 +150,52 @@ serve(async (req) => {
       contents: contents.length ? contents : [{ role: "user", parts: [{ text: "Bonjour" }] }],
       generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
     };
-    const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse", {
+
+    // Utiliser GEMINI_MODEL_CHAT si défini (sinon Gemini 3 Flash par défaut)
+    const geminiModel = Deno.env.get("GEMINI_MODEL_CHAT") || "gemini-3-flash-preview";
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+    const apiKey = GEMINI_API_KEY || LOVABLE_API_KEY;
+
+    const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
+        "x-goog-api-key": apiKey,
       },
       body: JSON.stringify(geminiBody),
     });
 
     if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error("Gemini API error:", geminiRes.status, errText?.slice(0, 500));
       if (geminiRes.status === 429) {
         return new Response(JSON.stringify({ error: "Trop de demandes, réessaie dans un moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, t);
-      return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
+      // Extraire le message d'erreur lisible de la réponse Gemini
+      let errMsg = "Erreur du service IA";
+      try {
+        const errJson = JSON.parse(errText);
+        const detail = errJson?.error?.message || errJson?.error?.status || errText?.slice(0, 150);
+        if (detail) errMsg = `Erreur IA: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`;
+      } catch {
+        if (errText?.length) errMsg = `Erreur IA: ${errText.slice(0, 200)}`;
+      }
+      return new Response(JSON.stringify({ error: errMsg }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await incrementAiUsage(authHeader);
-    await trackAiAnalysisUsage(authHeader, "chat-assistant");
+    // Ne pas bloquer la réponse si le tracking échoue
+    try {
+      await incrementAiUsage(authHeader);
+      await trackAiAnalysisUsage(authHeader, "chat-assistant");
+    } catch (trackErr) {
+      console.error("Tracking error (non-blocking):", trackErr);
+    }
 
     const reader = geminiRes.body?.getReader();
     if (!reader) {

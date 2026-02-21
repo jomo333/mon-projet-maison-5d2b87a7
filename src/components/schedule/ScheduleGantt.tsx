@@ -276,15 +276,15 @@ export const ScheduleGantt = ({ schedules, conflicts, onRegenerateSchedule, isUp
         onTouchEnd={!isMobile ? handleTouchEnd : undefined}
         onTouchCancel={!isMobile ? handleTouchEnd : undefined}
         className={cn(
-          "select-none",
-          isMobile && "w-full max-w-full overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] touch-pan-x"
+          !isMobile && "select-none",
+          isMobile && "w-full max-w-full overflow-x-scroll overflow-y-hidden [-webkit-overflow-scrolling:touch] [touch-action:pan-x]"
         )}
         style={{ cursor: isMobile ? "default" : cursorStyle }}
       >
         {/* Sur mobile : div scrollable natif. Sur desktop : ScrollArea */}
         {isMobile ? (
           <div
-            className="will-change-transform"
+            className="will-change-transform pointer-events-none min-h-full"
             style={{
               minWidth: totalDays * dayWidth + labelWidth,
               height: schedulesWithDates.length * rowHeight + headerHeight + 20,

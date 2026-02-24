@@ -266,8 +266,8 @@ export default function AdminPlans() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="overflow-x-auto touch-pan-x -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: "touch" }}>
+                  <Table className="min-w-[640px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12"></TableHead>

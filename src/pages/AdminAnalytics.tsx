@@ -750,7 +750,8 @@ export default function AdminAnalytics() {
                   {loading ? (
                     <p className="text-muted-foreground">Chargement...</p>
                   ) : (
-                    <Table>
+                    <div className="overflow-x-auto touch-pan-x -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: "touch" }}>
+                    <Table className="min-w-[600px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Utilisateur</TableHead>
@@ -790,6 +791,7 @@ export default function AdminAnalytics() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -844,7 +846,8 @@ export default function AdminAnalytics() {
                   ) : filteredBugReports.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">Aucun bug trouvé</p>
                   ) : (
-                    <Table>
+                    <div className="overflow-x-auto touch-pan-x -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: "touch" }}>
+                    <Table className="min-w-[640px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>

@@ -1007,60 +1007,61 @@ const ProjectGallery = () => {
             </div>
           </div>
 
-          {/* Search bar + filter + Tabs - sticky pour rester visible (clavier mobile) */}
+          {/* Barre de recherche - HORS des Tabs pour éviter disparition (focus/portails Radix) */}
+          <div className="mb-4">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                inputMode="search"
+                autoComplete="off"
+                placeholder={t("gallery.searchPlaceholder", "Rechercher par nom de fichier enregistré")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* Tabs avec filtre */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="sticky top-0 z-10 bg-background pt-2 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-col gap-3 mb-2">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
-                {/* Search bar - min-w pour éviter collapse sur mobile */}
-                <div className="relative flex-1 min-w-[140px] w-full sm:max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    inputMode="search"
-                    autoComplete="off"
-                    placeholder={t("gallery.searchPlaceholder", "Rechercher par nom de fichier enregistré")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 min-h-[44px] text-base"
-                  />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+              {/* Filter par étape / catégorie */}
+              {activeTab === "photos" && (
+                <div className="shrink-0 w-full sm:w-[220px]">
+                  <Select value={selectedStep} onValueChange={setSelectedStep}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("gallery.filterByStep")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("gallery.allSteps")}</SelectItem>
+                      {Object.keys(photosByStep).map((stepId) => (
+                        <SelectItem key={stepId} value={stepId}>
+                          {getStepTitle(stepId)} ({photosByStep[stepId].length})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {/* Filter par étape / catégorie */}
-                {activeTab === "photos" && (
-                  <div className="shrink-0 w-full sm:w-[220px]">
-                    <Select value={selectedStep} onValueChange={setSelectedStep}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("gallery.filterByStep")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t("gallery.allSteps")}</SelectItem>
-                        {Object.keys(photosByStep).map((stepId) => (
-                          <SelectItem key={stepId} value={stepId}>
-                            {getStepTitle(stepId)} ({photosByStep[stepId].length})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {activeTab === "documents" && (
-                  <div className="shrink-0 w-full sm:w-[220px]">
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("gallery.filterByCategory")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {documentCategories.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              {/* Tabs */}
-              <TabsList className="flex flex-wrap w-full max-w-2xl gap-1 p-1 h-auto min-h-[44px]">
+              )}
+              {activeTab === "documents" && (
+                <div className="shrink-0 w-full sm:w-[220px]">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("gallery.filterByCategory")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {documentCategories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <TabsList className="flex flex-wrap w-full max-w-2xl gap-1 p-1 h-auto min-h-[44px]">
                 <TabsTrigger value="photos" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
                   <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                   <span className="truncate">{t("gallery.photos")} ({photos.length})</span>
@@ -1078,7 +1079,6 @@ const ProjectGallery = () => {
                   <span className="truncate">Factures ({facturesMateriaux.length})</span>
                 </TabsTrigger>
               </TabsList>
-            </div>
 
             {/* Photos Tab */}
             <TabsContent value="photos" className="mt-4">

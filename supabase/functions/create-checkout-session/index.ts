@@ -108,6 +108,7 @@ serve(async (req) => {
       payment_method_types: ["card"],
       locale,
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       success_url: `${baseUrl}/#/mes-projets?checkout=success`,
       cancel_url: `${baseUrl}/#/forfaits?checkout=cancelled`,
       client_reference_id: user.id,

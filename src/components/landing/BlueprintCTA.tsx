@@ -14,9 +14,9 @@ export function BlueprintCTA() {
   ];
 
   return (
-    <section className="py-16 lg:py-24 bg-muted/30">
-      <div className="container">
-        <div className="relative overflow-hidden rounded-3xl bg-navy blueprint-pattern p-8 md:p-12 lg:p-16">
+    <section className="py-16 lg:py-24 bg-muted/30 overflow-x-hidden">
+      <div className="container px-4 sm:px-6">
+        <div className="relative overflow-hidden rounded-3xl bg-navy blueprint-pattern p-6 sm:p-8 md:p-12 lg:p-16 min-w-0">
           {/* House outline in background */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-[0.06] pointer-events-none">
             <svg
@@ -40,30 +40,34 @@ export function BlueprintCTA() {
             </svg>
           </div>
 
-          <div className="relative grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
-            <div>
-              <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <div className="relative grid gap-8 lg:grid-cols-2 lg:gap-12 items-center min-w-0">
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl break-words">
                 {t("cta.title")}
               </h2>
-              <p className="mt-4 text-lg text-slate-300">
+              <p className="mt-4 text-base sm:text-lg text-slate-300 break-words">
                 {t("cta.subtitle")}
               </p>
 
               <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                 {benefits.map((benefit) => (
-                  <li key={benefit} className="flex items-center gap-2 text-slate-200">
+                  <li key={benefit} className="flex items-center gap-2 text-slate-200 min-w-0">
                     <CheckCircle2 className="h-5 w-5 text-amber-500 shrink-0" />
-                    <span className="text-sm">{benefit}</span>
+                    <span className="text-sm break-words">{benefit}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="flex flex-col items-center lg:items-end gap-4">
-              <Link to="/start">
-                <Button variant="accent" size="xl" className="w-full sm:w-auto">
+            <div className="flex flex-col items-center lg:items-end gap-4 min-w-0">
+              <Link to="/start" className="w-full sm:w-auto">
+                <Button
+                  variant="accent"
+                  size="xl"
+                  className="w-full sm:w-auto text-sm sm:text-base whitespace-normal h-auto py-3 px-6 min-w-0"
+                >
                   {t("cta.button")}
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-5 w-5 shrink-0 ml-1" />
                 </Button>
               </Link>
             </div>

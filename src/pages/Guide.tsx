@@ -252,7 +252,7 @@ const Guide = () => {
               <CardDescription>{t("guide.usefulLinksDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <a
                   href="https://www.rbq.gouv.qc.ca"
                   target="_blank"
@@ -261,16 +261,6 @@ const Guide = () => {
                 >
                   <Shield className="h-4 w-4 text-accent" />
                   <span className="text-sm font-medium">RBQ</span>
-                  <Badge variant="outline" className="ml-auto text-xs">{t("guide.official")}</Badge>
-                </a>
-                <a
-                  href="https://www.garantiegcr.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span className="text-sm font-medium">GCR</span>
                   <Badge variant="outline" className="ml-auto text-xs">{t("guide.official")}</Badge>
                 </a>
                 <a

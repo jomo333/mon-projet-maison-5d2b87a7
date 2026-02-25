@@ -1,4 +1,4 @@
-import { Home, Settings } from "lucide-react";
+import { Home, Mail, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCookieConsent } from "@/components/cookies/CookieConsent";
@@ -23,9 +23,9 @@ export function BlueprintFooter() {
   const { t } = useTranslation();
 
   return (
-    <footer className="bg-navy text-slate-300 border-t border-slate-800">
-      <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+    <footer className="bg-navy text-slate-300 border-t border-slate-800 pb-20 sm:pb-12">
+      <div className="container py-12 px-4 sm:px-6">
+        <div className="grid gap-8 md:grid-cols-5">
           {/* Brand */}
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2.5">
@@ -96,6 +96,22 @@ export function BlueprintFooter() {
                     </button>
                   }
                 />
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="font-display font-semibold text-white mb-4">{t("footer.contact")}</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <a
+                  href="mailto:info@monprojetmaison.ca"
+                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-amber-500 transition-colors"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  info@monprojetmaison.ca
+                </a>
               </li>
             </ul>
           </div>

@@ -95,11 +95,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex overflow-x-hidden">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden md:flex flex-col border-r border-border bg-card transition-all duration-300",
+          "hidden md:flex flex-col flex-shrink-0 border-r border-border bg-card transition-all duration-300",
           sidebarOpen ? "w-64" : "w-16"
         )}
       >
@@ -149,8 +149,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <SidebarContent />
       </aside>
 
-      {/* Main Content - overflow-auto + touch pour scroll mobile (portrait/paysage) */}
-      <main className="flex-1 min-w-0 min-h-screen md:pt-0 pt-14 overflow-auto overscroll-contain touch-pan-y touch-pan-x">
+      {/* Main Content - overflow-auto + min-h-0 pour activer le scroll vertical */}
+      <main className="flex-1 min-w-0 min-h-0 md:pt-0 pt-14 overflow-auto overscroll-contain touch-pan-y touch-pan-x">
         <div className="min-w-0 p-4 sm:p-6 lg:p-8 w-full max-w-full">{children}</div>
       </main>
     </div>

@@ -136,10 +136,10 @@ export function ChatAssistant() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
-        {/* Welcome bubble with gradient */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 max-sm:bottom-20 max-sm:right-3">
+        {/* Welcome bubble - above FAB on mobile to avoid covering footer */}
         {showWelcome && (
-          <div className="relative bg-gradient-to-br from-primary via-accent to-primary/80 text-primary-foreground rounded-2xl px-4 py-3 shadow-xl max-w-[280px] animate-fade-in">
+          <div className="relative bg-gradient-to-br from-primary via-accent to-primary/80 text-primary-foreground rounded-2xl px-4 py-3 shadow-xl w-[calc(100vw-2rem)] max-w-[280px] sm:max-w-[280px] animate-fade-in">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -150,9 +150,9 @@ export function ChatAssistant() {
             >
               <X className="h-3 w-3" />
             </button>
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 min-w-0">
               <Bot className="h-5 w-5 mt-0.5 shrink-0" />
-              <p className="text-sm font-medium leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed break-words">
                 {t("chatAssistant.welcomeBubble")}
               </p>
             </div>
@@ -160,7 +160,7 @@ export function ChatAssistant() {
             <div className="absolute -bottom-2 right-6 w-4 h-4 bg-gradient-to-br from-primary/80 to-accent rotate-45" />
           </div>
         )}
-        
+
         {/* FAB button */}
         <Button
           onClick={() => setIsOpen(true)}

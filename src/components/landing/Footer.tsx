@@ -88,9 +88,14 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold mb-4">{t("footer.contact")}</h4>
             <ul className="space-y-2">
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                info@monprojetmaison.ca
+              <li>
+                <a
+                  href="mailto:info@monprojetmaison.ca"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  info@monprojetmaison.ca
+                </a>
               </li>
             </ul>
           </div>

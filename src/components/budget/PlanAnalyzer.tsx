@@ -124,8 +124,13 @@ import type {
   StylePhoto 
 } from "./types";
 
+export interface BudgetConfigForSave {
+  finishQuality: "economique" | "standard" | "haut-de-gamme";
+  materialChoices: Record<string, string>;
+}
+
 interface PlanAnalyzerProps {
-  onBudgetGenerated: (categories: BudgetCategory[]) => void | Promise<void>;
+  onBudgetGenerated: (categories: BudgetCategory[], config?: BudgetConfigForSave) => void | Promise<void>;
   projectId?: string | null;
   /** When true, auto-select the "Analyse de plan" tab on mount */
   autoSelectPlanTab?: boolean;
@@ -752,6 +757,25 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
         }
         if (data.success && data.data) {
           setAnalysis(data.data);
+          if (projectId) {
+            const notes = JSON.stringify({
+              finishQuality,
+              materialChoices: {
+                exteriorSiding: exteriorSiding || "",
+                roofingType: roofingType || "",
+                flooringType: flooringType || "",
+                cabinetType: cabinetType || "",
+                countertopType: countertopType || "",
+                heatingType: heatingType || "",
+                windowType: windowType || "",
+                insulationType: insulationType || "",
+              },
+            });
+            const { data: existing } = await supabase.from("task_dates").select("id").eq("project_id", projectId).eq("step_id", "planification").eq("task_id", "budget-config").maybeSingle();
+            if (existing) await supabase.from("task_dates").update({ notes, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            else await supabase.from("task_dates").insert({ project_id: projectId, step_id: "planification", task_id: "budget-config", notes });
+            queryClient.invalidateQueries({ queryKey: ["budget-config", projectId] });
+          }
           toast.success(t("toasts.analysisDone"));
           window.dispatchEvent(new CustomEvent("subscription-refetch"));
         } else {
@@ -984,6 +1008,25 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
               warnings: singleResult.warnings || [],
             });
           }
+          if (projectId) {
+            const notes = JSON.stringify({
+              finishQuality,
+              materialChoices: {
+                exteriorSiding: exteriorSiding || "",
+                roofingType: roofingType || "",
+                flooringType: flooringType || "",
+                cabinetType: cabinetType || "",
+                countertopType: countertopType || "",
+                heatingType: heatingType || "",
+                windowType: windowType || "",
+                insulationType: insulationType || "",
+              },
+            });
+            const { data: existing } = await supabase.from("task_dates").select("id").eq("project_id", projectId).eq("step_id", "planification").eq("task_id", "budget-config").maybeSingle();
+            if (existing) await supabase.from("task_dates").update({ notes, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            else await supabase.from("task_dates").insert({ project_id: projectId, step_id: "planification", task_id: "budget-config", notes });
+            queryClient.invalidateQueries({ queryKey: ["budget-config", projectId] });
+          }
         } else {
           // Plusieurs lots: envoyer tous les résultats au serveur pour fusion
           toast.info(t("toasts.mergingResults"));
@@ -1016,6 +1059,25 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
           
           if (mergedData?.success && mergedData?.data) {
             setAnalysis(mergedData.data);
+            if (projectId) {
+              const notes = JSON.stringify({
+                finishQuality,
+                materialChoices: {
+                  exteriorSiding: exteriorSiding || "",
+                  roofingType: roofingType || "",
+                  flooringType: flooringType || "",
+                  cabinetType: cabinetType || "",
+                  countertopType: countertopType || "",
+                  heatingType: heatingType || "",
+                  windowType: windowType || "",
+                  insulationType: insulationType || "",
+                },
+              });
+              const { data: existing } = await supabase.from("task_dates").select("id").eq("project_id", projectId).eq("step_id", "planification").eq("task_id", "budget-config").maybeSingle();
+              if (existing) await supabase.from("task_dates").update({ notes, updated_at: new Date().toISOString() }).eq("id", existing.id);
+              else await supabase.from("task_dates").insert({ project_id: projectId, step_id: "planification", task_id: "budget-config", notes });
+              queryClient.invalidateQueries({ queryKey: ["budget-config", projectId] });
+            }
           } else {
             throw new Error(mergedData?.error || "Échec de la fusion des résultats - " + JSON.stringify(mergedData).slice(0, 200));
           }
@@ -1046,8 +1108,20 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
 
   const handleApplyBudget = async () => {
     if (analysis?.categories) {
-      // Sauvegarder le budget et attendre que la sauvegarde + cache soient à jour avant de rediriger
-      await onBudgetGenerated(analysis.categories);
+      const config: BudgetConfigForSave = {
+        finishQuality,
+        materialChoices: {
+          exteriorSiding: exteriorSiding || "",
+          roofingType: roofingType || "",
+          flooringType: flooringType || "",
+          cabinetType: cabinetType || "",
+          countertopType: countertopType || "",
+          heatingType: heatingType || "",
+          windowType: windowType || "",
+          insulationType: insulationType || "",
+        },
+      };
+      await onBudgetGenerated(analysis.categories, config);
       toast.success(t("toasts.budgetApplied"));
 
       if (onGenerateSchedule && projectId) {

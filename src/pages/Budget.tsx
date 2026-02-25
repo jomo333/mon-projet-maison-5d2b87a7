@@ -574,8 +574,10 @@ const Budget = () => {
     color: cat.color,
   }));
 
-  const handleBudgetGenerated = async (categories: IncomingAnalysisCategory[]) => {
-    // Convert analysis (12 categories) -> step categories (our table)
+  const handleBudgetGenerated = async (
+    categories: IncomingAnalysisCategory[],
+    config?: { finishQuality: string; materialChoices: Record<string, string> }
+  ) => {
     const mapped = mapAnalysisToStepCategories(categories, projectAwareCategories).map(cat => ({
       ...cat,
       spent: cat.spent ?? 0,
@@ -589,6 +591,29 @@ const Budget = () => {
         onError: (err) => reject(err),
       });
     });
+
+    if (selectedProjectId && config) {
+      const { data: existing } = await supabase
+        .from("task_dates")
+        .select("id")
+        .eq("project_id", selectedProjectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "budget-config")
+        .maybeSingle();
+      const notes = JSON.stringify({ finishQuality: config.finishQuality, materialChoices: config.materialChoices });
+      if (existing) {
+        await supabase.from("task_dates").update({ notes, updated_at: new Date().toISOString() }).eq("id", existing.id);
+      } else {
+        await supabase.from("task_dates").insert({
+          project_id: selectedProjectId,
+          step_id: "planification",
+          task_id: "budget-config",
+          notes,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["budget-config", selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: ["task-dates", selectedProjectId] });
+    }
   };
 
   const toggleCategory = (categoryName: string) => {

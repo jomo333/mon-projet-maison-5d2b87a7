@@ -716,7 +716,10 @@
       "materialsQuality": "Qualité / type de matériaux",
       "notSpecified": "Non spécifié (estimation par défaut)",
       "besoinsNoteTitle": "Note sur vos besoins",
-      "attachmentsTitle": "Pièces jointes",
+      "noNote": "Aucune note",
+      "attachmentsTitle": "Pièces jointes (photos de style et plans)",
+      "stylePhoto": "Photo de style",
+      "planImage": "Plan",
       "imageLoadError": "[Image non disponible]",
       "generationError": "Erreur lors de la création du PDF"
     },

@@ -670,6 +670,15 @@
     "confirmedSupplier": "Confirmed Supplier",
     "contactPerson": "Contact",
     "amountPlaceholder": "0.00",
+    "pdf": {
+      "besoinsNoteTitle": "Note on your needs",
+      "noNote": "No note",
+      "attachmentsTitle": "Attachments (style photos and plans)",
+      "stylePhoto": "Style photo",
+      "planImage": "Plan",
+      "imageLoadError": "[Image unavailable]",
+      "generationError": "Error creating PDF"
+    },
     "categories": {
       "Excavation": "Excavation",
       "Fondation": "Foundation",

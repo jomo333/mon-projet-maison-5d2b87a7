@@ -66,31 +66,31 @@ export default function AdminPromotions() {
   const [formExpiresDays, setFormExpiresDays] = useState("");
   const [formName, setFormName] = useState("");
 
-  const getValidToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-    return refreshed?.access_token ?? session?.access_token;
-  };
-
   const fetchCodes = async () => {
     setLoading(true);
     try {
-      const token = await getValidToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+      const token = refreshed?.access_token ?? session?.access_token;
       if (!token) {
         toast.error("Non connecté");
         return;
       }
       const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
       const res = await fetch(`${baseUrl}/functions/v1/stripe-promotion-codes`, {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(anonKey && { apikey: anonKey }),
+        },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data?.error || "Erreur chargement des codes");
+        toast.error((data as { error?: string })?.error || "Erreur chargement des codes");
         return;
       }
-      setCodes(data.codes || []);
+      setCodes((data as { codes?: PromoCode[] })?.codes || []);
     } catch (e) {
       console.error(e);
       toast.error("Erreur réseau");
@@ -122,12 +122,13 @@ export default function AdminPromotions() {
 
     setCreating(true);
     try {
-      const token = await getValidToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+      const token = refreshed?.access_token ?? session?.access_token;
       if (!token) {
         toast.error("Non connecté");
         return;
       }
-      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
       const body: Record<string, unknown> = {
         code: codeStr,
         discount_type: formDiscountType,
@@ -152,22 +153,26 @@ export default function AdminPromotions() {
       }
       if (formName.trim()) body.name = formName.trim();
 
-      const res = await fetch(`${baseUrl}/functions/v1/stripe-promotion-codes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
+      // invoke gère automatiquement apikey + Authorization (session courante)
+      const { data, error } = await supabase.functions.invoke("stripe-promotion-codes", {
+        body,
       });
-      const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        toast.error(data?.error || "Erreur création du code");
+      if (error) {
+        toast.error(error.message || "Erreur création du code");
         return;
       }
 
-      toast.success(`Code "${data.code}" créé avec succès`);
+      const resData = data as { code?: string; error?: string };
+      if (resData?.error) {
+        toast.error(resData.error);
+        return;
+      }
+
+      toast.success(`Code "${resData?.code ?? formCode.trim().toUpperCase()}" créé avec succès`);
       setCreateOpen(false);
       resetForm();
-      fetchCodes();
+      await fetchCodes();
     } catch (err) {
       console.error(err);
       toast.error("Erreur lors de la création");

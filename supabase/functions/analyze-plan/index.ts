@@ -3065,7 +3065,7 @@ Retourne le JSON structuré COMPLET.`;
         },
         body: JSON.stringify({
           model: textModel,
-          max_tokens: 8192,
+          max_tokens: 32768,
           temperature: 0,
           system: `${SYSTEM_PROMPT_EXTRACTION}\n\n${lang?.startsWith("en")
             ? "IMPORTANT: Respond ONLY in ENGLISH. All strings in the JSON must be in English."
@@ -3087,6 +3087,10 @@ Retourne le JSON structuré COMPLET.`;
 
       const textData = await textResp.json();
       finalContent = textData.content?.[0]?.text || '';
+      const stopReason = textData.stop_reason || textData.content?.[0]?.stop_reason;
+      if (stopReason === 'max_tokens') {
+        console.warn('Claude manual response was truncated (max_tokens). Consider increasing max_tokens.');
+      }
       console.log('Claude text analysis complete');
     }
 
@@ -3109,6 +3113,9 @@ Retourne le JSON structuré COMPLET.`;
       if (jsonStart > 0) {
         cleanContent = cleanContent.substring(jsonStart);
       }
+      
+      // Remove trailing commas before ] or } (invalid in JSON, often produced by truncated model output)
+      cleanContent = cleanContent.replace(/,(\s*[}\]])/g, '$1');
       
       try {
         budgetData = JSON.parse(cleanContent);
@@ -3133,24 +3140,17 @@ Retourne le JSON structuré COMPLET.`;
           repairedContent += '}';
           braceCount--;
         }
+        repairedContent = repairedContent.replace(/,(\s*[}\]])/g, '$1');
         
         try {
           budgetData = JSON.parse(repairedContent);
           console.log('JSON repair successful');
         } catch (secondTry) {
-          console.error('JSON repair failed, creating fallback response');
-          budgetData = {
-            extraction: {
-              type_projet: "ANALYSE_INCOMPLETE",
-              superficie_nouvelle_pi2: 0,
-              nombre_etages: 1,
-              categories: [],
-              elements_manquants: ["L'analyse a été interrompue - veuillez réessayer"]
-            },
-            totaux: { total_ttc: 0 },
-            recommandations: ["Veuillez relancer l'analyse - la réponse a été tronquée"],
-            resume_projet: "Analyse incomplète"
-          };
+          console.error('JSON repair failed, returning error instead of fallback');
+          return new Response(
+            JSON.stringify({ success: false, error: "L'analyse a été interrompue (réponse tronquée). Veuillez réessayer." }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
       }
     } catch (parseError) {

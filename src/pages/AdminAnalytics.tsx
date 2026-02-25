@@ -1034,7 +1034,6 @@ export default function AdminAnalytics() {
                         ))}
                       </TableBody>
                     </Table>
-                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1083,7 +1082,6 @@ export default function AdminAnalytics() {
                         ))}
                       </TableBody>
                     </Table>
-                    </div>
                   )}
 
                   {/* Storage Summary */}
@@ -1174,7 +1172,6 @@ export default function AdminAnalytics() {
                         </TableRow>
                       </TableBody>
                     </Table>
-                    </div>
                   )}
                 </CardContent>
               </Card>

@@ -66,11 +66,16 @@ export default function AdminPromotions() {
   const [formExpiresDays, setFormExpiresDays] = useState("");
   const [formName, setFormName] = useState("");
 
+  const getValidToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+    return refreshed?.access_token ?? session?.access_token;
+  };
+
   const fetchCodes = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getValidToken();
       if (!token) {
         toast.error("Non connecté");
         return;
@@ -117,8 +122,7 @@ export default function AdminPromotions() {
 
     setCreating(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getValidToken();
       if (!token) {
         toast.error("Non connecté");
         return;

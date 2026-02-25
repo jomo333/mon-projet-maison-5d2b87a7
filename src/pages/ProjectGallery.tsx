@@ -40,6 +40,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { 
   Camera, 
@@ -64,7 +70,9 @@ import {
   Receipt,
   Upload,
   Plus,
-  Search
+  Search,
+  BarChart2,
+  ChevronDown
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { toast } from "sonner";
@@ -270,13 +278,71 @@ const ProjectGallery = () => {
     });
   };
 
-  // Download all files as organized ZIP
-  const downloadAllAsZip = async () => {
+  type ZipSection = "all" | "photos" | "documents" | "soumissions" | "factures" | "bilan";
+
+  const categoryNames: Record<string, string> = {
+    plan: "Plans",
+    devis: "Devis",
+    contract: "Contrats",
+    permit: "Permis",
+    permis: "Permis",
+    facture: "Factures",
+    photo: "Photos",
+    other: "Autres",
+    soumission: "Soumissions",
+    analyse: "Analyses",
+    bilan: "Bilan",
+  };
+
+  const addDocsToZipFolder = async (
+    folder: JSZip | null,
+    docs: { id: string; file_url: string; file_name: string; category?: string }[],
+    addedFiles: Set<string>,
+    useCategorySubfolders: boolean
+  ) => {
+    if (!folder) return;
+    for (const doc of docs) {
+      if (addedFiles.has(doc.file_url)) continue;
+      const categoryName = (doc.category && categoryNames[doc.category]) || "Autres";
+      const targetFolder = useCategorySubfolders ? folder.folder(categoryName) : folder;
+      if (!targetFolder) continue;
+      const signedUrl = docSignedUrls.get(doc.id) || await getSignedUrlFromPublicUrl(doc.file_url);
+      const urlToUse = signedUrl || doc.file_url;
+      try {
+        const response = await fetch(urlToUse);
+        if (response.ok) {
+          const blob = await response.blob();
+          targetFolder.file(doc.file_name, blob);
+          addedFiles.add(doc.file_url);
+        }
+      } catch (e) {
+        console.error("Error downloading document:", e);
+      }
+    }
+  };
+
+  const downloadAsZip = async (section: ZipSection) => {
     if (isFreePlan) {
       toast.error(t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP"));
       return;
     }
-    if (!project || (!photos.length && !documents.length)) {
+    const nonSoumissionDocs = documents.filter(
+      (d) =>
+        d.step_id !== "soumissions" &&
+        d.category !== "soumission" &&
+        d.category !== "analyse" &&
+        d.step_id !== "bilan"
+    );
+    const bilanDocs = documents.filter((d) => d.step_id === "bilan");
+
+    const hasPhotos = section === "all" || section === "photos" ? photos.length > 0 : false;
+    const hasDocs =
+      section === "all" ||
+      (section === "documents" && nonSoumissionDocs.length > 0) ||
+      (section === "soumissions" && soumissionDocs.length > 0) ||
+      (section === "factures" && facturesMateriaux.length > 0) ||
+      (section === "bilan" && bilanDocs.length > 0);
+    if (!project || (!hasPhotos && !hasDocs)) {
       toast.error(t("gallery.noFilesToDownload"));
       return;
     }
@@ -287,75 +353,55 @@ const ProjectGallery = () => {
     const addedFiles = new Set<string>();
 
     try {
-      // Add photos organized by step
-      const photosFolder = zip.folder("Photos");
-      if (photosFolder) {
-        for (const photo of photos) {
-          const stepName = getStepTitle(photo.step_id).replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").trim() || photo.step_id;
-          const stepFolder = photosFolder.folder(stepName);
-          
-          if (stepFolder && !addedFiles.has(photo.file_url)) {
-            const signedUrl = photoSignedUrls.get(photo.id) || await getSignedUrl("project-photos", photo.file_url);
-            if (signedUrl) {
-              try {
-                const response = await fetch(signedUrl);
-                if (response.ok) {
-                  const blob = await response.blob();
-                  stepFolder.file(photo.file_name, blob);
-                  addedFiles.add(photo.file_url);
+      if (section === "all" || section === "photos") {
+        const photosFolder = zip.folder("Photos");
+        if (photosFolder) {
+          for (const photo of photos) {
+            const stepName = getStepTitle(photo.step_id).replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").trim() || photo.step_id;
+            const stepFolder = photosFolder.folder(stepName);
+            if (stepFolder && !addedFiles.has(photo.file_url)) {
+              const signedUrl = photoSignedUrls.get(photo.id) || await getSignedUrl("project-photos", photo.file_url);
+              if (signedUrl) {
+                try {
+                  const response = await fetch(signedUrl);
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    stepFolder.file(photo.file_name, blob);
+                    addedFiles.add(photo.file_url);
+                  }
+                } catch (e) {
+                  console.error("Error downloading photo:", e);
                 }
-              } catch (e) {
-                console.error("Error downloading photo:", e);
               }
             }
           }
         }
       }
 
-      // Add documents organized by category
-      const docsFolder = zip.folder("Documents");
-      if (docsFolder) {
-        const categoryNames: Record<string, string> = {
-          plan: "Plans",
-          devis: "Devis",
-          contract: "Contrats",
-          permit: "Permis",
-          permis: "Permis",
-          facture: "Factures",
-          photo: "Photos",
-          other: "Autres",
-          soumission: "Soumissions",
-          analyse: "Analyses"
-        };
-
-        for (const doc of documents) {
-          const categoryName = categoryNames[doc.category] || "Autres";
-          const catFolder = docsFolder.folder(categoryName);
-          
-          if (catFolder && !addedFiles.has(doc.file_url)) {
-            const signedUrl = docSignedUrls.get(doc.id) || await getSignedUrlFromPublicUrl(doc.file_url);
-            const urlToUse = signedUrl || doc.file_url;
-            
-            try {
-              const response = await fetch(urlToUse);
-              if (response.ok) {
-                const blob = await response.blob();
-                catFolder.file(doc.file_name, blob);
-                addedFiles.add(doc.file_url);
-              }
-            } catch (e) {
-              console.error("Error downloading document:", e);
-            }
-          }
-        }
+      if (section === "all") {
+        const docsFolder = zip.folder("Documents");
+        await addDocsToZipFolder(docsFolder, documents, addedFiles, true);
+      } else if (section === "documents") {
+        const docsFolder = zip.folder("Documents");
+        await addDocsToZipFolder(docsFolder, nonSoumissionDocs, addedFiles, true);
+      } else if (section === "soumissions") {
+        const docsFolder = zip.folder("Soumissions");
+        await addDocsToZipFolder(docsFolder, soumissionDocs, addedFiles, false);
+      } else if (section === "factures") {
+        const docsFolder = zip.folder("Factures");
+        await addDocsToZipFolder(docsFolder, facturesMateriaux, addedFiles, false);
+      } else if (section === "bilan") {
+        const docsFolder = zip.folder("Bilan");
+        await addDocsToZipFolder(docsFolder, bilanDocs, addedFiles, false);
       }
 
-      // Generate ZIP and download
       const content = await zip.generateAsync({ type: "blob" });
       const url = window.URL.createObjectURL(content);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${projectName}_dossiers.zip`;
+      const sectionSuffix = section === "all" ? "dossiers" : section;
+      const downloadDate = new Date().toISOString().slice(0, 10);
+      a.download = `monprojetmaison.ca_${projectName}_${sectionSuffix}_${downloadDate}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -706,12 +752,14 @@ const ProjectGallery = () => {
         matchesSearch([p.file_name ?? "", getStepTitle(p.step_id)])
       );
 
-  // Filter documents - exclude soumissions (they appear in their own tab)
+  // Filter documents - exclude soumissions (their tab) and bilan (Bilan tab)
   const nonSoumissionDocs = documents.filter(d => 
     d.step_id !== "soumissions" && 
     d.category !== "soumission" && 
-    d.category !== "analyse"
+    d.category !== "analyse" &&
+    d.step_id !== "bilan"
   );
+  const bilanDocs = documents.filter(d => d.step_id === "bilan");
   
   const filteredDocumentsBase = selectedCategory === "all"
     ? nonSoumissionDocs
@@ -974,28 +1022,58 @@ const ProjectGallery = () => {
                 </Select>
               </div>
               
-              {/* Download all button */}
+              {/* Download ZIP: tout ou un dossier */}
               <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={downloadAllAsZip}
-                  disabled={isDownloadingAll || isFreePlan || (!photos.length && !documents.length)}
-                  title={isFreePlan ? t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP") : undefined}
-                  className="gap-2"
-                >
-                  {isDownloadingAll ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {t("gallery.downloading", "Téléchargement...")}
-                    </>
-                  ) : (
-                    <>
-                      <FolderArchive className="h-4 w-4" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isDownloadingAll || isFreePlan || (!photos.length && !documents.length)}
+                      title={isFreePlan ? t("gallery.downloadZipLocked", "Passez à un forfait supérieur pour télécharger vos documents en ZIP") : undefined}
+                      className="gap-2"
+                    >
+                      {isDownloadingAll ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t("gallery.downloading", "Téléchargement...")}
+                        </>
+                      ) : (
+                        <>
+                          <FolderArchive className="h-4 w-4" />
+                          {t("gallery.downloadZip", "Télécharger en ZIP")}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => downloadAsZip("all")}>
+                      <FolderArchive className="h-4 w-4 mr-2" />
                       {t("gallery.downloadAll", "Tout télécharger")}
-                    </>
-                  )}
-                </Button>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadAsZip("photos")} disabled={!photos.length}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      {t("gallery.photos", "Photos")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadAsZip("documents")} disabled={!nonSoumissionDocs.length}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {t("gallery.documents", "Documents")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadAsZip("soumissions")} disabled={!soumissionDocs.length}>
+                      <ClipboardCheck className="h-4 w-4 mr-2" />
+                      {t("gallery.quotes", "Soumissions")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadAsZip("factures")} disabled={!facturesMateriaux.length}>
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Factures
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadAsZip("bilan")} disabled={!bilanDocs.length}>
+                      <BarChart2 className="h-4 w-4 mr-2" />
+                      {t("gallery.bilan", "Bilan")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {isFreePlan && (
                   <Alert className="py-2">
                     <AlertDescription className="text-sm">
@@ -1077,6 +1155,10 @@ const ProjectGallery = () => {
                 <TabsTrigger value="factures" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
                   <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                   <span className="truncate">Factures ({facturesMateriaux.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="bilan" className="flex-1 min-w-[calc(50%-2px)] sm:min-w-0 gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+                  <BarChart2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">{t("gallery.bilan", "Bilan")} ({bilanDocs.length})</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1257,6 +1339,116 @@ const ProjectGallery = () => {
                                 {documentCategories.find(c => c.value === doc.category)?.label || doc.category}
                               </Badge>
                               <span>{getStepTitle(doc.step_id)}</span>
+                              {doc.file_size && (
+                                <span>• {formatFileSize(doc.file_size)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {isPreviewable && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Visualiser"
+                                onClick={() => setPreviewDocument({
+                                  url: doc.file_url,
+                                  name: doc.file_name,
+                                  type: doc.file_type
+                                })}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={isFreePlan ? t("gallery.downloadZipLocked") : "Télécharger"}
+                              disabled={isFreePlan}
+                              className={isFreePlan ? "opacity-50 cursor-not-allowed" : ""}
+                              onClick={async () => {
+                                await downloadFile(doc.file_url, doc.file_name);
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={t("common.delete", "Supprimer")}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t("common.confirmDelete", "Confirmer la suppression")}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t("gallery.deleteDocConfirm", "Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible.")}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t("common.cancel", "Annuler")}</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteDocumentMutation.mutate({ id: doc.id, file_url: doc.file_url })}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {t("common.delete", "Supprimer")}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Bilan Tab */}
+            <TabsContent value="bilan" className="mt-4">
+              {documentsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 rounded-lg" />
+                  ))}
+                </div>
+              ) : bilanDocs.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <BarChart2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">
+                      {t("gallery.noBilan", "Aucun bilan enregistré")}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t("gallery.noBilanDesc", "Générez un budget préliminaire ou réel depuis la page Budget et cochez « Enregistrer dans Mes Dossiers ».")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {bilanDocs.map((doc) => {
+                    const FileIcon = getFileIcon(doc.file_type);
+                    const isPreviewable = canPreview(doc.file_type);
+                    const bilanLabel = doc.task_id === "bilan-preliminaire"
+                      ? t("gallery.bilanPreliminary", "Budget préliminaire")
+                      : t("gallery.bilanActual", "Budget réel");
+                    return (
+                      <Card key={doc.id} className="hover:bg-muted/50 transition-colors">
+                        <CardContent className="p-4 flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <FileIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.file_name}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">
+                                {bilanLabel}
+                              </Badge>
                               {doc.file_size && (
                                 <span>• {formatFileSize(doc.file_size)}</span>
                               )}

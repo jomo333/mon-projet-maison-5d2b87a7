@@ -79,7 +79,8 @@ serve(async (req) => {
       const list = await stripe.promotionCodes.list({
         active: true,
         limit: 100,
-      }, { expand: ["data.coupon"] });
+        expand: ["data.coupon"],
+      });
       const codes = (list.data || []).map((pc) => {
         const coupon = pc.coupon as Stripe.Coupon;
         return {

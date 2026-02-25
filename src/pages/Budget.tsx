@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, FileDown } from "lucide-react";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
+import { BudgetPdfExportDialog } from "@/components/budget/BudgetPdfExportDialog";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
@@ -161,7 +162,8 @@ const Budget = () => {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<BudgetCategory | null>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
-  
+  const [showPdfExport, setShowPdfExport] = useState(false);
+
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
   const planAnalyzerComponentRef = useRef<PlanAnalyzerHandle>(null);
@@ -210,11 +212,26 @@ const Budget = () => {
         .from("project_budgets")
         .select("*")
         .eq("project_id", selectedProjectId);
-      
+
       if (error) throw error;
       return data;
     },
     enabled: !!selectedProjectId,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, address, phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   // Fetch supplier info for all categories (from task_dates where suppliers are saved)
@@ -946,7 +963,7 @@ const Budget = () => {
           {/* Budget détaillé par catégorie - SECTION PRINCIPALE */}
           <Card className="animate-fade-in border-2 border-primary/20 shadow-lg" style={{ animationDelay: "300ms" }}>
             <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <CardTitle className="font-display text-xl flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
@@ -958,9 +975,20 @@ const Budget = () => {
                     {t("budget.detailedBudgetDesc")}
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30">
-                  {budgetCategories.length} {t("budget.categoriesCount", "catégories")}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPdfExport(true)}
+                    className="gap-2"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    {t("budget.pdf.button", "Créer un bilan PDF")}
+                  </Button>
+                  <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30">
+                    {budgetCategories.length} {t("budget.categoriesCount", "catégories")}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -1352,6 +1380,24 @@ const Budget = () => {
               onSave={handleSaveCategoryFromDialog}
             />
           )}
+
+          {/* Bilan PDF (préliminaire ou réel) */}
+          <BudgetPdfExportDialog
+            open={showPdfExport}
+            onOpenChange={setShowPdfExport}
+            budgetCategories={budgetCategories}
+            projectName={selectedProject?.name ?? null}
+            projectId={selectedProjectId}
+            translateCategoryName={(name) => getCategoryLabel(t, name)}
+            formatCurrency={formatCurrency}
+            userDisplayName={profile?.display_name ?? null}
+            userEmail={user?.email ?? null}
+            profileAddress={profile?.address ?? null}
+            profilePhone={profile?.phone ?? null}
+            userId={user?.id ?? null}
+            onProfileUpdated={() => queryClient.invalidateQueries({ queryKey: ["profile", user?.id] })}
+            onSavedToDossiers={() => queryClient.invalidateQueries({ queryKey: ["project-documents", selectedProjectId] })}
+          />
         </div>
       </main>
       <Footer />

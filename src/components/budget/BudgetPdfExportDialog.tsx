@@ -255,7 +255,8 @@ export function BudgetPdfExportDialog({
       doc.text(t("budget.pdf.besoinsNoteTitle", "Note sur vos besoins"), margin, y);
       y += 5;
       doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(options.besoinsNote, maxContentW);
+      const noteStr = typeof options.besoinsNote === "string" ? options.besoinsNote : String(options.besoinsNote ?? "");
+      const lines = doc.splitTextToSize(noteStr, maxContentW);
       for (const line of lines) {
         if (y > pageH - 25) {
           doc.addPage();
@@ -279,9 +280,11 @@ export function BudgetPdfExportDialog({
           doc.addPage();
           y = margin;
         }
-        const ratio = Math.min(imgMaxW / img.width, imgMaxH / img.height, 1);
-        const w = img.width * ratio;
-        const h = img.height * ratio;
+        const safeW = Math.max(1, Number(img.width) || 100);
+        const safeH = Math.max(1, Number(img.height) || 100);
+        const ratio = Math.min(imgMaxW / safeW, imgMaxH / safeH, 1);
+        const w = Math.max(5, safeW * ratio);
+        const h = Math.max(5, safeH * ratio);
         try {
           doc.addImage(img.dataUrl, img.format, margin, y, w, h);
         } catch {
@@ -336,10 +339,18 @@ export function BudgetPdfExportDialog({
       }
     }
 
+    const tableBody = rows.slice(1);
+    if (tableBody.length === 0) {
+      if (isActual) {
+        tableBody.push(["", t("budget.pdf.noItems", "Aucun poste pour le moment"), formatCurrency(0), formatCurrency(0)]);
+      } else {
+        tableBody.push(["", t("budget.pdf.noItems", "Aucun poste pour le moment"), formatCurrency(0)]);
+      }
+    }
     autoTable(doc, {
       startY: tableStartY,
       head: [rows[0]],
-      body: rows.slice(1),
+      body: tableBody,
       margin: { left: margin, right: margin },
       theme: "grid",
       styles: { fontSize: 9 },
@@ -440,7 +451,18 @@ export function BudgetPdfExportDialog({
         }
       }
 
-      const { blob, fileName } = buildPdf(pdfType, contact, pdfOptions);
+      let blob: Blob;
+      let fileName: string;
+      try {
+        const result = buildPdf(pdfType, contact, pdfOptions);
+        blob = result.blob;
+        fileName = result.fileName;
+      } catch (pdfErr) {
+        const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
+        console.error("buildPdf error:", pdfErr);
+        toast.error(t("budget.pdf.generationError", "Erreur lors de la création du PDF") + ": " + msg);
+        return;
+      }
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

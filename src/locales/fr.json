@@ -717,7 +717,8 @@
       "notSpecified": "Non spécifié (estimation par défaut)",
       "besoinsNoteTitle": "Note sur vos besoins",
       "attachmentsTitle": "Pièces jointes",
-      "imageLoadError": "[Image non disponible]"
+      "imageLoadError": "[Image non disponible]",
+      "generationError": "Erreur lors de la création du PDF"
     },
     "categories": {
       "Excavation": "Excavation",

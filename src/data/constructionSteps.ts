@@ -59,11 +59,12 @@ export const constructionSteps: Step[] = [
       {
         id: "preapprobation-planification",
         title: "Pré-approbation hypothécaire",
-        description: "Obtenez une pré-approbation de votre institution financière pour connaître votre capacité d'emprunt maximale.",
+        description: "Pour présenter un bilan clair à votre prêteur : 1) Allez dans Budget et faites la configuration manuelle (type de projet, superficie, étages, garage, etc.) ou l’analyse de vos plans pour générer votre budget. 2) Dans Budget détaillé par catégorie, cliquez sur « Créer un bilan PDF », choisissez « Budget préliminaire » et téléchargez le PDF. 3) Présentez ce document à votre institution pour obtenir votre pré-approbation.",
         tips: [
           "Comparez les offres de plusieurs banques et courtiers",
           "Une pré-approbation est généralement valide 90 à 120 jours",
-          "Préparez vos preuves de revenus et relevés bancaires"
+          "Préparez vos preuves de revenus et relevés bancaires",
+          "Le PDF préliminaire résume votre budget par poste et vos coordonnées : idéal pour le prêteur"
         ],
         documents: ["Talons de paie", "Avis de cotisation", "Relevés bancaires"]
       }

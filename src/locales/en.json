@@ -2034,11 +2034,12 @@
         },
         "preapprobation-planification": {
           "title": "Mortgage pre-approval",
-          "description": "Obtain pre-approval from your financial institution to know your maximum borrowing capacity.",
+          "description": "To present a clear budget to your lender: 1) Go to Budget and complete the manual configuration (project type, square footage, floors, garage, etc.) or analyze your plans to generate your budget. 2) In Budget detailed by category, click \"Create a budget PDF\", choose \"Preliminary budget\" and download the PDF. 3) Present this document to your institution to obtain your pre-approval.",
           "tips": [
             "Compare offers from multiple banks and brokers",
             "Pre-approval is usually valid for 90 to 120 days",
-            "Prepare your income proofs and bank statements"
+            "Prepare your income proofs and bank statements",
+            "The preliminary PDF summarizes your budget by item and your contact details: ideal for the lender"
           ],
           "documents": ["Pay stubs", "Tax assessment", "Bank statements"]
         }
@@ -3255,11 +3256,12 @@
         },
         "preapprobation-planification": {
           "title": "Mortgage pre-approval",
-          "description": "Get pre-approval from your financial institution to know your maximum borrowing capacity.",
+          "description": "To present a clear budget to your lender: 1) Go to Budget and complete the manual configuration (project type, square footage, floors, garage, etc.) or analyze your plans to generate your budget. 2) In Budget detailed by category, click \"Create a budget PDF\", choose \"Preliminary budget\" and download the PDF. 3) Present this document to your institution to obtain your pre-approval.",
           "tips": [
             "Compare offers from several banks and brokers",
             "A pre-approval is generally valid for 90 to 120 days",
-            "Prepare your proof of income and bank statements"
+            "Prepare your proof of income and bank statements",
+            "The preliminary PDF summarizes your budget by item and your contact details: ideal for the lender"
           ],
           "documents": ["Pay stubs", "Tax assessment notice", "Bank statements"]
         }

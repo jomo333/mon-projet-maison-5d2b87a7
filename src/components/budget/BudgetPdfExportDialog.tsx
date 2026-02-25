@@ -17,7 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { getSignedUrlFromPublicUrl } from "@/hooks/useSignedUrl";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export interface BudgetCategoryForPdf {
@@ -27,12 +28,21 @@ export interface BudgetCategoryForPdf {
   items?: { name: string; cost: number; quantity: string; unit: string }[];
 }
 
+export interface EstimationConfig {
+  projectType: string | null;
+  squareFootage: number | null;
+  numberOfFloors: number | null;
+  hasGarage: boolean | null;
+}
+
 interface BudgetPdfExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budgetCategories: BudgetCategoryForPdf[];
   projectName: string | null;
   projectId: string | null;
+  estimationConfig?: EstimationConfig | null;
+  translateProjectType?: (type: string | null) => string;
   translateCategoryName: (name: string) => string;
   formatCurrency: (n: number) => string;
   userDisplayName: string | null;
@@ -51,6 +61,8 @@ export function BudgetPdfExportDialog({
   onOpenChange,
   budgetCategories,
   projectName,
+  estimationConfig,
+  translateProjectType = () => "",
   translateCategoryName,
   formatCurrency,
   userDisplayName,
@@ -73,6 +85,50 @@ export function BudgetPdfExportDialog({
   const [saveToDossiers, setSaveToDossiers] = useState(true);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [savedToDossiers, setSavedToDossiers] = useState(false);
+
+  const { data: besoinsNote = null } = useQuery({
+    queryKey: ["besoins-note", projectId],
+    queryFn: async () => {
+      if (!projectId) return null;
+      const { data, error } = await supabase
+        .from("task_dates")
+        .select("notes")
+        .eq("project_id", projectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "besoins")
+        .maybeSingle();
+      if (error) throw error;
+      const note = data?.notes?.trim();
+      return note || null;
+    },
+    enabled: !!projectId && open,
+  });
+
+  const { data: besoinsAttachments = [] } = useQuery({
+    queryKey: ["besoins-attachments", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data: styleData, error: e1 } = await supabase
+        .from("task_attachments")
+        .select("id, file_url, file_name, file_type")
+        .eq("project_id", projectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "besoins")
+        .eq("category", "style");
+      if (e1) throw e1;
+      const { data: planData, error: e2 } = await supabase
+        .from("task_attachments")
+        .select("id, file_url, file_name, file_type")
+        .eq("project_id", projectId)
+        .eq("step_id", "budget")
+        .eq("category", "plan");
+      if (e2) throw e2;
+      const style = (styleData || []).map((r) => ({ ...r, category: "style" as const }));
+      const plans = (planData || []).map((r) => ({ ...r, category: "plan" as const }));
+      return [...style, ...plans];
+    },
+    enabled: !!projectId && open,
+  });
 
   useEffect(() => {
     if (open) {
@@ -99,12 +155,14 @@ export function BudgetPdfExportDialog({
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
-          address: address.trim() || null,
-          phone: phone.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
+        .upsert(
+          {
+            user_id: userId,
+            address: address.trim() || null,
+            phone: phone.trim() || null,
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
       toast.success(t("budget.pdf.contactSaved", "Coordonnées enregistrées"));
@@ -120,11 +178,14 @@ export function BudgetPdfExportDialog({
 
   const buildPdf = (
     type: PdfType,
-    contact: { displayName: string; email: string; address: string; phone: string }
+    contact: { displayName: string; email: string; address: string; phone: string },
+    options?: { besoinsNote?: string | null; imagesData?: { dataUrl: string; format: "JPEG" | "PNG"; width: number; height: number }[] }
   ): { blob: Blob; fileName: string } => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
     const margin = 14;
+    const maxContentW = pageW - 2 * margin;
     let y = margin;
 
     const title = type === "preliminary"
@@ -159,6 +220,78 @@ export function BudgetPdfExportDialog({
       if (contact.address) doc.text(contact.address, margin, y), (y += 5);
       if (contact.phone) doc.text(t("budget.pdf.phone", "Tél.") + " : " + contact.phone, margin, y), (y += 5);
       if (contact.email) doc.text(t("budget.pdf.email", "Courriel") + " : " + contact.email, margin, y), (y += 5);
+      y += 4;
+    }
+
+    if (type === "preliminary" && estimationConfig) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(t("budget.pdf.estimationDescriptif", "Descriptif de l'estimation (configuration manuelle)"), margin, y);
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      if (estimationConfig.projectType != null && estimationConfig.projectType !== "") {
+        doc.text(t("budget.pdf.projectType", "Type de projet") + " : " + translateProjectType(estimationConfig.projectType), margin, y);
+        y += 5;
+      }
+      if (estimationConfig.squareFootage != null && estimationConfig.squareFootage > 0) {
+        doc.text(t("budget.pdf.surface", "Superficie") + " : " + String(estimationConfig.squareFootage) + " " + t("budget.pdf.sqft", "pi²"), margin, y);
+        y += 5;
+      }
+      if (estimationConfig.numberOfFloors != null && estimationConfig.numberOfFloors > 0) {
+        doc.text(t("budget.pdf.numberOfFloors", "Nombre d'étages") + " : " + String(estimationConfig.numberOfFloors), margin, y);
+        y += 5;
+      }
+      if (estimationConfig.hasGarage != null) {
+        doc.text(t("budget.pdf.garage", "Garage") + " : " + (estimationConfig.hasGarage ? t("common.yes", "Oui") : t("common.no", "Non")), margin, y);
+        y += 5;
+      }
+      doc.text(t("budget.pdf.materialsQuality", "Qualité / type de matériaux") + " : " + t("budget.pdf.notSpecified", "Non spécifié (estimation par défaut)"), margin, y);
+      y += 6;
+    }
+
+    if (type === "preliminary" && options?.besoinsNote) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(t("budget.pdf.besoinsNoteTitle", "Note sur vos besoins"), margin, y);
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(options.besoinsNote, maxContentW);
+      for (const line of lines) {
+        if (y > pageH - 25) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 5;
+      }
+      y += 4;
+    }
+
+    if (type === "preliminary" && options?.imagesData && options.imagesData.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(t("budget.pdf.attachmentsTitle", "Pièces jointes"), margin, y);
+      y += 6;
+      const imgMaxW = maxContentW;
+      const imgMaxH = 50;
+      for (const img of options.imagesData) {
+        if (y > pageH - imgMaxH - 15) {
+          doc.addPage();
+          y = margin;
+        }
+        const ratio = Math.min(imgMaxW / img.width, imgMaxH / img.height, 1);
+        const w = img.width * ratio;
+        const h = img.height * ratio;
+        try {
+          doc.addImage(img.dataUrl, img.format, margin, y, w, h);
+        } catch {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.text(t("budget.pdf.imageLoadError", "[Image non disponible]"), margin, y + 5);
+          doc.setFont("helvetica", "bold");
+        }
+        y += h + 4;
+      }
       y += 4;
     }
 
@@ -273,7 +406,41 @@ export function BudgetPdfExportDialog({
         address: profileAddress ?? address.trim(),
         phone: profilePhone ?? phone.trim(),
       };
-      const { blob, fileName } = buildPdf(pdfType, contact);
+
+      let pdfOptions: { besoinsNote?: string | null; imagesData?: { dataUrl: string; format: "JPEG" | "PNG"; width: number; height: number }[] } | undefined;
+      if (pdfType === "preliminary") {
+        pdfOptions = { besoinsNote: besoinsNote ?? undefined };
+        if (besoinsAttachments.length > 0) {
+          const imagesData: { dataUrl: string; format: "JPEG" | "PNG"; width: number; height: number }[] = [];
+          for (const att of besoinsAttachments) {
+            try {
+              const urlToFetch = (await getSignedUrlFromPublicUrl(att.file_url).catch(() => null)) ?? att.file_url;
+              const res = await fetch(urlToFetch);
+              if (!res.ok) continue;
+              const blob = await res.blob();
+              const dataUrl = await new Promise<string>((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result as string);
+                r.onerror = reject;
+                r.readAsDataURL(blob);
+              });
+              const format = (att.file_type?.toLowerCase().includes("png") ? "PNG" : "JPEG") as "JPEG" | "PNG";
+              const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                img.onerror = () => resolve({ width: 100, height: 100 });
+                img.src = dataUrl;
+              });
+              imagesData.push({ dataUrl, format, width: dimensions.width, height: dimensions.height });
+            } catch {
+              // skip failed image
+            }
+          }
+          if (imagesData.length > 0) pdfOptions.imagesData = imagesData;
+        }
+      }
+
+      const { blob, fileName } = buildPdf(pdfType, contact, pdfOptions);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -364,7 +531,7 @@ export function BudgetPdfExportDialog({
               <Label htmlFor="actual" className="flex-1 cursor-pointer">
                 <span className="font-medium">{t("budget.pdf.optionActual", "Budget réel dépensé")}</span>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {t("budget.pdf.optionActualDesc", "État des dépenses à jour par poste, avec vos coordonnées et le logo Mon Projet Maison.")}
+                  {t("budget.pdf.optionActualDesc", "État des dépenses à jour par poste.")}
                 </p>
               </Label>
             </div>

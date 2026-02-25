@@ -677,7 +677,7 @@
       "optionPreliminary": "Budget préliminaire",
       "optionPreliminaryDesc": "Budget établi par poste (IA) pour présentation au prêteur et préapprobation du financement.",
       "optionActual": "Budget réel dépensé",
-      "optionActualDesc": "État des dépenses à jour par poste, avec vos coordonnées et le logo Mon Projet Maison.",
+      "optionActualDesc": "État des dépenses à jour par poste.",
       "contactInfo": "Coordonnées du propriétaire",
       "phone": "Tél.",
       "email": "Courriel",
@@ -706,7 +706,18 @@
       "savedToDossiers": "PDF enregistré dans Mes Dossiers",
       "saveError": "Erreur d'enregistrement",
       "previewTitle": "Aperçu du bilan",
-      "savedToDossiersBilan": "Le PDF est maintenant dans Mes Dossiers > Bilan."
+      "savedToDossiersBilan": "Le PDF est maintenant dans Mes Dossiers > Bilan.",
+      "estimationDescriptif": "Descriptif de l'estimation (configuration manuelle)",
+      "projectType": "Type de projet",
+      "surface": "Superficie",
+      "sqft": "pi²",
+      "numberOfFloors": "Nombre d'étages",
+      "garage": "Garage",
+      "materialsQuality": "Qualité / type de matériaux",
+      "notSpecified": "Non spécifié (estimation par défaut)",
+      "besoinsNoteTitle": "Note sur vos besoins",
+      "attachmentsTitle": "Pièces jointes",
+      "imageLoadError": "[Image non disponible]"
     },
     "categories": {
       "Excavation": "Excavation",
@@ -2081,11 +2092,12 @@
         },
         "preapprobation-planification": {
           "title": "Pré-approbation hypothécaire",
-          "description": "Obtenez une pré-approbation de votre institution financière pour connaître votre capacité d'emprunt maximale.",
+          "description": "Pour présenter un bilan clair à votre prêteur : 1) Allez dans Budget et faites la configuration manuelle (type de projet, superficie, étages, garage, etc.) ou l'analyse de vos plans pour générer votre budget. 2) Dans Budget détaillé par catégorie, cliquez sur « Créer un bilan PDF », choisissez « Budget préliminaire » et téléchargez le PDF. 3) Présentez ce document à votre institution pour obtenir votre pré-approbation.",
           "tips": [
             "Comparez les offres de plusieurs banques et courtiers",
             "Une pré-approbation est généralement valide 90 à 120 jours",
-            "Préparez vos preuves de revenus et relevés bancaires"
+            "Préparez vos preuves de revenus et relevés bancaires",
+            "Le PDF préliminaire résume votre budget par poste et vos coordonnées : idéal pour le prêteur"
           ],
           "documents": ["Talons de paie", "Avis de cotisation", "Relevés bancaires"]
         }
@@ -3323,11 +3335,12 @@
         },
         "preapprobation-planification": {
           "title": "Pré-approbation hypothécaire",
-          "description": "Obtenez une pré-approbation de votre institution financière pour connaître votre capacité d'emprunt maximale.",
+          "description": "Pour présenter un bilan clair à votre prêteur : 1) Allez dans Budget et faites la configuration manuelle (type de projet, superficie, étages, garage, etc.) ou l'analyse de vos plans pour générer votre budget. 2) Dans Budget détaillé par catégorie, cliquez sur « Créer un bilan PDF », choisissez « Budget préliminaire » et téléchargez le PDF. 3) Présentez ce document à votre institution pour obtenir votre pré-approbation.",
           "tips": [
             "Comparez les offres de plusieurs banques et courtiers",
             "Une pré-approbation est généralement valide 90 à 120 jours",
-            "Préparez vos preuves de revenus et relevés bancaires"
+            "Préparez vos preuves de revenus et relevés bancaires",
+            "Le PDF préliminaire résume votre budget par poste et vos coordonnées : idéal pour le prêteur"
           ],
           "documents": ["Talons de paie", "Avis de cotisation", "Relevés bancaires"]
         }

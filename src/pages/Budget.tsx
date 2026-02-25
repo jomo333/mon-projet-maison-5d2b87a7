@@ -183,7 +183,7 @@ const Budget = () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, project_type, total_budget")
+        .select("id, name, project_type, total_budget, square_footage, number_of_floors, has_garage")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
       
@@ -1388,6 +1388,13 @@ const Budget = () => {
             budgetCategories={budgetCategories}
             projectName={selectedProject?.name ?? null}
             projectId={selectedProjectId}
+            estimationConfig={selectedProject ? {
+              projectType: selectedProject.project_type ?? null,
+              squareFootage: selectedProject.square_footage ?? null,
+              numberOfFloors: selectedProject.number_of_floors ?? null,
+              hasGarage: selectedProject.has_garage ?? null,
+            } : null}
+            translateProjectType={(type) => translateProjectType(type)}
             translateCategoryName={(name) => getCategoryLabel(t, name)}
             formatCurrency={formatCurrency}
             userDisplayName={profile?.display_name ?? null}

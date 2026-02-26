@@ -1223,13 +1223,20 @@ const Budget = () => {
                                         const itemKey = `${category.name}|${normalizeBudgetItemName(item.name)}`;
                                         const isDiy = diyItemKeys.includes(itemKey);
                                         const cost = Number(item.cost) || 0;
+                                        const MATERIAL_RATIO = 0.4;
+                                        const displayCost = isDiy ? cost * MATERIAL_RATIO : cost;
                                         return (
                                           <TableRow key={idx}>
                                             <TableCell className="font-medium">
                                               {translateBudgetItemName(t, item.name)}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                              {formatCurrency(cost)}
+                                              {isDiy && (
+                                                <span className="text-muted-foreground text-xs mr-1" title={t("budget.pdf.diyNote", "Fait par le propriétaire – matériaux seulement")}>
+                                                  ({t("budget.materialsOnlyShort", "mat.")})
+                                                </span>
+                                              )}
+                                              {formatCurrency(displayCost)}
                                             </TableCell>
                                             <TableCell className="text-center">
                                               <Checkbox

@@ -672,6 +672,7 @@
     "amountPlaceholder": "0.00",
     "faitParMoi": "Fait par moi",
     "faitParMoiHint": "Cochez pour ne compter que les matériaux dans le bilan préliminaire (travail fait par vous).",
+    "materialsOnlyShort": "mat.",
     "pdf": {
       "button": "Créer un bilan PDF",
       "dialogTitle": "Créer un bilan PDF",

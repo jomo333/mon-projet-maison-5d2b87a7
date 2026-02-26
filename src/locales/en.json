@@ -672,6 +672,7 @@
     "amountPlaceholder": "0.00",
     "faitParMoi": "Do it myself",
     "faitParMoiHint": "Check to count only materials in the preliminary budget (work done by you).",
+    "materialsOnlyShort": "mat.",
     "totalMaterialsOnly": "Total (materials only for « Do it myself » items)",
     "pdf": {
       "button": "Create budget PDF",

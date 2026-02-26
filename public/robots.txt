@@ -1,6 +1,8 @@
 User-agent: Googlebot
 Allow: /
 
+Sitemap: https://www.monprojetmaison.ca/sitemap.xml
+
 User-agent: Bingbot
 Allow: /
 

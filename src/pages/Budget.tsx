@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/i18n";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
 import { translateBudgetItemName } from "@/lib/budgetItemI18n";
+import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import {
   mapAnalysisToStepCategories,
@@ -776,6 +777,8 @@ const Budget = () => {
     }
   };
 
+  const safeCategories = Array.isArray(budgetCategories) ? budgetCategories : [];
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -1078,14 +1081,14 @@ const Budget = () => {
                     {t("budget.pdf.button", "Créer un bilan PDF")}
                   </Button>
                   <Badge variant="outline" className="text-sm px-3 py-1 border-primary/30">
-                    {budgetCategories.length} {t("budget.categoriesCount", "catégories")}
+                    {safeCategories.length} {t("budget.categoriesCount", "catégories")}
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {(() => {
-                const subTotal = budgetCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
+                const subTotal = safeCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
                 const contingence = subTotal * 0.05;
                 const tps = (subTotal + contingence) * 0.05;
                 const tvq = (subTotal + contingence) * 0.09975;
@@ -1093,7 +1096,7 @@ const Budget = () => {
 
                 return (
                   <div className="divide-y">
-                      {budgetCategories.map((category) => {
+                      {safeCategories.map((category) => {
                     const percent = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
                     const isOverBudget = category.spent > category.budget;
                     const isNearLimit = percent > 80 && !isOverBudget;
@@ -1334,7 +1337,7 @@ const Budget = () => {
                       {diyItemKeys.length > 0 && (() => {
                         const MATERIAL_RATIO = 0.4;
                         let totalMat = 0;
-                        for (const cat of budgetCategories) {
+                        for (const cat of safeCategories) {
                           const items = aggregateBudgetItemsForDisplay(cat.items || []);
                           if (items.length === 0) totalMat += cat.budget;
                           else for (const item of items) {

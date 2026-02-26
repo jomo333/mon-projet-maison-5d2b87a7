@@ -15,6 +15,7 @@ import { InvalidateProjectsOnAuthChange } from "@/components/providers/Invalidat
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import BuildingCode from "./pages/BuildingCode";
 import Guide from "./pages/Guide";
 import StartProject from "./pages/StartProject";
@@ -82,7 +83,7 @@ const App = () => (
                     <Route path="/start" element={<StartProject />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/projet/:id" element={<Project />} />
-                    <Route path="/budget" element={<Budget />} />
+                    <Route path="/budget" element={<ErrorBoundary><Budget /></ErrorBoundary>} />
                     <Route path="/echeancier" element={<Schedule />} />
                     <Route path="/code-batiment" element={<BuildingCode />} />
                     <Route path="/guide" element={<Guide />} />

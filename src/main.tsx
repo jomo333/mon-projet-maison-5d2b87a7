@@ -12,5 +12,3 @@ window.addEventListener("unhandledrejection", (e) => {
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-tache ter

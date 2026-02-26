@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, FileDown } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, FileDown, Info, Receipt } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
@@ -19,6 +19,7 @@ import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissio
 import { BudgetPdfExportDialog } from "@/components/budget/BudgetPdfExportDialog";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1088,6 +1089,18 @@ const Budget = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
+              <Alert className="mx-4 mt-4 mb-2 border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription>
+                  {t("budget.detailedBudgetHowTo")}
+                </AlertDescription>
+              </Alert>
+              {/* En-tête : Budget estimé (IA) | Budget des soumissions | Coût réel payé */}
+              <div className="hidden sm:flex items-center justify-between gap-4 px-4 py-2 text-xs font-medium text-muted-foreground border-b bg-muted/30">
+                <span>{t("budget.budgetEstimatedIA")}</span>
+                <span>{t("budget.budgetSubmissions")}</span>
+                <span>{t("budget.costPaid")}</span>
+              </div>
               {(() => {
                 const subTotal = safeCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
                 const contingence = subTotal * 0.05;
@@ -1148,12 +1161,14 @@ const Budget = () => {
                                     className="mt-2 h-2"
                                   />
                                 </div>
-                                <div className="text-right shrink-0 min-w-[140px]">
+                                <div className="text-right shrink-0 min-w-[160px] space-y-0.5">
+                                  <div className="text-xs text-muted-foreground">{t("budget.costPaid", "Coût réel payé")}</div>
                                   <div className="text-base font-bold text-foreground">
                                     {formatCurrency(category.spent)}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    / {formatCurrency(Math.round(category.budget * 0.90))} - {formatCurrency(Math.round(category.budget * 1.10))}
+                                  <div className="text-xs text-muted-foreground">{t("budget.budgetEstimatedIA", "Budget estimé (IA)")}</div>
+                                  <div className="text-xs">
+                                    {formatCurrency(Math.round(category.budget * 0.90))} - {formatCurrency(Math.round(category.budget * 1.10))}
                                   </div>
                                 </div>
                                 <div className="shrink-0 p-1">
@@ -1165,20 +1180,36 @@ const Budget = () => {
                                 </div>
                               </div>
                             </CollapsibleTrigger>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditCategory(category, e);
-                              }}
-                              disabled={!selectedProjectId}
-                              title={selectedProjectId ? t("budget.manageBudgetSubmissions") : t("toasts.noProjectSelected")}
-                              className={`shrink-0 ${!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}`}
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">{t("budget.addSubmissions")}</span>
-                            </Button>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditCategory(category, e);
+                                }}
+                                disabled={!selectedProjectId}
+                                title={selectedProjectId ? t("budget.manageBudgetSubmissions") : t("toasts.noProjectSelected")}
+                                className={!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                <span className="hidden sm:inline">{t("budget.addSubmissions")}</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditCategory(category, e);
+                                }}
+                                disabled={!selectedProjectId}
+                                title={selectedProjectId ? t("budget.addInvoices", "Ajouter vos factures") : t("toasts.noProjectSelected")}
+                                className={!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}
+                              >
+                                <Receipt className="h-4 w-4 mr-1" />
+                                <span className="hidden sm:inline">{t("budget.addInvoices", "Ajouter vos factures")}</span>
+                              </Button>
+                            </div>
                           </div>
                           
                           <CollapsibleContent>

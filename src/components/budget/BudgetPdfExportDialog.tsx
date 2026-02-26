@@ -500,6 +500,7 @@ export function BudgetPdfExportDialog({
         const itemKey = `${cat.name}|${normalizeItemName(item.name)}`;
         const isDiy = diyItemKeys.includes(itemKey);
         const itemLabel = translateBudgetItemName(t, item.name);
+        const displayCost = !isActual && isDiy ? cost * materialRatio : cost;
         if (isActual) {
           rows.push([
             i === 0 ? catLabel : "",
@@ -511,7 +512,7 @@ export function BudgetPdfExportDialog({
           rows.push([
             i === 0 ? catLabel : "",
             itemLabel,
-            formatCurrency(cost),
+            formatCurrency(displayCost),
             ...(showNoteColumn ? [isDiy ? t("budget.pdf.diyNote", "Fait par le propriétaire – matériaux seulement") : ""] : []),
           ]);
         }

@@ -720,6 +720,7 @@
       "attachmentsTitle": "Pièces jointes (photos de style et plans)",
       "stylePhoto": "Photo de style",
       "planImage": "Plan",
+      "manualRefImage": "Photo de référence (config manuelle)",
       "imageLoadError": "[Image non disponible]",
       "generationError": "Erreur lors de la création du PDF"
     },

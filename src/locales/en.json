@@ -676,6 +676,7 @@
       "attachmentsTitle": "Attachments (style photos and plans)",
       "stylePhoto": "Style photo",
       "planImage": "Plan",
+      "manualRefImage": "Reference photo (manual config)",
       "imageLoadError": "[Image unavailable]",
       "generationError": "Error creating PDF"
     },

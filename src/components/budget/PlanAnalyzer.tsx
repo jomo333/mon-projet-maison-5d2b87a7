@@ -327,6 +327,33 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
     }
   }, [besoinsNote]);
 
+  // Fetch manual reference images (config manuelle) for persistence and PDF export
+  const { data: manualRefAttachments = [] } = useQuery<{ file_url: string }[]>({
+    queryKey: ["manual-reference-attachments", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("task_attachments")
+        .select("file_url")
+        .eq("project_id", projectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "budget-config")
+        .eq("category", "manual-reference")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []) as { file_url: string }[];
+    },
+    enabled: !!projectId,
+  });
+
+  useEffect(() => {
+    if (!projectId) {
+      setManualReferenceImages([]);
+    } else if (manualRefAttachments.length > 0) {
+      setManualReferenceImages(manualRefAttachments.map((a) => a.file_url));
+    }
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch style photos for the project (category "style")
   const { data: stylePhotos = [] } = useQuery<StylePhoto[]>({
     queryKey: ["style-photos", projectId],
@@ -1546,6 +1573,21 @@ export const PlanAnalyzer = forwardRef<PlanAnalyzerHandle, PlanAnalyzerProps>(fu
                             .getPublicUrl(fileName);
                           
                           setManualReferenceImages(prev => [...prev, urlData.publicUrl]);
+
+                          if (projectId) {
+                            await supabase.from("task_attachments").insert({
+                              project_id: projectId,
+                              step_id: "planification",
+                              task_id: "budget-config",
+                              file_name: file.name,
+                              file_url: urlData.publicUrl,
+                              file_type: file.type,
+                              file_size: file.size,
+                              category: "manual-reference",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["besoins-attachments", projectId] });
+                            queryClient.invalidateQueries({ queryKey: ["manual-reference-attachments", projectId] });
+                          }
                         }
                         toast.success(t("toasts.imagesAdded"));
                       } catch (error) {

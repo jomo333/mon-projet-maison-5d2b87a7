@@ -2896,12 +2896,13 @@ INSTRUCTION CRITIQUE - AGRANDISSEMENT:
 ${marketReferenceSection}
 
 INSTRUCTIONS CRITIQUES:
-1. Tu DOIS retourner TOUTES les 12 catégories principales
-2. Utilise les prix du MILIEU de la fourchette pour la qualité sélectionnée
-3. Inclus matériaux ET main-d'œuvre pour chaque catégorie
-4. Calcule contingence 5% + TPS 5% + TVQ 9.975%
-5. ${additionalNotes ? 'PERSONNALISE selon les notes client (ex: thermopompe, plancher chauffant, balcon, etc.)' : ''}
-${isGarageProject && isMonolithicSlab ? '6. Pour la fondation: estime UNIQUEMENT une dalle monolithique, PAS de murs de fondation séparés' : ''}
+1. Tu DOIS retourner TOUTES les 12 catégories principales: Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain
+2. INCLUS OBLIGATOIREMENT Cuisine ET Salle de bain (armoires, comptoirs, vanités) – une maison typique inclut ces postes
+3. Utilise les prix du MILIEU de la fourchette pour la qualité sélectionnée
+4. Inclus matériaux ET main-d'œuvre pour chaque catégorie
+5. Calcule contingence 5% + TPS 5% + TVQ 9.975%
+6. ${additionalNotes ? 'PERSONNALISE selon les notes client (ex: thermopompe, plancher chauffant, balcon, etc.)' : ''}
+${isGarageProject && isMonolithicSlab ? '7. Pour la fondation: estime UNIQUEMENT une dalle monolithique, PAS de murs de fondation séparés' : ''}
 
 Retourne le JSON structuré COMPLET.`;
     }

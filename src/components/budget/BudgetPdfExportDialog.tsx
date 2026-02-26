@@ -183,9 +183,18 @@ export function BudgetPdfExportDialog({
         .eq("step_id", "budget")
         .eq("category", "plan");
       if (e2) throw e2;
+      const { data: manualRefData, error: e3 } = await supabase
+        .from("task_attachments")
+        .select("id, file_url, file_name, file_type")
+        .eq("project_id", projectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "budget-config")
+        .eq("category", "manual-reference");
+      if (e3) throw e3;
       const style = (styleData || []).map((r) => ({ ...r, category: "style" as const }));
       const plans = (planData || []).map((r) => ({ ...r, category: "plan" as const }));
-      return [...style, ...plans];
+      const manualRef = (manualRefData || []).map((r) => ({ ...r, category: "manual-reference" as const }));
+      return [...style, ...manualRef, ...plans];
     },
     enabled: !!projectId && open,
   });
@@ -197,8 +206,13 @@ export function BudgetPdfExportDialog({
       setPhone(profilePhone ?? "");
       setPdfPreviewUrl(null);
       setSavedToDossiers(false);
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ["besoins-note", projectId] });
+        queryClient.invalidateQueries({ queryKey: ["budget-config", projectId] });
+        queryClient.invalidateQueries({ queryKey: ["besoins-attachments", projectId] });
+      }
     }
-  }, [open, profileAddress, profilePhone]);
+  }, [open, profileAddress, profilePhone, projectId, queryClient]);
 
   useEffect(() => {
     if (!open && pdfPreviewUrl) {
@@ -300,27 +314,29 @@ export function BudgetPdfExportDialog({
       y += 4;
     }
 
-    if (type === "preliminary" && estimationConfig) {
+    if (type === "preliminary") {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.text(t("budget.pdf.estimationDescriptif", "Descriptif de l'estimation (configuration manuelle)"), margin, y);
       y += 5;
       doc.setFont("helvetica", "normal");
-      if (estimationConfig.projectType != null && estimationConfig.projectType !== "") {
-        doc.text(t("budget.pdf.projectType", "Type de projet") + " : " + translateProjectType(estimationConfig.projectType), margin, y);
-        y += 5;
-      }
-      if (estimationConfig.squareFootage != null && estimationConfig.squareFootage > 0) {
-        doc.text(t("budget.pdf.surface", "Superficie") + " : " + String(estimationConfig.squareFootage) + " " + t("budget.pdf.sqft", "pi²"), margin, y);
-        y += 5;
-      }
-      if (estimationConfig.numberOfFloors != null && estimationConfig.numberOfFloors > 0) {
-        doc.text(t("budget.pdf.numberOfFloors", "Nombre d'étages") + " : " + String(estimationConfig.numberOfFloors), margin, y);
-        y += 5;
-      }
-      if (estimationConfig.hasGarage != null) {
-        doc.text(t("budget.pdf.garage", "Garage") + " : " + (estimationConfig.hasGarage ? t("common.yes", "Oui") : t("common.no", "Non")), margin, y);
-        y += 5;
+      if (estimationConfig) {
+        if (estimationConfig.projectType != null && estimationConfig.projectType !== "") {
+          doc.text(t("budget.pdf.projectType", "Type de projet") + " : " + translateProjectType(estimationConfig.projectType), margin, y);
+          y += 5;
+        }
+        if (estimationConfig.squareFootage != null && estimationConfig.squareFootage > 0) {
+          doc.text(t("budget.pdf.surface", "Superficie") + " : " + String(estimationConfig.squareFootage) + " " + t("budget.pdf.sqft", "pi²"), margin, y);
+          y += 5;
+        }
+        if (estimationConfig.numberOfFloors != null && estimationConfig.numberOfFloors > 0) {
+          doc.text(t("budget.pdf.numberOfFloors", "Nombre d'étages") + " : " + String(estimationConfig.numberOfFloors), margin, y);
+          y += 5;
+        }
+        if (estimationConfig.hasGarage != null) {
+          doc.text(t("budget.pdf.garage", "Garage") + " : " + (estimationConfig.hasGarage ? t("common.yes", "Oui") : t("common.no", "Non")), margin, y);
+          y += 5;
+        }
       }
       const qualityLabel = budgetConfig?.finishQuality
         ? (budgetConfig.finishQuality === "economique"
@@ -563,10 +579,13 @@ export function BudgetPdfExportDialog({
                 img.onerror = () => resolve({ width: 100, height: 100 });
                 img.src = dataUrl;
               });
+              const cat = (att as { category?: string }).category;
               const label =
-                (att as { category?: string }).category === "plan"
+                cat === "plan"
                   ? t("budget.pdf.planImage", "Plan")
-                  : t("budget.pdf.stylePhoto", "Photo de style");
+                  : cat === "manual-reference"
+                    ? t("budget.pdf.manualRefImage", "Photo de référence (config manuelle)")
+                    : t("budget.pdf.stylePhoto", "Photo de style");
               imagesData.push({
                 dataUrl,
                 format,

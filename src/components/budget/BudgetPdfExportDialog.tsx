@@ -36,10 +36,17 @@ export interface EstimationConfig {
   hasGarage: boolean | null;
 }
 
+/** Ratio coût matériaux / coût total pour un poste "Fait par moi" (ex: 40%) */
+const DEFAULT_MATERIAL_RATIO = 0.4;
+
 interface BudgetPdfExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budgetCategories: BudgetCategoryForPdf[];
+  /** Clés "categoryName|itemName" des postes marqués Fait par moi (matériaux seuls dans le total ajusté) */
+  diyItemKeys?: string[];
+  /** Ratio matériaux (0–1) pour les postes DIY. Défaut 0.4 */
+  materialRatio?: number;
   projectName: string | null;
   projectId: string | null;
   estimationConfig?: EstimationConfig | null;
@@ -57,10 +64,16 @@ interface BudgetPdfExportDialogProps {
 
 type PdfType = "preliminary" | "actual";
 
+function normalizeItemName(name: string): string {
+  return name.replace(/\s*\(\s*page\s*\d+\s*\)\s*$/i, "").replace(/\s+/g, " ").trim();
+}
+
 export function BudgetPdfExportDialog({
   open,
   onOpenChange,
   budgetCategories,
+  diyItemKeys = [],
+  materialRatio = DEFAULT_MATERIAL_RATIO,
   projectName,
   estimationConfig,
   translateProjectType = () => "",
@@ -457,6 +470,7 @@ export function BudgetPdfExportDialog({
     const rows: string[][] = [];
     const isActual = type === "actual";
 
+    const showNoteColumn = !isActual && diyItemKeys.length > 0;
     if (isActual) {
       rows.push([
         t("budget.pdf.category", "Catégorie"),
@@ -469,6 +483,7 @@ export function BudgetPdfExportDialog({
         t("budget.pdf.category", "Catégorie"),
         t("budget.pdf.item", "Poste"),
         t("budget.pdf.budget", "Budget prévu"),
+        ...(showNoteColumn ? [t("budget.pdf.noteColumn", "Note")] : []),
       ]);
     }
 
@@ -481,6 +496,8 @@ export function BudgetPdfExportDialog({
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const cost = Number(item.cost) || 0;
+        const itemKey = `${cat.name}|${normalizeItemName(item.name)}`;
+        const isDiy = diyItemKeys.includes(itemKey);
         if (isActual) {
           rows.push([
             i === 0 ? catLabel : "",
@@ -489,7 +506,12 @@ export function BudgetPdfExportDialog({
             i === 0 ? formatCurrency(cat.spent) : "",
           ]);
         } else {
-          rows.push([i === 0 ? catLabel : "", item.name, formatCurrency(cost)]);
+          rows.push([
+            i === 0 ? catLabel : "",
+            item.name,
+            formatCurrency(cost),
+            ...(showNoteColumn ? [isDiy ? t("budget.pdf.diyNote", "Fait par le propriétaire – matériaux seulement") : ""] : []),
+          ]);
         }
       }
     }
@@ -499,7 +521,7 @@ export function BudgetPdfExportDialog({
       if (isActual) {
         tableBody.push(["", t("budget.pdf.noItems", "Aucun poste pour le moment"), formatCurrency(0), formatCurrency(0)]);
       } else {
-        tableBody.push(["", t("budget.pdf.noItems", "Aucun poste pour le moment"), formatCurrency(0)]);
+        tableBody.push(["", t("budget.pdf.noItems", "Aucun poste pour le moment"), formatCurrency(0), ...(showNoteColumn ? [""] : [])]);
       }
     }
     autoTable(doc, {
@@ -512,7 +534,9 @@ export function BudgetPdfExportDialog({
       headStyles: { fillColor: [30, 58, 138], textColor: 255 },
       columnStyles: isActual
         ? { 0: { cellWidth: 38 }, 1: { cellWidth: 60 }, 2: { cellWidth: 32 }, 3: { cellWidth: 32 } }
-        : { 0: { cellWidth: 45 }, 1: { cellWidth: 95 }, 2: { cellWidth: 40 } },
+        : showNoteColumn
+          ? { 0: { cellWidth: 38 }, 1: { cellWidth: 62 }, 2: { cellWidth: 32 }, 3: { cellWidth: 58 } }
+          : { 0: { cellWidth: 45 }, 1: { cellWidth: 95 }, 2: { cellWidth: 40 } },
     });
 
     const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? tableStartY + 20;
@@ -528,6 +552,23 @@ export function BudgetPdfExportDialog({
       doc.text(t("budget.pdf.totalSpent", "Total dépensé") + " : " + totalSpentStr, margin, y);
     } else {
       doc.text(t("budget.pdf.total", "Total prévu") + " : " + totalBudgetStr, margin, y);
+      if (diyItemKeys.length > 0) {
+        let totalMaterialsOnly = 0;
+        for (const cat of budgetCategories) {
+          const items = cat.items && cat.items.length > 0 ? cat.items : [{ name: translateCategoryName(cat.name), cost: cat.budget, quantity: "1", unit: "" }];
+          for (const item of items) {
+            const cost = Number(item.cost) || 0;
+            const key = `${cat.name}|${normalizeItemName(item.name)}`;
+            totalMaterialsOnly += diyItemKeys.includes(key) ? cost * materialRatio : cost;
+          }
+        }
+        y += 6;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(t("budget.totalMaterialsOnly", "Total prévu (matériaux seuls pour postes « Fait par moi »)") + " : " + formatCurrency(totalMaterialsOnly), margin, y);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+      }
     }
 
     doc.setFont("helvetica", "normal");

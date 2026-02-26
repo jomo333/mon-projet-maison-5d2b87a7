@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, ChevronDown, ChevronUp, Save, FolderOpen, FileText, CheckCircle2, RotateCcw, Phone, User, FileDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
@@ -23,9 +25,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/i18n";
-import { groupItemsByTask, OTHER_ITEMS_KEY } from "@/lib/budgetTaskMapping";
 import { rerouteFoundationItems } from "@/lib/budgetItemReroute";
-import { translateBudgetTaskTitle } from "@/lib/budgetTaskTitleI18n";
 import { translateBudgetItemName } from "@/lib/budgetItemI18n";
 import { getCategoryLabel } from "@/lib/budgetCategoryI18n";
 import {
@@ -163,6 +163,7 @@ const Budget = () => {
   const [editingCategory, setEditingCategory] = useState<BudgetCategory | null>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showPdfExport, setShowPdfExport] = useState(false);
+  const [diyItemKeys, setDiyItemKeys] = useState<string[]>([]);
 
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
@@ -235,6 +236,72 @@ const Budget = () => {
   });
 
   // Fetch supplier info for all categories (from task_dates where suppliers are saved)
+  // Load DIY item keys (Fait par moi) from budget-config
+  const { data: budgetConfigNotes } = useQuery({
+    queryKey: ["budget-config", selectedProjectId],
+    queryFn: async () => {
+      if (!selectedProjectId) return null;
+      const { data, error } = await supabase
+        .from("task_dates")
+        .select("id, notes")
+        .eq("project_id", selectedProjectId)
+        .eq("step_id", "planification")
+        .eq("task_id", "budget-config")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProjectId,
+  });
+
+  useEffect(() => {
+    if (!budgetConfigNotes?.notes) return;
+    try {
+      const notes = JSON.parse(budgetConfigNotes.notes);
+      if (Array.isArray(notes.diyItemKeys)) {
+        setDiyItemKeys(notes.diyItemKeys);
+      }
+    } catch {
+      // ignore
+    }
+  }, [budgetConfigNotes?.notes]);
+
+  const persistDiyItemKeys = async (nextKeys: string[]) => {
+    if (!selectedProjectId) return;
+    const existing = budgetConfigNotes;
+    const notes: Record<string, unknown> = existing?.notes
+      ? (() => {
+          try {
+            return { ...JSON.parse(existing.notes) };
+          } catch {
+            return {};
+          }
+        })()
+      : {};
+    notes.diyItemKeys = nextKeys;
+    const notesStr = JSON.stringify(notes);
+    if (existing?.id) {
+      await supabase.from("task_dates").update({ notes: notesStr, updated_at: new Date().toISOString() }).eq("id", existing.id);
+    } else {
+      await supabase.from("task_dates").insert({
+        project_id: selectedProjectId,
+        step_id: "planification",
+        task_id: "budget-config",
+        notes: notesStr,
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["budget-config", selectedProjectId] });
+  };
+
+  const toggleDiyItem = (categoryName: string, itemName: string) => {
+    const key = `${categoryName}|${normalizeBudgetItemName(itemName)}`;
+    setDiyItemKeys((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      void persistDiyItemKeys(next);
+      return next;
+    });
+  };
+
   const { data: supplierInfoMap = {} } = useQuery({
     queryKey: ["category-suppliers", selectedProjectId],
     queryFn: async () => {
@@ -1112,16 +1179,10 @@ const Budget = () => {
                           
                           <CollapsibleContent>
                             <div className="px-4 pb-3 pt-3 border-t bg-muted/30 space-y-4">
-                              {/* Group items by task */}
+                              {/* Tableau style bilan : Poste | Budget prévu | Fait par moi */}
                               {(() => {
-                                const groupedByTask = groupItemsByTask(category.name, displayItems);
-                                 const taskEntries = Array.from(groupedByTask.entries());
-                                 const otherItems = groupedByTask.get(OTHER_ITEMS_KEY) ?? [];
-                                 const guideTaskTitles = stepTasks;
-                                 const hasAnyItems = displayItems.length > 0;
-
-                                 // If no items at all, show tasks from the guide without items
-                                 if (!hasAnyItems) {
+                                const hasAnyItems = displayItems.length > 0;
+                                if (!hasAnyItems) {
                                   return (
                                     <>
                                       {stepTasks.length > 0 && (
@@ -1144,89 +1205,42 @@ const Budget = () => {
                                     </>
                                   );
                                 }
-
-                                 // Prefer rendering the official guide task titles as headings
-                                 // so the UI is always identical to the step tasks.
-                                 if (guideTaskTitles.length > 0) {
-                                   return (
-                                     <div className="space-y-4">
-                                       {guideTaskTitles.map((taskTitle) => {
-                                         const items = groupedByTask.get(taskTitle) ?? [];
-                                         const hasItems = items.length > 0;
-
-                                         return (
-                                           <div key={taskTitle}>
-                                             <div
-                                               className={
-                                                 "text-sm font-medium mb-2 flex items-center gap-2 " +
-                                                 (hasItems ? "text-foreground" : "text-muted-foreground")
-                                               }
-                                             >
-                                               <CheckCircle2
-                                                 className={
-                                                   "h-4 w-4 " +
-                                                   (hasItems ? "text-primary" : "text-muted-foreground")
-                                                 }
-                                               />
-                                                {translateBudgetTaskTitle(t, category.name, taskTitle)}
-                                             </div>
-
-                                             {hasItems ? (
-                                                <ul className="ml-6 list-disc pl-4 space-y-1">
-                                                  {items.map((item, idx) => (
-                                                    <li key={idx} className="text-sm text-muted-foreground">
-                                                      {translateBudgetItemName(t, item.name)}
-                                                    </li>
-                                                  ))}
-                                                </ul>
-                                              ) : (
-                                                <div className="ml-6 text-sm text-muted-foreground italic">
-                                                  {t("budget.noItemsAssociated")}
-                                                </div>
-                                              )}
-                                           </div>
-                                         );
-                                       })}
-
-                                        {otherItems.length > 0 && (
-                                          <div>
-                                            <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                                              <CheckCircle2 className="h-4 w-4 text-primary" />
-                                              {t("categories.otherItems")}
-                                            </div>
-                                           <ul className="ml-6 list-disc pl-4 space-y-1">
-                                             {otherItems.map((item, idx) => (
-                                               <li key={idx} className="text-sm text-muted-foreground">
-                                                 {translateBudgetItemName(t, item.name)}
-                                               </li>
-                                             ))}
-                                           </ul>
-                                         </div>
-                                       )}
-                                     </div>
-                                   );
-                                 }
-
-                                 // Fallback: Display items grouped under their mapping task headings
-                                 return (
-                                   <div className="space-y-4">
-                                     {taskEntries.map(([taskTitle, items]) => (
-                                       <div key={taskTitle}>
-                                          <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                                           <CheckCircle2 className="h-4 w-4 text-primary" />
-                                            {taskTitle === OTHER_ITEMS_KEY ? t("categories.otherItems") : translateBudgetTaskTitle(t, category.name, taskTitle)}
-                                          </div>
-                                          <ul className="ml-6 list-disc pl-4 space-y-1">
-                                            {items.map((item, idx) => (
-                                              <li key={idx} className="text-sm text-muted-foreground">
-                                                {translateBudgetItemName(t, item.name)}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                       </div>
-                                     ))}
-                                   </div>
-                                 );
+                                return (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>{t("budget.pdf.item", "Poste")}</TableHead>
+                                        <TableHead className="text-right">{t("budget.pdf.budget", "Budget prévu")}</TableHead>
+                                        <TableHead className="w-[140px] text-center">{t("budget.faitParMoi", "Fait par moi")}</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {displayItems.map((item, idx) => {
+                                        const itemKey = `${category.name}|${normalizeBudgetItemName(item.name)}`;
+                                        const isDiy = diyItemKeys.includes(itemKey);
+                                        const cost = Number(item.cost) || 0;
+                                        return (
+                                          <TableRow key={idx}>
+                                            <TableCell className="font-medium">
+                                              {translateBudgetItemName(t, item.name)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                              {formatCurrency(cost)}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                              <Checkbox
+                                                checked={isDiy}
+                                                onCheckedChange={() => toggleDiyItem(category.name, item.name)}
+                                                disabled={!selectedProjectId}
+                                                aria-label={t("budget.faitParMoi", "Fait par moi")}
+                                              />
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                );
                               })()}
 
                               {/* Supplier info (if confirmed) */}
@@ -1315,6 +1329,36 @@ const Budget = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Total matériaux seuls (postes Fait par moi) */}
+                      {diyItemKeys.length > 0 && (() => {
+                        const MATERIAL_RATIO = 0.4;
+                        let totalMat = 0;
+                        for (const cat of budgetCategories) {
+                          const items = aggregateBudgetItemsForDisplay(cat.items || []);
+                          if (items.length === 0) totalMat += cat.budget;
+                          else for (const item of items) {
+                            const cost = Number(item.cost) || 0;
+                            const key = `${cat.name}|${normalizeBudgetItemName(item.name)}`;
+                            totalMat += diyItemKeys.includes(key) ? cost * MATERIAL_RATIO : cost;
+                          }
+                        }
+                        const contingenceMat = totalMat * 0.05;
+                        const taxesMat = (totalMat + contingenceMat) * 0.05 + (totalMat + contingenceMat) * 0.09975;
+                        const totalWithContingenceAndTaxes = totalMat + contingenceMat + taxesMat;
+                        return (
+                          <div className="p-4 bg-muted/50 border-t">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {t("budget.totalMaterialsOnly", "Total prévu (matériaux seuls pour postes « Fait par moi »)")}
+                              </span>
+                              <div className="text-right font-semibold">
+                                {formatCurrency(Math.round(totalWithContingenceAndTaxes * 0.90))} - {formatCurrency(Math.round(totalWithContingenceAndTaxes * 1.10))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
@@ -1411,6 +1455,7 @@ const Budget = () => {
             open={showPdfExport}
             onOpenChange={setShowPdfExport}
             budgetCategories={budgetCategories}
+            diyItemKeys={diyItemKeys}
             projectName={selectedProject?.name ?? null}
             projectId={selectedProjectId}
             estimationConfig={selectedProject ? {

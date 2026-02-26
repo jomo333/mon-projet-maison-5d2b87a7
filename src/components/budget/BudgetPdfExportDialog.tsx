@@ -363,14 +363,20 @@ export function BudgetPdfExportDialog({
         qualityLabel && materialParts.length > 0
           ? qualityLabel + " – " + materialParts.join(", ")
           : qualityLabel || (materialParts.length > 0 ? materialParts.join(", ") : "");
-      doc.text(
+      const qualityFullLine =
         t("budget.pdf.materialsQuality", "Qualité / type de matériaux") +
-          " : " +
-          (materialsText || t("budget.pdf.notSpecified", "Non spécifié (estimation par défaut)")),
-        margin,
-        y
-      );
-      y += 6;
+        " : " +
+        (materialsText || t("budget.pdf.notSpecified", "Non spécifié (estimation par défaut)"));
+      const qualityLines = doc.splitTextToSize(qualityFullLine, maxContentW);
+      for (const line of qualityLines) {
+        if (y > pageH - 25) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 5;
+      }
+      y += 2;
     }
 
     if (type === "preliminary") {
@@ -379,9 +385,11 @@ export function BudgetPdfExportDialog({
       doc.text(t("budget.pdf.besoinsNoteTitle", "Note sur vos besoins"), margin, y);
       y += 5;
       doc.setFont("helvetica", "normal");
-      const noteStr =
-        (typeof options?.besoinsNote === "string" ? options.besoinsNote : String(options?.besoinsNote ?? "")).trim() ||
-        t("budget.pdf.noNote", "Aucune note");
+      const rawNote = typeof options?.besoinsNote === "string" ? options.besoinsNote : String(options?.besoinsNote ?? "");
+      const noteStr = rawNote.trim() || t("budget.pdf.noNote", "Aucune note");
+      const noteHint =
+        !rawNote.trim() &&
+        t("budget.pdf.noteHint", "Enregistrez votre note dans l'étape « Définir vos besoins » du guide pour qu'elle apparaisse ici.");
       const lines = doc.splitTextToSize(noteStr, maxContentW);
       for (const line of lines) {
         if (y > pageH - 25) {
@@ -390,6 +398,21 @@ export function BudgetPdfExportDialog({
         }
         doc.text(line, margin, y);
         y += 5;
+      }
+      if (noteHint) {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        const hintLines = doc.splitTextToSize(noteHint, maxContentW);
+        for (const line of hintLines) {
+          if (y > pageH - 25) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(line, margin, y);
+          y += 4;
+        }
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
       }
       y += 4;
     }

@@ -673,6 +673,7 @@
     "pdf": {
       "besoinsNoteTitle": "Note on your needs",
       "noNote": "No note",
+      "noteHint": "Save your note in the « Define your needs » step of the guide for it to appear here.",
       "attachmentsTitle": "Attachments (style photos and plans)",
       "stylePhoto": "Style photo",
       "planImage": "Plan",

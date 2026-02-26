@@ -718,6 +718,7 @@
       "notSpecified": "Non spécifié (estimation par défaut)",
       "besoinsNoteTitle": "Note sur vos besoins",
       "noNote": "Aucune note",
+      "noteHint": "Enregistrez votre note dans l'étape « Définir vos besoins » du guide pour qu'elle apparaisse ici.",
       "attachmentsTitle": "Pièces jointes (photos de style et plans)",
       "stylePhoto": "Photo de style",
       "planImage": "Plan",

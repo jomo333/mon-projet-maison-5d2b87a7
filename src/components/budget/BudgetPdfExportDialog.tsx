@@ -21,6 +21,7 @@ import { getSignedUrlFromPublicUrl } from "@/hooks/useSignedUrl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import logoImg from "@/assets/logo-slim.png";
+import { translateBudgetItemName } from "@/lib/budgetItemI18n";
 
 export interface BudgetCategoryForPdf {
   name: string;
@@ -498,17 +499,18 @@ export function BudgetPdfExportDialog({
         const cost = Number(item.cost) || 0;
         const itemKey = `${cat.name}|${normalizeItemName(item.name)}`;
         const isDiy = diyItemKeys.includes(itemKey);
+        const itemLabel = translateBudgetItemName(t, item.name);
         if (isActual) {
           rows.push([
             i === 0 ? catLabel : "",
-            item.name,
+            itemLabel,
             formatCurrency(cost),
             i === 0 ? formatCurrency(cat.spent) : "",
           ]);
         } else {
           rows.push([
             i === 0 ? catLabel : "",
-            item.name,
+            itemLabel,
             formatCurrency(cost),
             ...(showNoteColumn ? [isDiy ? t("budget.pdf.diyNote", "Fait par le propriétaire – matériaux seulement") : ""] : []),
           ]);

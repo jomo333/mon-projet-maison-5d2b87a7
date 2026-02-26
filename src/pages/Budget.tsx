@@ -291,7 +291,8 @@ const Budget = () => {
         notes: notesStr,
       });
     }
-    queryClient.invalidateQueries({ queryKey: ["budget-config", selectedProjectId] });
+    // Ne pas invalider la query ici : le state est déjà à jour et un refetch
+    // pourrait ramener des données pas encore à jour et réinitialiser les cases « Fait par moi ».
   };
 
   const toggleDiyItem = (categoryName: string, itemName: string) => {

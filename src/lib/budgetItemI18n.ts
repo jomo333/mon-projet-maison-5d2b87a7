@@ -220,6 +220,20 @@ const TERM_TRANSLATIONS: Record<string, string> = {
   "selon notes client": "per client notes",
   "selon notes": "per notes",
   
+  // Full phrases (longest first so they match before single words)
+  "murs de fondation": "foundation walls",
+  "mur de fondation": "foundation wall",
+  "coulage des fondations": "foundation pouring",
+  "coulage de la dalle": "slab pouring",
+  "drain français": "French drain",
+  "remblai et compactage": "backfill and compaction",
+  "résidentiel": "residential",
+  "résidentielle": "residential",
+  "ébénisterie": "cabinetry",
+  "coulage": "pouring",
+  "fourniture": "supply",
+  "fournitures": "supplies",
+
   // Connectors (translate last to avoid breaking compound terms)
   "de": "of",
   "du": "of the",

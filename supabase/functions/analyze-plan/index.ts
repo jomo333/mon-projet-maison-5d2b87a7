@@ -2805,8 +2805,8 @@ INSTRUCTIONS CRITIQUES:
 4. ${hasMaterialChoices ? 'UTILISE LES MATÉRIAUX SPÉCIFIÉS par le client pour calculer les coûts (revêtement, toiture, plancher, armoires, etc.)' : (hasManualContext ? 'Utilise les notes du client pour PRÉCISER les matériaux, équipements et finitions' : 'DÉDUIS le type de projet et le nombre d\'étages à partir des plans')}
 ${isAgrandissement ? '5. Pour un AGRANDISSEMENT: analyse SEULEMENT la partie NOUVELLE, ignore le bâtiment existant' : ''}
 6. Pour chaque catégorie NON VISIBLE, ESTIME les coûts basés sur la superficie EXTRAITE + les spécifications client
-7. Tu DOIS retourner TOUTES les 12 catégories principales (Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain)
-8. Applique les prix du marché Québec 2025
+7. Tu DOIS retourner TOUTES les catégories: Excavation, Fondation (UN SEUL poste murs fondation), Structure (contre-plancher, plancher étages), Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, Plomberie sous dalle (puitsard, drainage sous dalle – PAS remblais/drain français), Coulée dalle (isolant rigide 1-1.5 po – PAS drain/remblais), CVAC, Finition, Cuisine, Salle de bain (armoires > 0$)
+8. Applique les prix du marché Québec 2025 – matériaux ET main-d'œuvre – total TTC
 9. ${hasMaterialChoices ? 'Les matériaux du client REMPLACENT les valeurs par défaut - utilise les prix correspondants' : (hasManualContext ? 'PERSONNALISE l\'estimation selon les notes' : '')}
 ${isGarageProjectPlan && isMonolithicSlabPlan ? '10. FONDATION GARAGE: Estime UNIQUEMENT une dalle monolithique, PAS de murs de fondation séparés de 8 pieds' : ''}
 
@@ -2896,13 +2896,17 @@ INSTRUCTION CRITIQUE - AGRANDISSEMENT:
 ${marketReferenceSection}
 
 INSTRUCTIONS CRITIQUES:
-1. Tu DOIS retourner TOUTES les 12 catégories principales: Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, CVAC, Finition, Cuisine, Salle de bain
-2. INCLUS OBLIGATOIREMENT Cuisine ET Salle de bain (armoires, comptoirs, vanités) – une maison typique inclut ces postes
-3. Utilise les prix du MILIEU de la fourchette pour la qualité sélectionnée
-4. Inclus matériaux ET main-d'œuvre pour chaque catégorie
-5. Calcule contingence 5% + TPS 5% + TVQ 9.975%
-6. ${additionalNotes ? 'PERSONNALISE selon les notes client (ex: thermopompe, plancher chauffant, balcon, etc.)' : ''}
-${isGarageProject && isMonolithicSlab ? '7. Pour la fondation: estime UNIQUEMENT une dalle monolithique, PAS de murs de fondation séparés' : ''}
+1. Tu DOIS retourner TOUTES les catégories: Excavation, Fondation, Structure, Toiture, Revêtement, Fenêtres, Isolation, Électricité, Plomberie, Plomberie sous dalle, Coulée de dalle du sous-sol, CVAC, Gypse/peinture, Revêtements sol, Cuisine, Salle de bain
+2. INCLUS OBLIGATOIREMENT Cuisine ET Salle de bain (armoires, comptoirs, vanités) avec budget > 0 – une maison typique: 15 000$ à 45 000$
+3. EXCAVATION: excavation, membrane delta/étanchéité – NE PAS dupliquer
+4. FONDATION: murs de fondation (UN SEUL poste, pas de doublon), semelles – NE PAS y mettre drain français, remblais
+5. PLOMBERIE SOUS DALLE: puitsard (pour drain français), drainage sous dalle – PAS remblais, PAS drain français (ces postes vont en Excavation)
+6. COULÉE DALLE SOUS-SOL: isolant rigide 1 po ou 1.5 po, coffrage, béton – PAS drain français, PAS remblais
+7. STRUCTURE: inclure contre-plancher et plancher des étages (OSB/contreplaqué)
+8. Inclus matériaux ET main-d'œuvre pour chaque poste. Calcule contingence 5% + TPS 5% + TVQ 9.975%. Le total_ttc est taxes incluses (TPS+TVQ)
+9. Membrane delta, membrane élastomère (toit plat) → catégorie appropriée (Fondation/Toiture)
+10. ${additionalNotes ? 'PERSONNALISE selon les notes client' : ''}
+${isGarageProject && isMonolithicSlab ? '11. FONDATION GARAGE: estime UNIQUEMENT dalle monolithique, PAS murs séparés' : ''}
 
 Retourne le JSON structuré COMPLET.`;
     }

@@ -509,10 +509,21 @@ export function BudgetPdfExportDialog({
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
+    let footerY = doc.internal.pageSize.getHeight() - 10;
+    if (type === "preliminary") {
+      footerY -= 8;
+      doc.text(
+        t("budget.pdf.footerTTC", "Les montants indiqués sont TTC (TPS 5% et TVQ 9.975% inclus). Les coûts incluent matériaux et main-d'œuvre."),
+        margin,
+        footerY,
+        { maxWidth: pageW - 2 * margin }
+      );
+      footerY -= 6;
+    }
     doc.text(
       t("budget.pdf.disclaimer", "Document généré par Mon Projet Maison – À titre informatif. Consultez un professionnel pour toute décision financière."),
       margin,
-      doc.internal.pageSize.getHeight() - 10,
+      footerY,
       { maxWidth: pageW - 2 * margin }
     );
 

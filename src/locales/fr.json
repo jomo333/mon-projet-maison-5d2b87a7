@@ -701,6 +701,7 @@
       "total": "Total prévu",
       "totalBudget": "Total budget prévu",
       "totalSpent": "Total dépensé",
+      "footerTTC": "Les montants indiqués sont TTC (TPS 5% et TVQ 9.975% inclus). Les coûts incluent matériaux et main-d'œuvre.",
       "disclaimer": "Document généré par Mon Projet Maison – À titre informatif. Consultez un professionnel pour toute décision financière.",
       "saveToDossiers": "Enregistrer dans Mes Dossiers",
       "savedToDossiers": "PDF enregistré dans Mes Dossiers",

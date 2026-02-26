@@ -115,10 +115,22 @@ const isTyvekItem = (name: string) => {
   );
 };
 
-// Items that should be EXCLUDED from Plomberie sous dalle (concrete/foundation/structural)
+// Items that belong in Excavation (drain français, remblais) - move from Plomberie sous dalle and Coulée de dalle
+const isDrainRemblaiForExcavation = (name: string) => {
+  const n = normalize(name);
+  return (
+    n.includes("remblai") ||
+    (n.includes("drain") && n.includes("francais")) ||
+    n.includes("drain francais")
+  );
+};
+
+// Items that should be EXCLUDED from Plomberie sous dalle (concrete/foundation/structural/excavation)
 const isNotPlumbing = (name: string) => {
   const n = normalize(name);
   return (
+    // Drain français, remblais → Excavation
+    isDrainRemblaiForExcavation(n) ||
     // Concrete/slab items
     n.includes("beton") ||
     n.includes("dalle") ||
@@ -196,6 +208,31 @@ const isFoundationNotSlab = (name: string) => {
 export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categories: T[]): T[] {
   let next = categories.map((c) => ({ ...c })) as T[];
   const nextByName = new Map(next.map((c) => [c.name, c] as const));
+
+  // === MERGE DUPLICATE ITEMS (e.g. "Mur de fondation" + "Murs de fondation") ===
+  const mergeDuplicateItemsInCategory = (items: ReroutableBudgetItem[]): ReroutableBudgetItem[] => {
+    const byKey = new Map<string, ReroutableBudgetItem>();
+    const normKey = (s: string) =>
+      normalize(s).replace(/\bmurs?\b/, "mur").replace(/\bfondation\b/, "fondation").replace(/\s+/g, " ");
+    for (const item of items) {
+      const key = normKey(item.name);
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.cost = (Number(existing.cost) || 0) + (Number(item.cost) || 0);
+      } else {
+        byKey.set(key, { ...item });
+      }
+    }
+    return Array.from(byKey.values());
+  };
+  for (const cat of next) {
+    if (cat.items && cat.items.length > 1) {
+      const merged = mergeDuplicateItemsInCategory(cat.items as ReroutableBudgetItem[]);
+      if (merged.length < cat.items.length) {
+        cat.items = merged as any;
+      }
+    }
+  }
 
   // === FONDATION REROUTING ===
   const fondation = nextByName.get("Fondation");
@@ -336,35 +373,44 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
     }
   }
 
-  // === PLOMBERIE SOUS DALLE CLEANUP - Remove non-plumbing items ===
+  // === PLOMBERIE SOUS DALLE - Move drain français, remblais to Excavation; remove other non-plumbing ===
   const plomberieSousDalle = nextByName.get("Plomberie sous dalle");
+  const excavationForReroute = nextByName.get("Excavation");
   if (plomberieSousDalle && Array.isArray(plomberieSousDalle.items) && plomberieSousDalle.items.length > 0) {
     const cleanedPlomberie: ReroutableBudgetItem[] = [];
+    const toExcavation: ReroutableBudgetItem[] = [];
 
     for (const item of plomberieSousDalle.items as ReroutableBudgetItem[]) {
-      if (isNotPlumbing(item.name)) {
-        // Simply remove these items - they belong elsewhere
+      if (isDrainRemblaiForExcavation(item.name) && excavationForReroute) {
+        toExcavation.push(item);
         continue;
       }
+      if (isNotPlumbing(item.name)) continue;
       cleanedPlomberie.push(item);
     }
 
     plomberieSousDalle.items = cleanedPlomberie as any;
+    if (excavationForReroute && toExcavation.length > 0) {
+      excavationForReroute.items = ([...((excavationForReroute.items as any) || []), ...toExcavation] as any) as any;
+    }
   }
 
-  // === COULÉE DE DALLE CLEANUP - Remove foundation items that don't belong ===
+  // === COULÉE DE DALLE - Move foundation items to Fondation; drain français, remblais to Excavation ===
   const coulagesDalle = nextByName.get("Coulée de dalle du sous-sol");
   const fondationFinal = nextByName.get("Fondation");
+  const excavationFromDalle = nextByName.get("Excavation");
   if (coulagesDalle && Array.isArray(coulagesDalle.items) && coulagesDalle.items.length > 0) {
     const cleanedDalle: ReroutableBudgetItem[] = [];
     const movedToFondation: ReroutableBudgetItem[] = [];
+    const movedToExcavation: ReroutableBudgetItem[] = [];
 
     for (const item of coulagesDalle.items as ReroutableBudgetItem[]) {
-      if (isFoundationNotSlab(item.name)) {
-        // Move foundation items to Fondation
-        if (fondationFinal) {
-          movedToFondation.push(item);
-        }
+      if (isDrainRemblaiForExcavation(item.name) && excavationFromDalle) {
+        movedToExcavation.push(item);
+        continue;
+      }
+      if (isFoundationNotSlab(item.name) && fondationFinal) {
+        movedToFondation.push(item);
         continue;
       }
       cleanedDalle.push(item);
@@ -373,6 +419,9 @@ export function rerouteFoundationItems<T extends ReroutableBudgetCategory>(categ
     coulagesDalle.items = cleanedDalle as any;
     if (fondationFinal && movedToFondation.length > 0) {
       fondationFinal.items = ([...((fondationFinal.items as any) || []), ...movedToFondation] as any) as any;
+    }
+    if (excavationFromDalle && movedToExcavation.length > 0) {
+      excavationFromDalle.items = ([...((excavationFromDalle.items as any) || []), ...movedToExcavation] as any) as any;
     }
   }
 

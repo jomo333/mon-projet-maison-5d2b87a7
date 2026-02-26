@@ -46,6 +46,8 @@ interface BudgetPdfExportDialogProps {
   budgetCategories: BudgetCategoryForPdf[];
   /** Clés "categoryName|itemName" des postes marqués Fait par moi (matériaux seuls dans le total ajusté) */
   diyItemKeys?: string[];
+  /** Clés "categoryName|itemName" des postes exclus du bilan préliminaire */
+  excludedFromBilanKeys?: string[];
   /** Ratio matériaux (0–1) pour les postes DIY. Défaut 0.4 */
   materialRatio?: number;
   projectName: string | null;
@@ -74,6 +76,7 @@ export function BudgetPdfExportDialog({
   onOpenChange,
   budgetCategories,
   diyItemKeys = [],
+  excludedFromBilanKeys = [],
   materialRatio = DEFAULT_MATERIAL_RATIO,
   projectName,
   estimationConfig,
@@ -496,8 +499,10 @@ export function BudgetPdfExportDialog({
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        const cost = Number(item.cost) || 0;
         const itemKey = `${cat.name}|${normalizeItemName(item.name)}`;
+        const isExcluded = !isActual && excludedFromBilanKeys.includes(itemKey);
+        if (isExcluded) continue;
+        const cost = Number(item.cost) || 0;
         const isDiy = diyItemKeys.includes(itemKey);
         const itemLabel = translateBudgetItemName(t, item.name);
         const displayCost = !isActual && isDiy ? cost * materialRatio : cost;
@@ -547,7 +552,20 @@ export function BudgetPdfExportDialog({
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    const totalBudgetStr = formatCurrency(budgetCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0));
+    const totalBudgetFull = budgetCategories.reduce((s, c) => s + (Number(c.budget) || 0), 0);
+    const totalBudgetExcl = isActual ? totalBudgetFull : (() => {
+      let sum = 0;
+      for (const cat of budgetCategories) {
+        const items = cat.items && cat.items.length > 0 ? cat.items : [{ name: translateCategoryName(cat.name), cost: cat.budget, quantity: "1", unit: "" }];
+        for (const item of items) {
+          const key = `${cat.name}|${normalizeItemName(item.name)}`;
+          if (excludedFromBilanKeys.includes(key)) continue;
+          sum += Number(item.cost) || 0;
+        }
+      }
+      return sum;
+    })();
+    const totalBudgetStr = formatCurrency(isActual ? totalBudgetFull : totalBudgetExcl);
     const totalSpentStr = formatCurrency(budgetCategories.reduce((s, c) => s + (Number(c.spent) || 0), 0));
     if (isActual) {
       doc.text(t("budget.pdf.totalBudget", "Total budget prévu") + " : " + totalBudgetStr, margin, y);
@@ -560,8 +578,9 @@ export function BudgetPdfExportDialog({
         for (const cat of budgetCategories) {
           const items = cat.items && cat.items.length > 0 ? cat.items : [{ name: translateCategoryName(cat.name), cost: cat.budget, quantity: "1", unit: "" }];
           for (const item of items) {
-            const cost = Number(item.cost) || 0;
             const key = `${cat.name}|${normalizeItemName(item.name)}`;
+            if (excludedFromBilanKeys.includes(key)) continue;
+            const cost = Number(item.cost) || 0;
             totalMaterialsOnly += diyItemKeys.includes(key) ? cost * materialRatio : cost;
           }
         }

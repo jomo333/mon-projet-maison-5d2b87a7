@@ -228,15 +228,21 @@ export const buildDefaultCategories = (projectType?: string): BudgetCategory[] =
   }
 
   // Update merged categories with accumulated task descriptions
-  return result.map(cat => {
+  const withMerged = result.map(cat => {
     if (mergedCategories[cat.name]) {
-      return {
-        ...cat,
-        description: mergedCategories[cat.name].tasks.join(", "),
-      };
+      return { ...cat, description: mergedCategories[cat.name].tasks.join(", ") };
     }
     return cat;
   });
+  // Ajouter "Autre" en dernier pour postes/tâches manuels
+  withMerged.push({
+    name: "Autre",
+    budget: 0,
+    spent: 0,
+    color: categoryColors[colorIndex % categoryColors.length],
+    description: "",
+  });
+  return withMerged;
 };
 
 export const defaultCategories: BudgetCategory[] = buildDefaultCategories();

@@ -83,6 +83,8 @@ interface CategorySubmissionsDialogProps {
   categoryColor: string;
   currentBudget: number;
   currentSpent: number;
+  /** Pour la catégorie « Autre », titres des postes/tâches ajoutés manuellement (propagation soumissions/factures) */
+  manualTaskTitles?: string[];
   onSave: (
     budget: number,
     spent: number,
@@ -126,6 +128,7 @@ const categoryToTradeId: Record<string, string> = {
   "Revêtements de sol": "plancher",
   "Travaux ébénisterie (cuisine/SDB)": "armoires",
   "Finitions intérieures": "finitions",
+  "Autre": "autre",
 };
 
 export function CategorySubmissionsDialog({
@@ -136,6 +139,7 @@ export function CategorySubmissionsDialog({
   categoryColor,
   currentBudget,
   currentSpent,
+  manualTaskTitles,
   onSave,
 }: CategorySubmissionsDialogProps) {
   const { t } = useTranslation();
@@ -211,7 +215,9 @@ export function CategorySubmissionsDialog({
   // 'single' = one submission for all tasks, 'tasks' = per-task, 'subcategories' = custom sub-categories
   const [viewMode, setViewMode] = useState<'single' | 'subcategories' | 'tasks'>('single');
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
-  const categoryTasks = getTasksForCategory(categoryName);
+  const categoryTasks = manualTaskTitles?.length
+    ? manualTaskTitles.map(t => ({ taskTitle: t, keywords: [t.toLowerCase()] }))
+    : getTasksForCategory(categoryName);
 
   // Inner DIY tabs: on mobile, default to "invoices" (Factures) for easier access
   const isMobile = useIsMobile();

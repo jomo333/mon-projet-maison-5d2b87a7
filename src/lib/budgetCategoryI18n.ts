@@ -24,6 +24,7 @@ export const CATEGORY_KEY_BY_FR_NAME: Record<string, string> = {
   "Travaux ébénisterie": "cabinetry",
   "Finitions intérieures": "interiorFinishes",
   "Autres éléments": "otherItems",
+  "Autre": "other",
   // Extra (if ever displayed as categories)
   "Budget imprévu (5%)": "contingency",
   "Taxes": "taxes",

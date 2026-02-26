@@ -166,6 +166,9 @@ const Budget = () => {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showPdfExport, setShowPdfExport] = useState(false);
   const [diyItemKeys, setDiyItemKeys] = useState<string[]>([]);
+  const [excludedFromBilanKeys, setExcludedFromBilanKeys] = useState<string[]>([]);
+  const [manualItemName, setManualItemName] = useState("");
+  const [manualItemCost, setManualItemCost] = useState("");
 
   // Ref for the PlanAnalyzer section to scroll into view
   const planAnalyzerRef = useRef<HTMLDivElement>(null);
@@ -260,9 +263,8 @@ const Budget = () => {
     if (!budgetConfigNotes?.notes) return;
     try {
       const notes = JSON.parse(budgetConfigNotes.notes);
-      if (Array.isArray(notes.diyItemKeys)) {
-        setDiyItemKeys(notes.diyItemKeys);
-      }
+      if (Array.isArray(notes.diyItemKeys)) setDiyItemKeys(notes.diyItemKeys);
+      if (Array.isArray(notes.excludedFromBilanKeys)) setExcludedFromBilanKeys(notes.excludedFromBilanKeys);
     } catch {
       // ignore
     }
@@ -301,6 +303,28 @@ const Budget = () => {
     setDiyItemKeys((prev) => {
       const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
       void persistDiyItemKeys(next);
+      return next;
+    });
+  };
+
+  const persistExcludedFromBilanKeys = async (nextKeys: string[]) => {
+    if (!selectedProjectId) return;
+    const existing = budgetConfigNotes;
+    const notes: Record<string, unknown> = existing?.notes ? (() => { try { return { ...JSON.parse(existing.notes) }; } catch { return {}; } })() : {};
+    notes.excludedFromBilanKeys = nextKeys;
+    const notesStr = JSON.stringify(notes);
+    if (existing?.id) {
+      await supabase.from("task_dates").update({ notes: notesStr, updated_at: new Date().toISOString() }).eq("id", existing.id);
+    } else {
+      await supabase.from("task_dates").insert({ project_id: selectedProjectId, step_id: "planification", task_id: "budget-config", notes: notesStr });
+    }
+  };
+
+  const toggleExcludedFromBilan = (categoryName: string, itemName: string) => {
+    const key = `${categoryName}|${normalizeBudgetItemName(itemName)}`;
+    setExcludedFromBilanKeys((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      void persistExcludedFromBilanKeys(next);
       return next;
     });
   };
@@ -353,6 +377,7 @@ const Budget = () => {
   const getCategoryTradeId = (categoryName: string): string => {
     // Use the same mapping as CategorySubmissionsDialog
     const categoryToTradeIdMap: Record<string, string> = {
+      "Autre": "autre",
       "Excavation et fondation": "excavation",
       "Structure et charpente": "charpente",
       "Toiture": "toiture",
@@ -373,8 +398,45 @@ const Budget = () => {
       return categoryToTradeIdMap[categoryName];
     }
     
-    // Fallback: normalize the category name (same as CategorySubmissionsDialog)
+    if (categoryName === "Autre") return "autre";
     return categoryName.toLowerCase().replace(/\s+/g, "-");
+  };
+
+  const handleAddManualItem = async (categoryName: string, name: string, cost: number) => {
+    if (!selectedProjectId || !name.trim()) return;
+    const trimmedName = name.trim();
+    const itemCost = Math.max(0, Number(cost) || 0);
+    const newItem: BudgetItem = { name: trimmedName, cost: itemCost, quantity: "1", unit: "" };
+    setBudgetCategories(prev => prev.map(cat => {
+      if (cat.name !== categoryName) return cat;
+      const items = [...(cat.items || []), newItem];
+      const budget = items.reduce((s, i) => s + (Number(i.cost) || 0), 0);
+      return { ...cat, items, budget };
+    }));
+    const cat = budgetCategories.find(c => c.name === categoryName);
+    if (!cat) return;
+    const updatedItems = [...(cat.items || []), newItem];
+    const newBudget = updatedItems.reduce((s, i) => s + (Number(i.cost) || 0), 0);
+    const { data: existing } = await supabase.from("project_budgets").select("id").eq("project_id", selectedProjectId).eq("category_name", categoryName).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("project_budgets").update({
+        budget: newBudget,
+        items: updatedItems as unknown as Json,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+    } else {
+      await supabase.from("project_budgets").insert({
+        project_id: selectedProjectId,
+        category_name: categoryName,
+        budget: newBudget,
+        spent: 0,
+        color: cat.color,
+        description: null,
+        items: updatedItems as unknown as Json,
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
+    toast.success(t("budget.manualItemAdded", "Poste ajouté"));
   };
 
   // Load saved budget when project changes
@@ -1217,6 +1279,52 @@ const Budget = () => {
                               {/* Tableau style bilan : Poste | Budget prévu | Fait par moi */}
                               {(() => {
                                 const hasAnyItems = displayItems.length > 0;
+                                const isAutre = category.name === "Autre";
+                                if (!hasAnyItems && isAutre) {
+                                  return (
+                                    <div className="space-y-4">
+                                      <div className="text-sm font-medium text-muted-foreground">
+                                        {t("budget.autreAddManual", "Ajoutez des postes ou tâches manuellement. Ils seront disponibles pour les soumissions et factures.")}
+                                      </div>
+                                      <div className="flex flex-wrap gap-2 items-end">
+                                        <div className="flex-1 min-w-[140px] space-y-1">
+                                          <Label htmlFor="manual-item-name" className="text-xs">{t("budget.pdf.item", "Poste")}</Label>
+                                          <Input
+                                            id="manual-item-name"
+                                            placeholder={t("budget.manualItemNamePlaceholder", "Ex: Clôture, Aménagement paysager")}
+                                            value={manualItemName}
+                                            onChange={(e) => setManualItemName(e.target.value)}
+                                            className="h-9"
+                                          />
+                                        </div>
+                                        <div className="w-24 space-y-1">
+                                          <Label htmlFor="manual-item-cost" className="text-xs">{t("budget.pdf.budget", "Budget prévu")}</Label>
+                                          <Input
+                                            id="manual-item-cost"
+                                            type="number"
+                                            min={0}
+                                            step={100}
+                                            placeholder="0"
+                                            value={manualItemCost}
+                                            onChange={(e) => setManualItemCost(e.target.value)}
+                                            className="h-9"
+                                          />
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            handleAddManualItem(category.name, manualItemName, parseFloat(manualItemCost) || 0);
+                                            setManualItemName("");
+                                            setManualItemCost("");
+                                          }}
+                                          disabled={!selectedProjectId || !manualItemName.trim()}
+                                        >
+                                          {t("common.add")}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
                                 if (!hasAnyItems) {
                                   return (
                                     <>
@@ -1246,23 +1354,26 @@ const Budget = () => {
                                       <TableRow>
                                         <TableHead>{t("budget.pdf.item", "Poste")}</TableHead>
                                         <TableHead className="text-right">{t("budget.pdf.budget", "Budget prévu")}</TableHead>
-                                        <TableHead className="w-[140px] text-center">{t("budget.faitParMoi", "Fait par moi")}</TableHead>
+                                        <TableHead className="w-[120px] text-center">{t("budget.faitParMoi", "Fait par moi")}</TableHead>
+                                        <TableHead className="w-[120px] text-center">{t("budget.excludeFromBilan", "Exclure du bilan")}</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                       {displayItems.map((item, idx) => {
                                         const itemKey = `${category.name}|${normalizeBudgetItemName(item.name)}`;
                                         const isDiy = diyItemKeys.includes(itemKey);
+                                        const isExcluded = excludedFromBilanKeys.includes(itemKey);
                                         const cost = Number(item.cost) || 0;
                                         const MATERIAL_RATIO = 0.4;
-                                        const displayCost = isDiy ? cost * MATERIAL_RATIO : cost;
+                                        const displayCost = isExcluded ? 0 : (isDiy ? cost * MATERIAL_RATIO : cost);
                                         return (
-                                          <TableRow key={idx}>
+                                          <TableRow key={idx} className={isExcluded ? "opacity-60" : ""}>
                                             <TableCell className="font-medium">
                                               {translateBudgetItemName(t, item.name)}
+                                              {isExcluded && <span className="text-muted-foreground text-xs ml-1">({t("budget.excludedShort", "excl.")})</span>}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                              {isDiy && (
+                                              {isDiy && !isExcluded && (
                                                 <span className="text-muted-foreground text-xs mr-1" title={t("budget.pdf.diyNote", "Fait par le propriétaire – matériaux seulement")}>
                                                   ({t("budget.materialsOnlyShort", "mat.")})
                                                 </span>
@@ -1277,6 +1388,14 @@ const Budget = () => {
                                                 aria-label={t("budget.faitParMoi", "Fait par moi")}
                                               />
                                             </TableCell>
+                                            <TableCell className="text-center">
+                                              <Checkbox
+                                                checked={isExcluded}
+                                                onCheckedChange={() => toggleExcludedFromBilan(category.name, item.name)}
+                                                disabled={!selectedProjectId}
+                                                aria-label={t("budget.excludeFromBilan", "Exclure du bilan")}
+                                              />
+                                            </TableCell>
                                           </TableRow>
                                         );
                                       })}
@@ -1284,6 +1403,46 @@ const Budget = () => {
                                   </Table>
                                 );
                               })()}
+
+                              {/* Formulaire ajout manuel pour Autre */}
+                              {category.name === "Autre" && (
+                                <div className="flex flex-wrap gap-2 items-end pt-2 border-t">
+                                  <div className="flex-1 min-w-[140px] space-y-1">
+                                    <Label htmlFor="manual-item-name-other" className="text-xs">{t("budget.addManualItem", "Ajouter un poste")}</Label>
+                                    <Input
+                                      id="manual-item-name-other"
+                                      placeholder={t("budget.manualItemNamePlaceholder", "Ex: Clôture, Aménagement paysager")}
+                                      value={manualItemName}
+                                      onChange={(e) => setManualItemName(e.target.value)}
+                                      className="h-9"
+                                    />
+                                  </div>
+                                  <div className="w-24 space-y-1">
+                                    <Label htmlFor="manual-item-cost-other" className="text-xs">{t("budget.pdf.budget", "Budget prévu")}</Label>
+                                    <Input
+                                      id="manual-item-cost-other"
+                                      type="number"
+                                      min={0}
+                                      step={100}
+                                      placeholder="0"
+                                      value={manualItemCost}
+                                      onChange={(e) => setManualItemCost(e.target.value)}
+                                      className="h-9"
+                                    />
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      handleAddManualItem(category.name, manualItemName, parseFloat(manualItemCost) || 0);
+                                      setManualItemName("");
+                                      setManualItemCost("");
+                                    }}
+                                    disabled={!selectedProjectId || !manualItemName.trim()}
+                                  >
+                                    {t("common.add")}
+                                  </Button>
+                                </div>
+                              )}
 
                               {/* Supplier info (if confirmed) */}
                               {(() => {
@@ -1380,8 +1539,9 @@ const Budget = () => {
                           const items = aggregateBudgetItemsForDisplay(cat.items || []);
                           if (items.length === 0) totalMat += cat.budget;
                           else for (const item of items) {
-                            const cost = Number(item.cost) || 0;
                             const key = `${cat.name}|${normalizeBudgetItemName(item.name)}`;
+                            if (excludedFromBilanKeys.includes(key)) continue;
+                            const cost = Number(item.cost) || 0;
                             totalMat += diyItemKeys.includes(key) ? cost * MATERIAL_RATIO : cost;
                           }
                         }
@@ -1488,6 +1648,7 @@ const Budget = () => {
               categoryColor={editingCategory.color}
               currentBudget={editingCategory.budget}
               currentSpent={editingCategory.spent}
+              manualTaskTitles={editingCategory.name === "Autre" ? (editingCategory.items ?? []).map(i => i.name) : undefined}
               onSave={handleSaveCategoryFromDialog}
             />
           )}
@@ -1498,6 +1659,7 @@ const Budget = () => {
             onOpenChange={setShowPdfExport}
             budgetCategories={budgetCategories}
             diyItemKeys={diyItemKeys}
+            excludedFromBilanKeys={excludedFromBilanKeys}
             projectName={selectedProject?.name ?? null}
             projectId={selectedProjectId}
             estimationConfig={selectedProject ? {

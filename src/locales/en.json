@@ -678,6 +678,12 @@
     "faitParMoi": "Do it myself",
     "faitParMoiHint": "Check to count only materials in the preliminary budget (work done by you).",
     "materialsOnlyShort": "mat.",
+    "excludeFromBilan": "Exclude from report",
+    "excludedShort": "excl.",
+    "addManualItem": "Add line item",
+    "manualItemAdded": "Line item added",
+    "manualItemNamePlaceholder": "E.g. Fence, Landscaping",
+    "autreAddManual": "Add line items or tasks manually. They will be available for quotes and invoices.",
     "totalMaterialsOnly": "Total (materials only for « Do it myself » items)",
     "pdf": {
       "button": "Create budget PDF",
@@ -757,7 +763,8 @@
       "Revêtements de sol": "Flooring",
       "Travaux ébénisterie": "Cabinetry Work",
       "Finitions intérieures": "Interior Finishes",
-      "Autres éléments": "Other Items"
+      "Autres éléments": "Other Items",
+      "other": "Other"
     }
   },
   "categorySubmissions": {

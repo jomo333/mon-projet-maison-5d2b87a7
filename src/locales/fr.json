@@ -678,6 +678,12 @@
     "faitParMoi": "Fait par moi",
     "faitParMoiHint": "Cochez pour ne compter que les matériaux dans le bilan préliminaire (travail fait par vous).",
     "materialsOnlyShort": "mat.",
+    "excludeFromBilan": "Exclure du bilan",
+    "excludedShort": "excl.",
+    "addManualItem": "Ajouter un poste",
+    "manualItemAdded": "Poste ajouté",
+    "manualItemNamePlaceholder": "Ex: Clôture, Aménagement paysager",
+    "autreAddManual": "Ajoutez des postes ou tâches manuellement. Ils seront disponibles pour les soumissions et factures.",
     "pdf": {
       "button": "Créer un bilan PDF",
       "dialogTitle": "Créer un bilan PDF",
@@ -755,7 +761,8 @@
       "Revêtements de sol": "Revêtements de sol",
       "Travaux ébénisterie": "Travaux ébénisterie",
       "Finitions intérieures": "Finitions intérieures",
-      "Autres éléments": "Autres éléments"
+      "Autres éléments": "Autres éléments",
+      "other": "Autre"
     }
   },
   "categorySubmissions": {

@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "header", "key": "host", "value": "monprojetmaison.ca" }],
+      "destination": "https://www.monprojetmaison.ca/:path*",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!return\\.html$|sitemap\\.xml$|robots\\.txt$|favicon\\.png$|google[a-z0-9]+\\.html$).*)",

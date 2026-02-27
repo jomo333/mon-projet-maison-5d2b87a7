@@ -60,7 +60,6 @@ import {
   Lock,
   Crown,
   Info,
-  Receipt,
   Camera,
 } from "lucide-react";
 import { FileOrPhotoUpload } from "@/components/ui/file-or-photo-upload";
@@ -70,7 +69,6 @@ import { DIYAnalysisView } from "./DIYAnalysisView";
 import { SubCategoryManager, type SubCategory } from "./SubCategoryManager";
 import { TaskSubmissionsTabs, getTasksForCategory } from "./TaskSubmissionsTabs";
 import { DIYItemsTable, type DIYItem, type DIYSupplierQuote, type DIYSelectedSupplier } from "./DIYItemsTable";
-import { DIYPurchaseInvoices } from "./DIYPurchaseInvoices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -221,7 +219,6 @@ export function CategorySubmissionsDialog({
 
   // Inner DIY tabs: on mobile, default to "invoices" (Factures) for easier access
   const isMobile = useIsMobile();
-  const [diyInnerTab, setDiyInnerTab] = useState<"comparison" | "invoices">("comparison");
 
   const tradeId =
     categoryToTradeId[categoryName] ||
@@ -572,13 +569,6 @@ export function CategorySubmissionsDialog({
       });
     }
   }, [diySupplierStatus]);
-
-  // On mobile, default to Factures tab when opening DIY subcategories (easier to add invoices after photo)
-  useEffect(() => {
-    if (open && isMobile && viewMode === "subcategories") {
-      setDiyInnerTab("invoices");
-    }
-  }, [open, isMobile, viewMode]);
 
   // Set supplier info from saved status when changing category/sub-category
   useEffect(() => {
@@ -2581,27 +2571,12 @@ export function CategorySubmissionsDialog({
                   </TabsContent>
                   
                   <TabsContent value="subcategories" className="mt-4 space-y-4">
-                    {/* Inner DIY tabs: Comparaison fournisseurs / Factures d'achat */}
-                    <Tabs value={diyInnerTab} onValueChange={(v) => setDiyInnerTab(v as "comparison" | "invoices")} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 gap-1 min-w-0">
-                        <TabsTrigger value="comparison" className="text-xs sm:text-sm flex items-center gap-1.5 min-w-0">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Comparaison fournisseurs
-                        </TabsTrigger>
-                        <TabsTrigger value="invoices" className="text-xs sm:text-sm flex items-center gap-1.5 min-w-0">
-                          <Receipt className="h-3.5 w-3.5" />
-                          Factures d'achat
-                        </TabsTrigger>
-                      </TabsList>
-
-                      {/* Onglet 1 : Comparaison fournisseurs (ancien DIYItemsTable) */}
-                      <TabsContent value="comparison" className="mt-4 space-y-4 min-w-0 overflow-hidden">
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 min-w-0">
-                          <p className="text-sm text-muted-foreground break-words">
-                            Comparez les soumissions de fournisseurs pour vos matériaux et assurez-vous qu'elles correspondent à votre projet. Enregistrez les coûts et les préavis de commande.
-                          </p>
-                        </div>
-                        <DIYItemsTable
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 min-w-0">
+                      <p className="text-sm text-muted-foreground break-words">
+                        Comparez les soumissions de fournisseurs pour vos matériaux et assurez-vous qu'elles correspondent à votre projet. Enregistrez les coûts et les préavis de commande.
+                      </p>
+                    </div>
+                    <DIYItemsTable
                           items={diyItems}
                           onAddItem={handleAddDIYItem}
                           onRemoveItem={handleRemoveDIYItem}
@@ -2619,25 +2594,7 @@ export function CategorySubmissionsDialog({
                           onDeleteDocument={handleDeleteDIYDocument}
                           uploadingItemId={uploadingDIYItemId}
                         />
-                      </TabsContent>
-
-                      {/* Onglet 2 : Factures d'achat */}
-                      <TabsContent value="invoices" className="mt-4">
-                        <DIYPurchaseInvoices
-                          projectId={projectId}
-                          categoryName={categoryName}
-                          tradeId={tradeId}
-                          currentSpent={parseFloat(spent) || 0}
-                          onSpentUpdate={(newTotal) => {
-                            setSpent(newTotal.toString());
-                            onSave(parseFloat(budget) || 0, newTotal, undefined, { closeDialog: false });
-                          }}
-                        />
-                      </TabsContent>
-                    </Tabs>
                   </TabsContent>
-                </Tabs>
-              </div>
             )}
 
             {/* DIY Mode Section - Show when viewing a DIY sub-category */}

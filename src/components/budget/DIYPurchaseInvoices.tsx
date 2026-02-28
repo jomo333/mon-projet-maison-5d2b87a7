@@ -66,6 +66,8 @@ interface DIYPurchaseInvoicesProps {
   tradeId: string;
   onSpentUpdate: (amount: number) => void;
   currentSpent: number;
+  /** Postes "Fait par moi" sélectionnés dans le tableau budget (affichés pour suivi) */
+  diyItemNames?: string[];
 }
 
 function sanitizeFileName(name: string): string {
@@ -109,6 +111,7 @@ export function DIYPurchaseInvoices({
   tradeId,
   onSpentUpdate,
   currentSpent,
+  diyItemNames = [],
 }: DIYPurchaseInvoicesProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -483,6 +486,26 @@ export function DIYPurchaseInvoices({
           />
         </div>
       </div>
+
+      {/* Postes Fait par moi sélectionnés dans le tableau budget */}
+      {diyItemNames.length > 0 && (
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 p-3">
+          <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300 mb-1.5">
+            Postes Fait par moi pour cette catégorie :
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {diyItemNames.map((name) => (
+              <Badge
+                key={name}
+                variant="outline"
+                className="text-xs font-normal border-emerald-400 text-emerald-700 dark:text-emerald-400"
+              >
+                {name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Invoice list */}
       {isLoading ? (

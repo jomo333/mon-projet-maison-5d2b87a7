@@ -71,7 +71,7 @@ import { TaskSubmissionsTabs, getTasksForCategory } from "./TaskSubmissionsTabs"
 import { DIYItemsTable, type DIYItem, type DIYSupplierQuote, type DIYSelectedSupplier } from "./DIYItemsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, normalizeBudgetItemName } from "@/lib/utils";
 
 interface CategorySubmissionsDialogProps {
   open: boolean;
@@ -83,6 +83,8 @@ interface CategorySubmissionsDialogProps {
   currentSpent: number;
   /** Pour la catégorie « Autre », titres des postes/tâches ajoutés manuellement (propagation soumissions/factures) */
   manualTaskTitles?: string[];
+  /** Clés des postes exclus du bilan (format "Catégorie|Poste") – filtrés dans "Par tâche" */
+  excludedFromBilanKeys?: string[];
   onSave: (
     budget: number,
     spent: number,
@@ -138,6 +140,7 @@ export function CategorySubmissionsDialog({
   currentBudget,
   currentSpent,
   manualTaskTitles,
+  excludedFromBilanKeys = [],
   onSave,
 }: CategorySubmissionsDialogProps) {
   const { t } = useTranslation();
@@ -213,9 +216,13 @@ export function CategorySubmissionsDialog({
   // 'single' = one submission for all tasks, 'tasks' = per-task, 'subcategories' = custom sub-categories
   const [viewMode, setViewMode] = useState<'single' | 'subcategories' | 'tasks'>('single');
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
-  const categoryTasks = manualTaskTitles?.length
+  const rawCategoryTasks = manualTaskTitles?.length
     ? manualTaskTitles.map(t => ({ taskTitle: t, keywords: [t.toLowerCase()] }))
     : getTasksForCategory(categoryName);
+  // Exclure les postes marqués "Exclure du bilan"
+  const categoryTasks = rawCategoryTasks.filter(
+    (task) => !excludedFromBilanKeys.includes(`${categoryName}|${normalizeBudgetItemName(task.taskTitle)}`)
+  );
 
   // Inner DIY tabs: on mobile, default to "invoices" (Factures) for easier access
   const isMobile = useIsMobile();

@@ -40,6 +40,7 @@ import {
   type BudgetCategory as LibBudgetCategory,
   type IncomingAnalysisCategory,
 } from "@/lib/budgetCategories";
+import { normalizeBudgetItemName } from "@/lib/utils";
 import { useMemo } from "react";
 import {
   Select,
@@ -64,16 +65,6 @@ interface BudgetCategory {
   description?: string;
   items?: BudgetItem[];
 }
-
-
-const normalizeBudgetItemName = (name: string) => {
-  // Remove plan-page suffixes that create artificial duplicates in the UI
-  // e.g. "Murs de fondation (Page 2)" -> "Murs de fondation"
-  return name
-    .replace(/\s*\(\s*page\s*\d+\s*\)\s*$/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
-};
 
 const aggregateBudgetItemsForDisplay = (items: BudgetItem[] = []): BudgetItem[] => {
   const byKey = new Map<string, BudgetItem>();
@@ -1719,6 +1710,7 @@ const Budget = () => {
               currentBudget={editingCategory.budget}
               currentSpent={editingCategory.spent}
               manualTaskTitles={editingCategory.name === "Autre" ? (editingCategory.items ?? []).map(i => i.name) : undefined}
+              excludedFromBilanKeys={excludedFromBilanKeys}
               onSave={handleSaveCategoryFromDialog}
             />
           )}
@@ -1736,6 +1728,7 @@ const Budget = () => {
               categoryColor={editingCategoryForInvoices.color}
               currentSpent={editingCategoryForInvoices.spent}
               manualTaskTitles={editingCategoryForInvoices.name === "Autre" ? (editingCategoryForInvoices.items ?? []).map(i => i.name) : undefined}
+              diyItemKeys={diyItemKeys}
               onSave={handleSaveInvoicesFromDialog}
               onOpenSubmissions={handleOpenSubmissionsFromInvoices}
             />

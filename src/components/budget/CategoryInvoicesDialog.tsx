@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner";
 import { DIYPurchaseInvoices } from "./DIYPurchaseInvoices";
 import { TaskSubmissionsTabs, getTasksForCategory } from "./TaskSubmissionsTabs";
-import { cn } from "@/lib/utils";
+import { cn, normalizeBudgetItemName } from "@/lib/utils";
 
 const categoryToTradeId: Record<string, string> = {
   "Excavation et fondation": "excavation",
@@ -59,6 +59,8 @@ interface CategoryInvoicesDialogProps {
   categoryColor: string;
   currentSpent: number;
   manualTaskTitles?: string[];
+  /** Clés des postes "Fait par moi" (format "Catégorie|Poste") – exclus de "Par tâche", affichés dans "Fait par moi-même" */
+  diyItemKeys?: string[];
   onSave: (spent: number) => void;
   onOpenSubmissions: () => void;
 }
@@ -97,6 +99,7 @@ export function CategoryInvoicesDialog({
   categoryColor,
   currentSpent,
   manualTaskTitles,
+  diyItemKeys = [],
   onSave,
   onOpenSubmissions,
 }: CategoryInvoicesDialogProps) {
@@ -105,9 +108,17 @@ export function CategoryInvoicesDialog({
   const queryClient = useQueryClient();
   const tradeId = categoryToTradeId[categoryName] || categoryName.toLowerCase().replace(/\s+/g, "-");
 
-  const categoryTasks = manualTaskTitles?.length
+  const rawCategoryTasks = manualTaskTitles?.length
     ? manualTaskTitles.map((t) => ({ taskTitle: t, keywords: [t.toLowerCase()] }))
     : getTasksForCategory(categoryName);
+  // Exclure les postes "Fait par moi" de l'onglet "Par tâche"
+  const categoryTasks = rawCategoryTasks.filter(
+    (task) => !diyItemKeys.includes(`${categoryName}|${normalizeBudgetItemName(task.taskTitle)}`)
+  );
+  // Postes DIY de cette catégorie (pour affichage dans Fait par moi-même)
+  const diyItemNames = diyItemKeys
+    .filter((key) => key.startsWith(`${categoryName}|`))
+    .map((key) => key.replace(`${categoryName}|`, ""));
 
   const [viewMode, setViewMode] = useState<"single" | "tasks" | "subcategories">("single");
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(categoryTasks[0]?.taskTitle ?? null);
@@ -402,6 +413,7 @@ export function CategoryInvoicesDialog({
                 tradeId={tradeId}
                 currentSpent={currentSpent}
                 onSpentUpdate={(amount) => onSave(amount)}
+                diyItemNames={diyItemNames}
               />
             </TabsContent>
           </Tabs>

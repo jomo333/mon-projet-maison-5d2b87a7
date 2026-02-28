@@ -27,6 +27,7 @@ import {
   Image as ImageIcon,
   Package,
   Link2,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DIYPurchaseInvoices } from "./DIYPurchaseInvoices";
@@ -76,7 +77,8 @@ interface InvoiceDoc {
 function parseInvoiceMeta(fileName: string | null | undefined): { amount?: number; supplier?: string; purchase_date?: string } {
   if (!fileName) return {};
   try {
-    const meta = JSON.parse(fileName);
+    const metaStr = fileName.includes("||META||") ? fileName.split("||META||")[1] : fileName;
+    const meta = typeof metaStr === "string" ? JSON.parse(metaStr || "{}") : metaStr;
     return {
       amount: typeof meta.amount === "number" ? meta.amount : undefined,
       supplier: meta.supplier,
@@ -155,13 +157,42 @@ export function CategoryInvoicesDialog({
       if (error) throw error;
       return (data || []).map((row) => {
         const meta = parseInvoiceMeta(row.file_name);
-        return { ...row, ...meta } as InvoiceDoc & { file_name: string; file_url: string; file_type: string };
+        const displayName = row.file_name?.includes("||META||") ? row.file_name.split("||META||")[0] : row.file_name;
+        return { ...row, ...meta, file_name: displayName || row.file_name } as InvoiceDoc & { file_name: string; file_url: string; file_type: string };
       });
     },
     enabled: !!projectId && open && (viewMode !== "tasks" || !!activeTaskTitle),
   });
 
   const totalInvoices = invoices.reduce((sum, inv) => sum + (inv.amount ?? 0), 0);
+
+  // Query to aggregate all invoice amounts for this category (factures + factures-materiaux) and sync spent
+  const { data: allInvoicesForCategory = [] } = useQuery({
+    queryKey: ["category-invoices-total", projectId, tradeId],
+    queryFn: async () => {
+      const [res1, res2] = await Promise.all([
+        supabase.from("task_attachments").select("file_name").eq("project_id", projectId).eq("step_id", "factures").like("task_id", `facture-${tradeId}%`),
+        supabase.from("task_attachments").select("file_name").eq("project_id", projectId).eq("step_id", "factures-materiaux").eq("task_id", `facture-diy-${tradeId}`),
+      ]);
+      if (res1.error) throw res1.error;
+      if (res2.error) throw res2.error;
+      return [...(res1.data || []), ...(res2.data || [])];
+    },
+    enabled: !!projectId && open,
+  });
+
+  const totalFromInvoices = allInvoicesForCategory.reduce((sum, row) => {
+    const meta = parseInvoiceMeta(row.file_name);
+    return sum + (meta.amount ?? 0);
+  }, 0);
+
+  useEffect(() => {
+    if (!open || !projectId) return;
+    if (totalFromInvoices > 0 || totalInvoices > 0) {
+      const total = totalFromInvoices > 0 ? totalFromInvoices : totalInvoices;
+      onSave(total);
+    }
+  }, [open, projectId, totalFromInvoices, totalInvoices, onSave]);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -192,10 +223,12 @@ export function CategoryInvoicesDialog({
       if (dbError) throw dbError;
       return { stepId: stepIdToUse, taskId: taskIdToUse };
     },
-    onSuccess: (_, __, ctx) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-invoices", projectId, currentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ["category-invoices-total", projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ["diy-invoices", projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success(t("budget.invoices.invoiceAdded", "Facture ajoutée"));
     },
     onError: (err) => {
@@ -215,8 +248,10 @@ export function CategoryInvoicesDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-invoices", projectId, currentTaskId] });
+      queryClient.invalidateQueries({ queryKey: ["category-invoices-total", projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ["diy-invoices", projectId, tradeId] });
       queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success(t("budget.invoices.invoiceDeleted", "Facture supprimée"));
     },
   });
@@ -224,6 +259,15 @@ export function CategoryInvoicesDialog({
   const handleFilesSelected = async (files: File[]) => {
     for (const file of files) {
       await uploadMutation.mutateAsync(file);
+    }
+  };
+
+  const handlePreviewInvoice = async (fileUrl: string) => {
+    try {
+      const signed = await getSignedUrlFromPublicUrl(fileUrl);
+      window.open(signed || fileUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      window.open(fileUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -321,6 +365,7 @@ export function CategoryInvoicesDialog({
                 uploadMutation={uploadMutation}
                 deleteMutation={deleteMutation}
                 onFilesSelected={handleFilesSelected}
+                onPreview={handlePreviewInvoice}
                 isImage={isImage}
                 isPdf={isPdf}
                 formatCurrency={formatCurrency}
@@ -345,6 +390,7 @@ export function CategoryInvoicesDialog({
                   formatCurrency={formatCurrency}
                   t={t}
                   user={user}
+                  onPreview={handlePreviewInvoice}
                 />
               )}
             </TabsContent>
@@ -371,6 +417,7 @@ function InvoiceSection({
   uploadMutation,
   deleteMutation,
   onFilesSelected,
+  onPreview,
   isImage,
   isPdf,
   formatCurrency,
@@ -381,6 +428,7 @@ function InvoiceSection({
   uploadMutation: { mutateAsync: (f: File) => Promise<unknown>; isPending: boolean };
   deleteMutation: { mutate: (doc: { id: string; file_url: string }) => void };
   onFilesSelected: (files: File[]) => void;
+  onPreview?: (url: string) => void;
   isImage: (t: string) => boolean;
   isPdf: (t: string) => boolean;
   formatCurrency: (n: number) => string;
@@ -434,14 +482,26 @@ function InvoiceSection({
                   {!inv.purchase_date && <span>{new Date(inv.created_at).toLocaleDateString("fr-CA")}</span>}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => deleteMutation.mutate({ id: inv.id, file_url: inv.file_url })}
-              >
-                {t("common.delete", "Supprimer")}
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                {onPreview && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onPreview(inv.file_url)}
+                    title={t("budget.invoices.viewInvoice", "Voir la facture")}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => deleteMutation.mutate({ id: inv.id, file_url: inv.file_url })}
+                >
+                  {t("common.delete", "Supprimer")}
+                </Button>
+              </div>
             </div>
           ))}
           {invoices.length > 1 && total > 0 && (
@@ -467,6 +527,7 @@ function TaskInvoicesTabs({
   formatCurrency,
   t,
   user,
+  onPreview,
 }: {
   tasks: { taskTitle: string; keywords: string[] }[];
   activeTaskTitle: string | null;
@@ -477,6 +538,7 @@ function TaskInvoicesTabs({
   formatCurrency: (n: number) => string;
   t: (key: string, fallback?: string) => string;
   user: { id: string } | null;
+  onPreview?: (url: string) => void;
 }) {
   const sanitized = activeTaskTitle
     ? activeTaskTitle
@@ -516,7 +578,8 @@ function TaskInvoicesTabs({
       if (error) throw error;
       return (data || []).map((row) => {
         const meta = parseInvoiceMeta(row.file_name);
-        return { ...row, ...meta } as InvoiceDoc & { file_type: string };
+        const displayName = row.file_name?.includes("||META||") ? row.file_name.split("||META||")[0] : row.file_name;
+        return { ...row, ...meta, file_name: displayName || row.file_name } as InvoiceDoc & { file_type: string };
       });
     },
     enabled: !!projectId && !!activeTaskTitle,
@@ -545,6 +608,8 @@ function TaskInvoicesTabs({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-invoices", projectId, taskId] });
+      queryClient.invalidateQueries({ queryKey: ["category-invoices-total", projectId, tradeId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success(t("budget.invoices.invoiceAdded", "Facture ajoutée"));
     },
   });
@@ -561,6 +626,8 @@ function TaskInvoicesTabs({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-invoices", projectId, taskId] });
+      queryClient.invalidateQueries({ queryKey: ["category-invoices-total", projectId, tradeId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success(t("budget.invoices.invoiceDeleted", "Facture supprimée"));
     },
   });
@@ -590,6 +657,7 @@ function TaskInvoicesTabs({
             uploadMutation={uploadMutation}
             deleteMutation={deleteMutation}
             onFilesSelected={handleFilesSelected}
+            onPreview={onPreview}
             isImage={(type) => type?.startsWith("image/")}
             isPdf={(type) => type === "application/pdf"}
             formatCurrency={formatCurrency}

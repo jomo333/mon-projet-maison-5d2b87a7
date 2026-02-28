@@ -596,20 +596,21 @@ const ProjectGallery = () => {
   const [isUploadingFacture, setIsUploadingFacture] = useState(false);
   const factureInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch factures matériaux (DIY invoices stored under step_id = 'factures-materiaux')
+  // Fetch factures matériaux (DIY) + factures catégories (step_id factures) – tout dans Mes dossiers
   const { data: facturesMateriaux = [], isLoading: facturesLoading } = useQuery({
-    queryKey: ["factures-materiaux", projectId],
+    queryKey: ["factures-all", projectId],
     queryFn: async () => {
       if (!projectId) return [];
-      const { data, error } = await supabase
-        .from("task_attachments")
-        .select("*")
-        .eq("project_id", projectId)
-        .eq("step_id", "factures-materiaux")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
+      const [resMat, resCat] = await Promise.all([
+        supabase.from("task_attachments").select("*").eq("project_id", projectId).eq("step_id", "factures-materiaux").order("created_at", { ascending: false }),
+        supabase.from("task_attachments").select("*").eq("project_id", projectId).eq("step_id", "factures").order("created_at", { ascending: false }),
+      ]);
+      if (resMat.error) throw resMat.error;
+      if (resCat.error) throw resCat.error;
+      const combined = [...(resMat.data || []), ...(resCat.data || [])].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      return combined;
     },
     enabled: !!projectId && !!user && projectBelongsToUser,
   });
@@ -644,7 +645,7 @@ const ProjectGallery = () => {
       if (dbError) throw dbError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success("Facture enregistrée");
     },
     onError: (e: Error) => {
@@ -677,7 +678,7 @@ const ProjectGallery = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures-materiaux", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["factures-all", projectId] });
       toast.success("Facture supprimée");
     },
     onError: (e: Error) => {

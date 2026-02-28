@@ -666,6 +666,13 @@
     "quantity": "Quantity",
     "cost": "Cost",
     "otherItems": "Other items",
+    "budgetIA": "AI Budget",
+    "contingenceShort": "5% contingency",
+    "contingenceIncluded": "Contingency included",
+    "totalWithTaxes": "Total with taxes",
+    "totalPaid": "Total paid",
+    "totalRemaining": "Total remaining",
+    "remainingDesc": "Quote budget − Total paid",
     "contingencyBudget": "Contingency budget (5%)",
     "taxesTpsQst": "Taxes (GST 5% + QST 9.975%)",
     "manageBudgetSubmissions": "Manage budget and submissions",
@@ -703,7 +710,8 @@
       "uploadHint": "Upload your invoices to track expenses",
       "total": "Total",
       "invoiceAdded": "Invoice added",
-      "invoiceDeleted": "Invoice deleted"
+      "invoiceDeleted": "Invoice deleted",
+      "viewInvoice": "View invoice"
     },
     "pdf": {
       "button": "Create budget PDF",

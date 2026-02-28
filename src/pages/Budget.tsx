@@ -690,7 +690,18 @@ const Budget = () => {
 
   // Display values - show 0 if no analysis done
   const displayBudget = hasAnalyzedBudget ? totalBudget : 0;
-  const displayRemaining = hasAnalyzedBudget ? (totalBudget - totalSpent) : 0;
+  const totalBudgetSubmissions = budgetCategories.reduce((acc, cat) => {
+    const tradeId = getCategoryTradeId(cat.name);
+    const amt = supplierInfoMap[tradeId]?.amount;
+    const val = parseFloat(String(amt || "0").replace(/[\s,]/g, "")) || 0;
+    return acc + (val > 0 ? val : cat.budget);
+  }, 0);
+  const displaySubmissions = totalBudgetSubmissions;
+  const displayRemaining = displaySubmissions - totalSpent;
+
+  // Contingence 5%
+  const contingenceIA = displayBudget * 0.05;
+  const contingenceSubmissions = displaySubmissions * 0.05;
 
   // Tax amounts (on HT amounts)
   const budgetTPS = displayBudget * TPS_RATE;
@@ -702,6 +713,7 @@ const Budget = () => {
   const spentTTC = totalSpent * (1 + TAX_RATE);
 
   const remainingTTC = displayRemaining * (1 + TAX_RATE);
+  const submissionsTTC = (displaySubmissions + contingenceSubmissions) * (1 + TAX_RATE);
 
   const pieData = budgetCategories.map((cat) => ({
     name: translateCategoryName(cat.name),
@@ -1034,111 +1046,6 @@ const Budget = () => {
             />
           )}
 
-          {/* Summary Cards - Fourchettes de prix ±15% */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Budget estimé */}
-            <Card className="animate-fade-in">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t("budget.estimatedBudget")}
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {hasAnalyzedBudget ? (
-                  <>
-                    <div className="text-xl font-bold font-display">
-                      {formatCurrency(Math.round(displayBudget * 0.90))} à {formatCurrency(Math.round(displayBudget * 1.10))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{t("budget.budgetRange")}</p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.budgetIncludes")}</p>
-                    {/* Taxes breakdown */}
-                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
-                      <p className="text-xs text-muted-foreground/80">
-                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold">{formatCurrency(Math.round(budgetTTC * 100) / 100)}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(budgetTPS * 100) / 100)} · TVQ : {formatCurrency(Math.round(budgetTVQ * 100) / 100)}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{t("budget.noAnalysis")}</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Dépensées */}
-            <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t("budget.spent")}
-                </CardTitle>
-                <TrendingDown className="h-4 w-4 text-accent" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold font-display text-accent">
-                  {formatCurrency(totalSpent)}
-                </div>
-                <Progress value={percentUsed} className="mt-2 h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {percentUsed.toFixed(1)}% {t("budget.percentUsed")}
-                </p>
-                {totalSpent > 0 && (
-                  <>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{t("budget.spentIncludes")}</p>
-                    {/* Taxes breakdown */}
-                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
-                      <p className="text-xs text-muted-foreground/80">
-                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold">{formatCurrency(Math.round(spentTTC * 100) / 100)}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(spentTPS * 100) / 100)} · TVQ : {formatCurrency(Math.round(spentTVQ * 100) / 100)}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Restant estimé */}
-            <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t("budget.estimatedRemaining")}
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
-              </CardHeader>
-              <CardContent>
-                {hasAnalyzedBudget ? (
-                  <>
-                    <div className="text-xl font-bold font-display text-success">
-                      {formatCurrency(Math.round(displayRemaining * 0.90))} à {formatCurrency(Math.round(displayRemaining * 1.10))}
-                    </div>
-                    <p className="text-xs text-muted-foreground/70 mt-1 italic">{t("budget.remainingIncludes")}</p>
-                    {/* Taxes breakdown */}
-                    <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
-                      <p className="text-xs text-muted-foreground/80">
-                        <span className="font-medium">Avec taxes (TPS+TVQ) :</span>{" "}
-                        <span className="font-semibold text-success">{formatCurrency(Math.round(remainingTTC * 100) / 100)}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        TPS : {formatCurrency(Math.round(displayRemaining * TPS_RATE * 100) / 100)} · TVQ : {formatCurrency(Math.round(displayRemaining * TVQ_RATE * 100) / 100)}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-2xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Add Expense Form */}
           {showAddExpense && (
             <Card className="animate-scale-in border-accent/50">
@@ -1211,7 +1118,84 @@ const Budget = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <Alert className="mx-4 mt-4 mb-2 border-primary/30 bg-primary/5">
+              {/* 4 cartes en haut : Budget IA, Budget soumissions, Total payé, Total restant */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mx-4 mt-4 mb-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      {t("budget.budgetIA", "Budget IA")}
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {hasAnalyzedBudget ? (
+                      <>
+                        <div className="text-xl font-bold font-display">{formatCurrency(Math.round(displayBudget))}</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">+ {formatCurrency(Math.round(contingenceIA))} {t("budget.contingenceShort", "contingence 5%")}</p>
+                        <p className="text-xs text-muted-foreground/70 italic">{t("budget.contingenceIncluded", "Contingence inclus")}</p>
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-xs"><span className="font-medium">{t("budget.totalWithTaxes", "Total avec taxes")} :</span> <span className="font-semibold">{formatCurrency(Math.round((displayBudget + contingenceIA) * (1 + TAX_RATE) * 100) / 100)}</span></p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-xl font-bold font-display text-muted-foreground">{formatCurrency(0)}</div>
+                        <p className="text-xs text-muted-foreground">{t("budget.noAnalysis")}</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      {t("budget.budgetSubmissions")}
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xl font-bold font-display">{formatCurrency(Math.round(displaySubmissions))}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">+ {formatCurrency(Math.round(contingenceSubmissions))} {t("budget.contingenceShort", "contingence 5%")}</p>
+                    <p className="text-xs text-muted-foreground/70 italic">{t("budget.contingenceIncluded", "Contingence inclus")}</p>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-xs"><span className="font-medium">{t("budget.totalWithTaxes", "Total avec taxes")} :</span> <span className="font-semibold">{formatCurrency(Math.round(submissionsTTC * 100) / 100)}</span></p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      {t("budget.totalPaid", "Total payé")}
+                      <TrendingDown className="h-4 w-4 text-accent" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xl font-bold font-display text-accent">{formatCurrency(totalSpent)}</div>
+                    <Progress value={displaySubmissions > 0 ? Math.min((totalSpent / displaySubmissions) * 100, 100) : 0} className="mt-2 h-2" />
+                    <p className="text-xs text-muted-foreground mt-1">{displaySubmissions > 0 ? ((totalSpent / displaySubmissions) * 100).toFixed(1) : 0}% {t("budget.percentUsed")}</p>
+                    {totalSpent > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <p className="text-xs"><span className="font-medium">{t("budget.totalWithTaxes", "Total avec taxes")} :</span> <span className="font-semibold">{formatCurrency(Math.round(spentTTC * 100) / 100)}</span></p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                      {t("budget.totalRemaining", "Total restant")}
+                      <TrendingUp className="h-4 w-4 text-success" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xl font-bold font-display text-success">{formatCurrency(Math.round(Math.max(0, displayRemaining)))}</div>
+                    <p className="text-xs text-muted-foreground/70 italic">{t("budget.remainingDesc", "Budget soumissions − Total payé")}</p>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-xs"><span className="font-medium">{t("budget.totalWithTaxes", "Total avec taxes")} :</span> <span className="font-semibold text-success">{formatCurrency(Math.round(Math.max(0, remainingTTC) * 100) / 100)}</span></p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <Alert className="mx-4 mb-4 border-primary/30 bg-primary/5">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertDescription>
                   {t("budget.detailedBudgetHowTo")}

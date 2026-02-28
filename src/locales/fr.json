@@ -666,6 +666,13 @@
     "quantity": "Quantité",
     "cost": "Coût",
     "otherItems": "Autres éléments",
+    "budgetIA": "Budget IA",
+    "contingenceShort": "contingence 5%",
+    "contingenceIncluded": "Contingence inclus",
+    "totalWithTaxes": "Total avec taxes",
+    "totalPaid": "Total payé",
+    "totalRemaining": "Total restant",
+    "remainingDesc": "Budget soumissions − Total payé",
     "contingencyBudget": "Budget imprévu (5%)",
     "taxesTpsQst": "Taxes (TPS 5% + TVQ 9,975%)",
     "manageBudgetSubmissions": "Gérer budget et soumissions",
@@ -702,7 +709,8 @@
       "uploadHint": "Téléchargez vos factures pour suivre vos dépenses",
       "total": "Total",
       "invoiceAdded": "Facture ajoutée",
-      "invoiceDeleted": "Facture supprimée"
+      "invoiceDeleted": "Facture supprimée",
+      "viewInvoice": "Voir la facture"
     },
     "pdf": {
       "button": "Créer un bilan PDF",

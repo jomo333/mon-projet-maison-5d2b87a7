@@ -2595,6 +2595,8 @@ export function CategorySubmissionsDialog({
                           uploadingItemId={uploadingDIYItemId}
                         />
                   </TabsContent>
+                </Tabs>
+              </div>
             )}
 
             {/* DIY Mode Section - Show when viewing a DIY sub-category */}

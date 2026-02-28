@@ -232,7 +232,6 @@ const TERM_TRANSLATIONS: Record<string, string> = {
   "ébénisterie": "cabinetry",
   "coulage": "pouring",
   "fourniture": "supply",
-  "fournitures": "supplies",
 
   // Connectors (translate last to avoid breaking compound terms)
   "de": "of",

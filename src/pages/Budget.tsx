@@ -690,13 +690,20 @@ const Budget = () => {
 
   // Display values - show 0 if no analysis done
   const displayBudget = hasAnalyzedBudget ? totalBudget : 0;
+  // Budget soumissions : uniquement coût des devis/soumissions téléchargés (pas de budget IA)
   const totalBudgetSubmissions = budgetCategories.reduce((acc, cat) => {
     const tradeId = getCategoryTradeId(cat.name);
     const amt = supplierInfoMap[tradeId]?.amount;
     const val = parseFloat(String(amt || "0").replace(/[\s,]/g, "")) || 0;
-    return acc + (val > 0 ? val : cat.budget);
+    return acc + val;
   }, 0);
   const displaySubmissions = totalBudgetSubmissions;
+  const missingSubmissionsCount = budgetCategories.filter((cat) => {
+    const tradeId = getCategoryTradeId(cat.name);
+    const amt = supplierInfoMap[tradeId]?.amount;
+    const val = parseFloat(String(amt || "0").replace(/[\s,]/g, "")) || 0;
+    return val <= 0;
+  }).length;
   const displayRemaining = displaySubmissions - totalSpent;
 
   // Contingence 5%
@@ -1154,6 +1161,12 @@ const Budget = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-xl font-bold font-display">{formatCurrency(Math.round(displaySubmissions))}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t("budget.submissionsOnly", "Devis/soumissions uniquement")}</p>
+                    <p className={`text-xs font-medium mt-0.5 ${missingSubmissionsCount > 0 ? 'text-amber-600 dark:text-amber-500' : 'text-green-600 dark:text-green-500'}`}>
+                      {missingSubmissionsCount > 0
+                        ? `${missingSubmissionsCount} ${t("budget.submissionsMissing", "soumission(s) manquante(s)")}`
+                        : t("budget.allSubmissionsReceived", "Toutes les soumissions reçues")}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">+ {formatCurrency(Math.round(contingenceSubmissions))} {t("budget.contingenceShort", "contingence 5%")}</p>
                     <p className="text-xs text-muted-foreground/70 italic">{t("budget.contingenceIncluded", "Contingence inclus")}</p>
                     <div className="mt-2 pt-2 border-t">
@@ -1232,6 +1245,12 @@ const Budget = () => {
                       category.description.trim() !== stepTasksText.trim();
 
                     const displayItems = aggregateBudgetItemsForDisplay(category.items || []);
+                    const tradeId = getCategoryTradeId(category.name);
+                    const hasSubmission = (() => {
+                      const amt = supplierInfoMap[tradeId]?.amount;
+                      const val = parseFloat(String(amt || "0").replace(/[\s,]/g, "")) || 0;
+                      return val > 0;
+                    })();
 
                     return (
                       <Collapsible 
@@ -1239,7 +1258,7 @@ const Budget = () => {
                         open={isExpanded} 
                         onOpenChange={() => toggleCategory(category.name)}
                       >
-                        <div className={`hover:bg-muted/50 transition-colors ${isExpanded ? 'bg-muted/30' : ''}`}>
+                        <div className={`hover:bg-muted/50 transition-colors border-l-4 ${hasSubmission ? 'border-l-green-500 bg-green-50/30 dark:bg-green-950/20' : 'border-l-amber-500 bg-amber-50/30 dark:bg-amber-950/20'} ${isExpanded ? 'bg-muted/20' : ''}`}>
                           <div className="flex items-center gap-4 p-4">
                             <CollapsibleTrigger asChild>
                               <div className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer">
@@ -1259,6 +1278,16 @@ const Budget = () => {
                                     {isNearLimit && (
                                       <Badge variant="secondary" className="text-xs bg-warning/10 text-warning">
                                         {t("common.warning")}
+                                      </Badge>
+                                    )}
+                                    {hasSubmission && (
+                                      <Badge variant="outline" className="text-xs border-green-500 text-green-700 dark:text-green-400">
+                                        {t("budget.submissionReceived", "Devis reçu")}
+                                      </Badge>
+                                    )}
+                                    {!hasSubmission && (
+                                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400">
+                                        {t("budget.submissionMissing", "Devis manquant")}
                                       </Badge>
                                     )}
                                   </div>

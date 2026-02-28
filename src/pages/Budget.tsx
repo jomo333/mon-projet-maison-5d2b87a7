@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PlanAnalyzer, PlanAnalyzerHandle } from "@/components/budget/PlanAnalyzer";
 
 import { CategorySubmissionsDialog } from "@/components/budget/CategorySubmissionsDialog";
+import { CategoryInvoicesDialog } from "@/components/budget/CategoryInvoicesDialog";
 import { BudgetPdfExportDialog } from "@/components/budget/BudgetPdfExportDialog";
 import { GenerateScheduleDialog } from "@/components/schedule/GenerateScheduleDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -164,6 +165,8 @@ const Budget = () => {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<BudgetCategory | null>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [editingCategoryForInvoices, setEditingCategoryForInvoices] = useState<BudgetCategory | null>(null);
+  const [showInvoicesDialog, setShowInvoicesDialog] = useState(false);
   const [showPdfExport, setShowPdfExport] = useState(false);
   const [diyItemKeys, setDiyItemKeys] = useState<string[]>([]);
   const [excludedFromBilanKeys, setExcludedFromBilanKeys] = useState<string[]>([]);
@@ -758,14 +761,71 @@ const Budget = () => {
 
   const handleEditCategory = (category: BudgetCategory, e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("[Budget] handleEditCategory called:", { categoryName: category.name, selectedProjectId });
     if (!selectedProjectId) {
-      console.warn("[Budget] No project selected - dialog cannot open");
       toast.error(t("toasts.noProjectSelected"));
       return;
     }
     setEditingCategory(category);
     setShowCategoryDialog(true);
+  };
+
+  const handleOpenInvoices = (category: BudgetCategory, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedProjectId) {
+      toast.error(t("toasts.noProjectSelected"));
+      return;
+    }
+    setEditingCategoryForInvoices(category);
+    setShowInvoicesDialog(true);
+  };
+
+  const handleOpenSubmissionsFromInvoices = () => {
+    const cat = editingCategoryForInvoices;
+    if (!cat) return;
+    setShowInvoicesDialog(false);
+    setEditingCategoryForInvoices(null);
+    setEditingCategory(cat);
+    setShowCategoryDialog(true);
+  };
+
+  const handleSaveInvoicesFromDialog = async (spent: number) => {
+    const cat = editingCategoryForInvoices;
+    if (!cat || !selectedProjectId) return;
+    setBudgetCategories((prev) =>
+      prev.map((c) => (c.name === cat.name ? { ...c, spent } : c))
+    );
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("project_budgets")
+      .update({ spent })
+      .eq("project_id", selectedProjectId)
+      .eq("category_name", cat.name)
+      .select("id");
+    if (updateError) throw updateError;
+    if (!updatedRows || updatedRows.length === 0) {
+      await supabase.from("project_budgets").insert({
+        project_id: selectedProjectId,
+        category_name: cat.name,
+        budget: cat.budget,
+        spent,
+        color: cat.color,
+        description: cat.description || null,
+        items: JSON.parse(JSON.stringify(cat.items || [])) as Json,
+      });
+    }
+    const { data: allBudgets, error: sumError } = await supabase
+      .from("project_budgets")
+      .select("budget")
+      .eq("project_id", selectedProjectId);
+    if (sumError) throw sumError;
+    const totalBudget = (allBudgets || []).reduce(
+      (acc, row) => acc + Number((row as any).budget || 0),
+      0
+    );
+    await supabase
+      .from("projects")
+      .update({ total_budget: totalBudget, updated_at: new Date().toISOString() })
+      .eq("id", selectedProjectId);
+    queryClient.invalidateQueries({ queryKey: ["project-budget", selectedProjectId] });
   };
 
   const handleSaveCategoryFromDialog = async (
@@ -1260,10 +1320,7 @@ const Budget = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditCategory(category, e);
-                                }}
+                                onClick={(e) => handleOpenInvoices(category, e)}
                                 disabled={!selectedProjectId}
                                 title={selectedProjectId ? t("budget.addInvoices", "Ajouter vos factures") : t("toasts.noProjectSelected")}
                                 className={!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}
@@ -1650,6 +1707,24 @@ const Budget = () => {
               currentSpent={editingCategory.spent}
               manualTaskTitles={editingCategory.name === "Autre" ? (editingCategory.items ?? []).map(i => i.name) : undefined}
               onSave={handleSaveCategoryFromDialog}
+            />
+          )}
+
+          {/* Category Invoices Dialog – carte factures avec historique et lien vers soumission retenue */}
+          {editingCategoryForInvoices && selectedProjectId && (
+            <CategoryInvoicesDialog
+              open={showInvoicesDialog}
+              onOpenChange={(open) => {
+                setShowInvoicesDialog(open);
+                if (!open) setEditingCategoryForInvoices(null);
+              }}
+              projectId={selectedProjectId}
+              categoryName={editingCategoryForInvoices.name}
+              categoryColor={editingCategoryForInvoices.color}
+              currentSpent={editingCategoryForInvoices.spent}
+              manualTaskTitles={editingCategoryForInvoices.name === "Autre" ? (editingCategoryForInvoices.items ?? []).map(i => i.name) : undefined}
+              onSave={handleSaveInvoicesFromDialog}
+              onOpenSubmissions={handleOpenSubmissionsFromInvoices}
             />
           )}
 
